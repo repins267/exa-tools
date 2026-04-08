@@ -157,3 +157,27 @@ def frameworks() -> None:
             console.print(f"  {fw_id:<20} {fw.name:<35} ({testable} testable controls)")
         except Exception:
             console.print(f"  {fw_id:<20} (load error)", style="red")
+
+
+# -- Dev (internal only) ------------------------------------------------------
+
+dev_app = typer.Typer(name="dev", help="Internal development commands (requires @exabeam.com).", no_args_is_help=True)
+app.add_typer(dev_app)
+
+
+@dev_app.command()
+def connect() -> None:
+    """Connect using EXA_CLIENT_ID/EXA_CLIENT_SECRET env vars (internal only)."""
+    import time
+
+    from exa.internal.dev import get_dev_client_from_env
+
+    try:
+        client = get_dev_client_from_env()
+        ttl = int(client._expires_at - time.time())
+        console.print("Connected (internal tier)", style="green")
+        console.print(f"  Token expires in {ttl}s")
+        client.close()
+    except Exception as e:
+        console.print(f"Failed: {e}", style="red")
+        raise typer.Exit(1)
