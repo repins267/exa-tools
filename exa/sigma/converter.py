@@ -383,3 +383,29 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
         "warnings": warnings,
         "deploy_ready": deploy_ready,
     }
+
+
+def to_api_payload(exa_rule: dict[str, Any], *, enabled: bool = False) -> dict[str, Any]:
+    """Convert exa_rule dict to the Exabeam correlation rules API payload.
+
+    Matches the POST /correlation-rules/v2/rules body schema from
+    New-ExaCorrelationRule.ps1.
+    """
+    return {
+        "name": exa_rule["name"],
+        "description": exa_rule["description"],
+        "severity": exa_rule["severity"].lower(),
+        "enabled": enabled,
+        "sequencesConfig": {
+            "sequences": [
+                {
+                    "name": "Sequence 1",
+                    "query": exa_rule["eql_query"],
+                    "condition": {
+                        "triggerOnAnyMatch": True,
+                    },
+                }
+            ],
+            "sequencesExecution": "CREATION_ORDER",
+        },
+    }
