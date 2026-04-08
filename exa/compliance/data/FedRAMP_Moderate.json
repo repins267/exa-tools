@@ -1,0 +1,2486 @@
+{
+    "Name": "FedRAMP Moderate Baseline",
+    "Framework": "FedRAMP_Moderate",
+    "Source": "NIST SP 800-53 Rev 5",
+    "Version": "Moderate",
+    "ControlCount": 350,
+    "SiemValidatableCount": 145,
+    "ImportDate": "2026-03-24 00:00:00",
+    "SourceFile": "FedRAMP_rev5_Moderate_Baseline.xlsx",
+    "SourceHash": "DB94142FD23ACF92478B4B526ED5504D4BAC57A744D4F67302BF1D87BF0D4D94",
+    "SourceSize": 15996,
+    "SourceUrl": "https://www.fedramp.gov/assets/resources/documents/FedRAMP_Security_Controls_Baseline.xlsx",
+    "Families": [
+        "Access Control (AC)",
+        "Awareness & Training (AT)",
+        "Audit & Accountability (AU)",
+        "Security Assessment & Authorization (CA)",
+        "Configuration Management (CM)",
+        "Contingency Planning (CP)",
+        "Identification & Authentication (IA)",
+        "Incident Response (IR)",
+        "Maintenance (MA)",
+        "Media Protection (MP)",
+        "Physical & Environmental Protection (PE)",
+        "Planning (PL)",
+        "Program Management (PM)",
+        "Personnel Security (PS)",
+        "Risk Assessment (RA)",
+        "System & Services Acquisition (SA)",
+        "System & Communications Protection (SC)",
+        "System & Information Integrity (SI)",
+        "Supply Chain Risk Management (SR)"
+    ],
+    "Controls": [
+        {
+            "ControlId": "AC-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-2",
+            "ControlName": "Account Management",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(1)",
+            "ControlName": "Automated System Account Management",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(2)",
+            "ControlName": "Automated Temporary and Emergency Account Management",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(3)",
+            "ControlName": "Disable Accounts",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(4)",
+            "ControlName": "Automated Audit Actions",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(5)",
+            "ControlName": "Inactivity Logout",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(12)",
+            "ControlName": "Account Monitoring for Atypical Usage",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-2(13)",
+            "ControlName": "Disable Accounts for High-Risk Individuals",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-3",
+            "ControlName": "Access Enforcement",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-4",
+            "ControlName": "Information Flow Enforcement",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-5",
+            "ControlName": "Separation of Duties",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6",
+            "ControlName": "Least Privilege",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(1)",
+            "ControlName": "Authorize Access to Security Functions",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(2)",
+            "ControlName": "Non-Privileged Access for Nonsecurity Functions",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(5)",
+            "ControlName": "Privileged Accounts",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(7)",
+            "ControlName": "Review of User Privileges",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(9)",
+            "ControlName": "Log Use of Privileged Functions",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-6(10)",
+            "ControlName": "Prohibit Non-Privileged Users from Executing Privileged Functions",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-7",
+            "ControlName": "Unsuccessful Logon Attempts",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-8",
+            "ControlName": "System Use Notification",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-10",
+            "ControlName": "Concurrent Session Control",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-11",
+            "ControlName": "Device Lock",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-11(1)",
+            "ControlName": "Pattern-Hiding Displays",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-12",
+            "ControlName": "Session Termination",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-14",
+            "ControlName": "Permitted Actions Without Identification or Authentication",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-17",
+            "ControlName": "Remote Access",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-17(1)",
+            "ControlName": "Monitoring and Control",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-17(2)",
+            "ControlName": "Protection of Confidentiality and Integrity Using Encryption",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-17(3)",
+            "ControlName": "Managed Access Control Points",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-17(4)",
+            "ControlName": "Privileged Commands and Access",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-18",
+            "ControlName": "Wireless Access",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AC-18(1)",
+            "ControlName": "Authentication and Encryption",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-19",
+            "ControlName": "Access Control for Mobile Devices",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-19(5)",
+            "ControlName": "Full Device or Container-Based Encryption",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-20",
+            "ControlName": "Use of External Systems",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-20(1)",
+            "ControlName": "Limits on Authorized Use",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-20(2)",
+            "ControlName": "Portable Storage Devices \u2014 Restricted Use",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-21",
+            "ControlName": "Information Sharing",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AC-22",
+            "ControlName": "Publicly Accessible Content",
+            "Family": "Access Control (AC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-2",
+            "ControlName": "Literacy Training and Awareness",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-2(2)",
+            "ControlName": "Insider Threat",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-2(3)",
+            "ControlName": "Social Engineering and Mining",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-3",
+            "ControlName": "Role-Based Training",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AT-4",
+            "ControlName": "Training Records",
+            "Family": "Awareness & Training (AT)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AU-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "AU-2",
+            "ControlName": "Event Logging",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-3",
+            "ControlName": "Content of Audit Records",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-3(1)",
+            "ControlName": "Additional Audit Information",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-4",
+            "ControlName": "Audit Log Storage Capacity",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-5",
+            "ControlName": "Response to Audit Logging Process Failures",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-5(1)",
+            "ControlName": "Storage Capacity Warning",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-5(2)",
+            "ControlName": "Real-Time Alerts",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-6",
+            "ControlName": "Audit Record Review, Analysis, and Reporting",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-6(1)",
+            "ControlName": "Automated Process Integration",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-6(3)",
+            "ControlName": "Correlate Audit Record Repositories",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-7",
+            "ControlName": "Audit Record Reduction and Report Generation",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-7(1)",
+            "ControlName": "Automatic Processing",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-8",
+            "ControlName": "Time Stamps",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-9",
+            "ControlName": "Protection of Audit Information",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-9(4)",
+            "ControlName": "Access by Subset of Privileged Users",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-11",
+            "ControlName": "Audit Record Retention",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-12",
+            "ControlName": "Audit Record Generation",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-12(1)",
+            "ControlName": "System-Wide and Time-Correlated Audit Trail",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "AU-12(3)",
+            "ControlName": "Changes by Authorized Individuals",
+            "Family": "Audit & Accountability (AU)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CA-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-2",
+            "ControlName": "Control Assessments",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-2(1)",
+            "ControlName": "Independent Assessors",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-3",
+            "ControlName": "Information Exchange",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-5",
+            "ControlName": "Plan of Action and Milestones",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-6",
+            "ControlName": "Authorization",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-7",
+            "ControlName": "Continuous Monitoring",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CA-7(1)",
+            "ControlName": "Independent Assessment",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-7(4)",
+            "ControlName": "Risk Monitoring",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CA-8",
+            "ControlName": "Penetration Testing",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CA-9",
+            "ControlName": "Internal System Connections",
+            "Family": "Security Assessment & Authorization (CA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-2",
+            "ControlName": "Baseline Configuration",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-2(2)",
+            "ControlName": "Automation Support for Accuracy and Currency",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-2(3)",
+            "ControlName": "Retention of Previous Configurations",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-2(7)",
+            "ControlName": "Configure Systems and Components for High-Risk Areas",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-3",
+            "ControlName": "Configuration Change Control",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-3(1)",
+            "ControlName": "Automated Documentation, Notification, and Prohibition of Changes",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-3(2)",
+            "ControlName": "Testing, Validation, and Documentation of Changes",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-3(4)",
+            "ControlName": "Security and Privacy Representatives",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-3(6)",
+            "ControlName": "Cryptography Management",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-4",
+            "ControlName": "Impact Analyses",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-5",
+            "ControlName": "Access Restrictions for Change",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-6",
+            "ControlName": "Configuration Settings",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-6(1)",
+            "ControlName": "Automated Management, Application, and Verification",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-7",
+            "ControlName": "Least Functionality",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-7(1)",
+            "ControlName": "Periodic Review",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-7(2)",
+            "ControlName": "Prevent Program Execution",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-7(5)",
+            "ControlName": "Authorized Software \u2014 Allow-by-Exception",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-8",
+            "ControlName": "System Component Inventory",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-8(1)",
+            "ControlName": "Updates During Installation and Removal",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-8(3)",
+            "ControlName": "Automated Unauthorized Component Detection",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-9",
+            "ControlName": "Configuration Management Plan",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-10",
+            "ControlName": "Software Usage Restrictions",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CM-11",
+            "ControlName": "User-Installed Software",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CM-12",
+            "ControlName": "Information Location",
+            "Family": "Configuration Management (CM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2",
+            "ControlName": "Contingency Plan",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2(1)",
+            "ControlName": "Coordinate with Related Plans",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2(2)",
+            "ControlName": "Capacity Planning",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2(3)",
+            "ControlName": "Resume Mission and Business Functions",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2(5)",
+            "ControlName": "Continue Mission and Business Functions",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-2(8)",
+            "ControlName": "Identify Critical Assets",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-3",
+            "ControlName": "Contingency Training",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-4",
+            "ControlName": "Contingency Plan Testing",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-4(1)",
+            "ControlName": "Coordinate with Related Plans",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-6",
+            "ControlName": "Alternate Storage Site",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-6(1)",
+            "ControlName": "Separation from Primary Site",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-6(3)",
+            "ControlName": "Accessibility",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-7",
+            "ControlName": "Alternate Processing Site",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-7(1)",
+            "ControlName": "Separation from Primary Site",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-7(2)",
+            "ControlName": "Accessibility",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-7(3)",
+            "ControlName": "Priority of Service",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-8",
+            "ControlName": "Telecommunications Services",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-8(1)",
+            "ControlName": "Priority of Service Provisions",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-8(2)",
+            "ControlName": "Single Points of Failure",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-9",
+            "ControlName": "System Backup",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "CP-9(1)",
+            "ControlName": "Testing for Reliability and Integrity",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-9(3)",
+            "ControlName": "Separate Storage for Critical Information",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-9(5)",
+            "ControlName": "Transfer to Alternate Storage Site",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-9(8)",
+            "ControlName": "Cryptographic Protection",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-10",
+            "ControlName": "System Recovery and Reconstitution",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "CP-10(2)",
+            "ControlName": "Transaction Recovery",
+            "Family": "Contingency Planning (CP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-2",
+            "ControlName": "Identification and Authentication (Organizational Users)",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-2(1)",
+            "ControlName": "Multi-Factor Authentication to Privileged Accounts",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-2(2)",
+            "ControlName": "Multi-Factor Authentication to Non-Privileged Accounts",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-2(5)",
+            "ControlName": "Individual Authentication with Group Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-2(8)",
+            "ControlName": "Access to Accounts \u2014 Replay Resistant",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-2(12)",
+            "ControlName": "Acceptance of PIV Credentials",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-3",
+            "ControlName": "Device Identification and Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-4",
+            "ControlName": "Identifier Management",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-4(4)",
+            "ControlName": "Identify User Status",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-5",
+            "ControlName": "Authenticator Management",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-5(1)",
+            "ControlName": "Password-Based Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-5(2)",
+            "ControlName": "Public Key-Based Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-5(6)",
+            "ControlName": "Protection of Authenticators",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-5(7)",
+            "ControlName": "No Embedded Unencrypted Static Authenticators",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-5(8)",
+            "ControlName": "Multiple System Accounts",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-5(13)",
+            "ControlName": "Expiration of Cached Authenticators",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-6",
+            "ControlName": "Authentication Feedback",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-7",
+            "ControlName": "Cryptographic Module Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-8",
+            "ControlName": "Identification and Authentication (Non-Organizational Users)",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-8(1)",
+            "ControlName": "Acceptance of PIV Credentials from Other Agencies",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-8(2)",
+            "ControlName": "Acceptance of External Authenticators",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-8(4)",
+            "ControlName": "Use of Defined Profiles",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-11",
+            "ControlName": "Re-Authentication",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IA-12",
+            "ControlName": "Identity Proofing",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-12(2)",
+            "ControlName": "Identity Evidence",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-12(3)",
+            "ControlName": "Identity Evidence Validation and Verification",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IA-12(5)",
+            "ControlName": "Address Confirmation",
+            "Family": "Identification & Authentication (IA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-2",
+            "ControlName": "Incident Response Training",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-2(1)",
+            "ControlName": "Simulated Events",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-2(2)",
+            "ControlName": "Automated Training Environments",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-3",
+            "ControlName": "Incident Response Testing",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-3(2)",
+            "ControlName": "Coordination with Related Plans",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-4",
+            "ControlName": "Incident Handling",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-4(1)",
+            "ControlName": "Automated Incident Handling Processes",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-4(4)",
+            "ControlName": "Information Correlation",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-5",
+            "ControlName": "Incident Monitoring",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-5(1)",
+            "ControlName": "Automated Tracking, Data Collection, and Analysis",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-6",
+            "ControlName": "Incident Reporting",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-6(1)",
+            "ControlName": "Automated Reporting",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "IR-6(3)",
+            "ControlName": "Supply Chain Coordination",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-7",
+            "ControlName": "Incident Response Assistance",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-7(1)",
+            "ControlName": "Automation Support for Availability of Information and Support",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "IR-8",
+            "ControlName": "Incident Response Plan",
+            "Family": "Incident Response (IR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-2",
+            "ControlName": "Controlled Maintenance",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-3",
+            "ControlName": "Maintenance Tools",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-3(1)",
+            "ControlName": "Inspect Tools",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-3(2)",
+            "ControlName": "Inspect Media",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-3(3)",
+            "ControlName": "Prevent Unauthorized Removal",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-4",
+            "ControlName": "Nonlocal Maintenance",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "MA-5",
+            "ControlName": "Maintenance Personnel",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-5(1)",
+            "ControlName": "Individuals Without Appropriate Access",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MA-6",
+            "ControlName": "Timely Maintenance",
+            "Family": "Maintenance (MA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-2",
+            "ControlName": "Media Access",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-3",
+            "ControlName": "Media Marking",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-4",
+            "ControlName": "Media Storage",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-5",
+            "ControlName": "Media Transport",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-6",
+            "ControlName": "Media Sanitization",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-6(2)",
+            "ControlName": "Equipment Testing",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "MP-7",
+            "ControlName": "Media Use",
+            "Family": "Media Protection (MP)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-2",
+            "ControlName": "Physical Access Authorizations",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-3",
+            "ControlName": "Physical Access Control",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-3(1)",
+            "ControlName": "System Access",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-4",
+            "ControlName": "Access Control for Transmission",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-5",
+            "ControlName": "Access Control for Output Devices",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-6",
+            "ControlName": "Monitoring Physical Access",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-6(1)",
+            "ControlName": "Intrusion Alarms and Surveillance Equipment",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-6(4)",
+            "ControlName": "Monitoring Physical Access to Systems",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-8",
+            "ControlName": "Visitor Access Records",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-9",
+            "ControlName": "Power Equipment and Cabling",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-10",
+            "ControlName": "Emergency Shutoff",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-11",
+            "ControlName": "Emergency Power",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-11(1)",
+            "ControlName": "Alternate Power Supply \u2014 Self-Contained",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-12",
+            "ControlName": "Emergency Lighting",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-13",
+            "ControlName": "Fire Protection",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-13(1)",
+            "ControlName": "Detection Systems \u2014 Automatic Activation and Notification",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-13(2)",
+            "ControlName": "Suppression Systems \u2014 Automatic Activation and Notification",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-13(3)",
+            "ControlName": "Automatic Fire Suppression",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-14",
+            "ControlName": "Environmental Controls",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-14(2)",
+            "ControlName": "Monitoring with Alarms and Notifications",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PE-15",
+            "ControlName": "Water Damage Protection",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-16",
+            "ControlName": "Delivery and Removal",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PE-17",
+            "ControlName": "Alternate Work Site",
+            "Family": "Physical & Environmental Protection (PE)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-2",
+            "ControlName": "System Security and Privacy Plans",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-2(3)",
+            "ControlName": "Plan and Coordinate with Other Organizational Entities",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-4",
+            "ControlName": "Rules of Behavior",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-4(1)",
+            "ControlName": "Social Media and External Site/Application Usage Restrictions",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-10",
+            "ControlName": "Baseline Selection",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PL-11",
+            "ControlName": "Baseline Tailoring",
+            "Family": "Planning (PL)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-1",
+            "ControlName": "Information Security Program Plan",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-2",
+            "ControlName": "Information Security Program Leadership Role",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-3",
+            "ControlName": "Information Security and Privacy Resources",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-4",
+            "ControlName": "Plan of Action and Milestones Process",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-5",
+            "ControlName": "System Inventory",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-5(1)",
+            "ControlName": "Inventory of Personally Identifiable Information",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-6",
+            "ControlName": "Measures of Performance",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-7",
+            "ControlName": "Enterprise Architecture",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-8",
+            "ControlName": "Critical Infrastructure Plan",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-9",
+            "ControlName": "Risk Management Strategy",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-10",
+            "ControlName": "Authorization Process",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-11",
+            "ControlName": "Mission and Business Process Definition",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-14",
+            "ControlName": "Testing, Training, and Monitoring",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-15",
+            "ControlName": "Security and Privacy Groups and Associations",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-16",
+            "ControlName": "Threat Awareness Program",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PM-25",
+            "ControlName": "Minimization of Personally Identifiable Information Used in Testing, Training, and Research",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-28",
+            "ControlName": "Risk Framing",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-30",
+            "ControlName": "Supply Chain Risk Management Strategy",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PM-31",
+            "ControlName": "Continuous Monitoring Strategy",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PM-32",
+            "ControlName": "Purposing",
+            "Family": "Program Management (PM)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-2",
+            "ControlName": "Position Risk Designation",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-3",
+            "ControlName": "Personnel Screening",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-4",
+            "ControlName": "Personnel Termination",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PS-4(2)",
+            "ControlName": "Automated Actions",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PS-5",
+            "ControlName": "Personnel Transfer",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "PS-6",
+            "ControlName": "Access Agreements",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-7",
+            "ControlName": "External Personnel Security",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-8",
+            "ControlName": "Personnel Sanctions",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "PS-9",
+            "ControlName": "Position Descriptions",
+            "Family": "Personnel Security (PS)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-2",
+            "ControlName": "Security Categorization",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-3",
+            "ControlName": "Risk Assessment",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-3(1)",
+            "ControlName": "Supply Chain Risk Assessment",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-5",
+            "ControlName": "Vulnerability Monitoring and Scanning",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "RA-5(2)",
+            "ControlName": "Update Vulnerabilities to Be Scanned",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "RA-5(3)",
+            "ControlName": "Breadth and Depth of Coverage",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "RA-5(5)",
+            "ControlName": "Privileged Access",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "RA-5(11)",
+            "ControlName": "Public Disclosure Program",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-7",
+            "ControlName": "Risk Response",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "RA-9",
+            "ControlName": "Criticality Analysis",
+            "Family": "Risk Assessment (RA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-2",
+            "ControlName": "Allocation of Resources",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-3",
+            "ControlName": "System Development Life Cycle",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-4",
+            "ControlName": "Acquisition Process",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-4(1)",
+            "ControlName": "Functional Properties of Controls",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-4(2)",
+            "ControlName": "Design and Implementation Information for Controls",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-4(5)",
+            "ControlName": "System, Component, and Service Configurations",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-4(9)",
+            "ControlName": "Functions, Ports, Protocols, and Services in Use",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SA-4(10)",
+            "ControlName": "Use of Approved PIV Products",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-5",
+            "ControlName": "System Documentation",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-8",
+            "ControlName": "Security and Privacy Engineering Principles",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-9",
+            "ControlName": "External System Services",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-9(2)",
+            "ControlName": "Identification of Functions, Ports, Protocols, and Services",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SA-10",
+            "ControlName": "Developer Configuration Management",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-11",
+            "ControlName": "Developer Testing and Evaluation",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SA-22",
+            "ControlName": "Unsupported System Components",
+            "Family": "System & Services Acquisition (SA)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-2",
+            "ControlName": "Separation of System and User Functionality",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-4",
+            "ControlName": "Information in Shared System Resources",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-5",
+            "ControlName": "Denial-of-Service Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7",
+            "ControlName": "Boundary Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(3)",
+            "ControlName": "Access Points",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(4)",
+            "ControlName": "External Telecommunications Services",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(5)",
+            "ControlName": "Deny by Default \u2014 Allow by Exception",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(7)",
+            "ControlName": "Split Tunneling for Remote Devices",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(8)",
+            "ControlName": "Route Traffic to Authenticated Proxy Servers",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(12)",
+            "ControlName": "Host-Based Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(13)",
+            "ControlName": "Isolation of Security Tools, Mechanisms, and Support Components",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-7(18)",
+            "ControlName": "Fail Secure",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-8",
+            "ControlName": "Transmission Confidentiality and Integrity",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-8(1)",
+            "ControlName": "Cryptographic Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-10",
+            "ControlName": "Network Disconnect",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-12",
+            "ControlName": "Cryptographic Key Establishment and Management",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-13",
+            "ControlName": "Cryptographic Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-15",
+            "ControlName": "Collaborative Computing Devices and Applications",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-17",
+            "ControlName": "Public Key Infrastructure Certificates",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-18",
+            "ControlName": "Mobile Code",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-20",
+            "ControlName": "Secure Name/Address Resolution Service (Authoritative Source)",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-21",
+            "ControlName": "Secure Name/Address Resolution Service (Recursive or Caching Resolver)",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-22",
+            "ControlName": "Architecture and Provisioning for Name/Address Resolution Service",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-23",
+            "ControlName": "Session Authenticity",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SC-28",
+            "ControlName": "Protection of Information at Rest",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-28(1)",
+            "ControlName": "Cryptographic Protection",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SC-39",
+            "ControlName": "Process Isolation",
+            "Family": "System & Communications Protection (SC)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SI-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SI-2",
+            "ControlName": "Flaw Remediation",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-2(2)",
+            "ControlName": "Automated Flaw Remediation Status",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-3",
+            "ControlName": "Malicious Code Protection",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-3(1)",
+            "ControlName": "Central Management",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-3(2)",
+            "ControlName": "Automatic Updates",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4",
+            "ControlName": "System Monitoring",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(1)",
+            "ControlName": "System-Wide Intrusion Detection System",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(2)",
+            "ControlName": "Automated Tools and Mechanisms for Real-Time Analysis",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(4)",
+            "ControlName": "Inbound and Outbound Communications Traffic",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(5)",
+            "ControlName": "System-Generated Alerts",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(12)",
+            "ControlName": "Automated Organization-Generated Alerts",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(14)",
+            "ControlName": "Wireless Intrusion Detection",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(16)",
+            "ControlName": "Correlate Monitoring Information",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(20)",
+            "ControlName": "Privileged Users",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(22)",
+            "ControlName": "Unauthorized Network Services",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-4(23)",
+            "ControlName": "Host-Based Devices",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-5",
+            "ControlName": "Security Alerts, Advisories, and Directives",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-5(1)",
+            "ControlName": "Automated Alerts and Advisories",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-6",
+            "ControlName": "Security and Privacy Function Verification",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-7",
+            "ControlName": "Software, Firmware, and Information Integrity",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-7(1)",
+            "ControlName": "Integrity Checks",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-7(7)",
+            "ControlName": "Integration of Detection and Response",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-8",
+            "ControlName": "Spam Protection",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-8(1)",
+            "ControlName": "Central Management",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-8(2)",
+            "ControlName": "Automatic Updates",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "SI-10",
+            "ControlName": "Information Input Validation",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SI-11",
+            "ControlName": "Error Handling",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SI-12",
+            "ControlName": "Information Management and Retention",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SI-16",
+            "ControlName": "Memory Protection",
+            "Family": "System & Information Integrity (SI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-1",
+            "ControlName": "Policy and Procedures",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-2",
+            "ControlName": "Supply Chain Risk Management Plan",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-2(1)",
+            "ControlName": "Establish SCRM Team",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-3",
+            "ControlName": "Supply Chain Controls and Processes",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-5",
+            "ControlName": "Acquisition Strategies, Tools, and Methods",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-6",
+            "ControlName": "Supplier Assessments and Reviews",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-8",
+            "ControlName": "Notification Agreements",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-10",
+            "ControlName": "Inspection of Systems or Components",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-11",
+            "ControlName": "Component Authenticity",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-11(1)",
+            "ControlName": "Anti-Counterfeit Training",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-11(2)",
+            "ControlName": "Configuration Control for Component Service and Repair",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "SR-12",
+            "ControlName": "Component Disposal",
+            "Family": "Supply Chain Risk Management (SR)",
+            "Level": "Required",
+            "SiemValidatable": false
+        }
+    ]
+}

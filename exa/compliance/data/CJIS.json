@@ -1,0 +1,763 @@
+{
+    "Name": "CJIS Security Policy v5.9.5",
+    "Framework": "CJIS",
+    "Source": "FBI Criminal Justice Information Services",
+    "Version": "5.9.5 (October 2024)",
+    "SourceUrl": "https://le.fbi.gov/cjis-division/cjis-security-policy",
+    "ControlCount": 107,
+    "Controls": [
+        {
+            "ControlId": "5.1",
+            "Family": "Policy",
+            "Description": "Information Exchange Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1",
+            "Family": "Policy",
+            "Description": "Information Exchange",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.1",
+            "Family": "Policy",
+            "Description": "Information Handling",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.2",
+            "Family": "Policy",
+            "Description": "State and Federal Agency User Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.3",
+            "Family": "Policy",
+            "Description": "Criminal Justice Agency User Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.4",
+            "Family": "Policy",
+            "Description": "Interagency and Management Control Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.5",
+            "Family": "Policy",
+            "Description": "Private Contractor User Agreements and CJIS Security Addendum",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.1.6",
+            "Family": "Policy",
+            "Description": "Agency User Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.2",
+            "Family": "Policy",
+            "Description": "Management Control Agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.3",
+            "Family": "Policy",
+            "Description": "Outsourcing Standards for Channelers",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.4",
+            "Family": "Policy",
+            "Description": "Secondary Dissemination",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.1.5",
+            "Family": "Policy",
+            "Description": "Cloud Computing",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.2",
+            "Family": "Awareness",
+            "Description": "Security Awareness Training",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.2.1",
+            "Family": "Awareness",
+            "Description": "Awareness Topics",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.2.1.1",
+            "Family": "Awareness",
+            "Description": "Basic Security Awareness Training",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.2.1.2",
+            "Family": "Awareness",
+            "Description": "Security Awareness Training Records",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.2.2",
+            "Family": "Awareness",
+            "Description": "Security Training Records",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.3",
+            "Family": "Incidents",
+            "Description": "Incident Response",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.3.1",
+            "Family": "Incidents",
+            "Description": "Reporting Information Security Events",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.3.1.1",
+            "Family": "Incidents",
+            "Description": "Reporting Structure and Responsibilities",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.3.2",
+            "Family": "Incidents",
+            "Description": "Management of Information Security Incidents",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.3.3",
+            "Family": "Incidents",
+            "Description": "Collection of Evidence",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.3.4",
+            "Family": "Incidents",
+            "Description": "Incident Response Training",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.4",
+            "Family": "Auditing",
+            "Description": "Auditing and Accountability",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.1",
+            "Family": "Auditing",
+            "Description": "Auditable Events and Content (Information Systems)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.1.1",
+            "Family": "Auditing",
+            "Description": "Events",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.1.1.1",
+            "Family": "Auditing",
+            "Description": "Content - User ID, Date/Time, Event Type, Success/Failure, Origin, Objects Affected",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.2",
+            "Family": "Auditing",
+            "Description": "Response to Audit Processing Failures",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.3",
+            "Family": "Auditing",
+            "Description": "Audit Monitoring, Analysis, and Reporting",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.4",
+            "Family": "Auditing",
+            "Description": "Time Stamps",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.5",
+            "Family": "Auditing",
+            "Description": "Protection of Audit Information",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.6",
+            "Family": "Auditing",
+            "Description": "Audit Record Retention",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.4.7",
+            "Family": "Auditing",
+            "Description": "Logging NCIC and III Transactions",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5",
+            "Family": "Access Control",
+            "Description": "Access Control",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.1",
+            "Family": "Access Control",
+            "Description": "Account Management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.2",
+            "Family": "Access Control",
+            "Description": "Access Enforcement",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.2.1",
+            "Family": "Access Control",
+            "Description": "Least Privilege",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.2.2",
+            "Family": "Access Control",
+            "Description": "System Access Control",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.2.3",
+            "Family": "Access Control",
+            "Description": "Access Control Criteria",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.2.4",
+            "Family": "Access Control",
+            "Description": "Access Control Mechanisms",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.3",
+            "Family": "Access Control",
+            "Description": "Unsuccessful Login Attempts",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.4",
+            "Family": "Access Control",
+            "Description": "System Use Notification (Login Banner)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.5.5",
+            "Family": "Access Control",
+            "Description": "Session Lock",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.6",
+            "Family": "Access Control",
+            "Description": "Remote Access",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.6.1",
+            "Family": "Access Control",
+            "Description": "Personally Owned Information Systems",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.5.7",
+            "Family": "Access Control",
+            "Description": "Wireless Access Restrictions",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.7.1",
+            "Family": "Access Control",
+            "Description": "All Wireless Access",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.5.7.2",
+            "Family": "Access Control",
+            "Description": "Bluetooth",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.5.7.3",
+            "Family": "Access Control",
+            "Description": "Cellular",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.6",
+            "Family": "Identification",
+            "Description": "Identification and Authentication",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.1",
+            "Family": "Identification",
+            "Description": "Identification Policy and Procedures",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.1.1",
+            "Family": "Identification",
+            "Description": "Use of Originating Agency Identifier (ORI)",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.6.2",
+            "Family": "Identification",
+            "Description": "Authentication Policy and Procedures",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.2.1",
+            "Family": "Identification",
+            "Description": "Standard Authentication (Single Factor)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.2.1.1",
+            "Family": "Identification",
+            "Description": "Password",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.2.1.2",
+            "Family": "Identification",
+            "Description": "Personal Identification Number (PIN)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.2.2",
+            "Family": "Identification",
+            "Description": "Advanced Authentication (Multi-Factor)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.2.2.1",
+            "Family": "Identification",
+            "Description": "Advanced Authentication Policy and Rationale",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.6.2.2.2",
+            "Family": "Identification",
+            "Description": "Advanced Authentication Decision Tree",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.6.3",
+            "Family": "Identification",
+            "Description": "Identifier Management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.6.4",
+            "Family": "Identification",
+            "Description": "Authenticator Management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.7",
+            "Family": "Configuration",
+            "Description": "Configuration Management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.7.1",
+            "Family": "Configuration",
+            "Description": "Access Restrictions for Changes",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.7.1.1",
+            "Family": "Configuration",
+            "Description": "Least Functionality",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.7.1.2",
+            "Family": "Configuration",
+            "Description": "Network Diagram",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.7.2",
+            "Family": "Configuration",
+            "Description": "Security of Configuration Documentation",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.8",
+            "Family": "Media",
+            "Description": "Media Protection",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.8.1",
+            "Family": "Media",
+            "Description": "Media Storage and Access",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.8.2",
+            "Family": "Media",
+            "Description": "Media Transport",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.8.3",
+            "Family": "Media",
+            "Description": "Electronic Media Sanitization and Disposal",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.8.4",
+            "Family": "Media",
+            "Description": "Disposal of Physical Media",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9",
+            "Family": "Physical",
+            "Description": "Physical Protection",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1",
+            "Family": "Physical",
+            "Description": "Physically Secure Location",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.1",
+            "Family": "Physical",
+            "Description": "Security Perimeter",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.2",
+            "Family": "Physical",
+            "Description": "Physical Access Authorizations",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.3",
+            "Family": "Physical",
+            "Description": "Physical Access Control",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.4",
+            "Family": "Physical",
+            "Description": "Access Control for Transmission Medium",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.5",
+            "Family": "Physical",
+            "Description": "Access Control for Output Devices",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.6",
+            "Family": "Physical",
+            "Description": "Visitor Control",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.7",
+            "Family": "Physical",
+            "Description": "Access Records",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.1.8",
+            "Family": "Physical",
+            "Description": "Delivery and Removal",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.9.2",
+            "Family": "Physical",
+            "Description": "Controlled Area",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.10",
+            "Family": "System Protection",
+            "Description": "Systems and Communications Protection and Information Integrity",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1",
+            "Family": "System Protection",
+            "Description": "Information Flow Enforcement",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1.1",
+            "Family": "System Protection",
+            "Description": "Boundary Protection",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1.2",
+            "Family": "System Protection",
+            "Description": "Encryption",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1.3",
+            "Family": "System Protection",
+            "Description": "Intrusion Detection Tools and Techniques",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1.4",
+            "Family": "System Protection",
+            "Description": "Voice over Internet Protocol (VoIP)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.1.5",
+            "Family": "System Protection",
+            "Description": "Cloud Computing",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.2",
+            "Family": "System Protection",
+            "Description": "Facsimile Transmission of CJI",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.10.3",
+            "Family": "System Protection",
+            "Description": "Partitioning",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.10.4",
+            "Family": "System Protection",
+            "Description": "System and Information Integrity",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.11",
+            "Family": "Formal Audits",
+            "Description": "Formal Audits",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.11.1",
+            "Family": "Formal Audits",
+            "Description": "Audit Compliance",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.11.2",
+            "Family": "Formal Audits",
+            "Description": "Triennial Compliance Audits",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.12",
+            "Family": "Personnel",
+            "Description": "Personnel Security",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.12.1",
+            "Family": "Personnel",
+            "Description": "Personnel Security Policy and Procedures",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.12.1.1",
+            "Family": "Personnel",
+            "Description": "Minimum Screening Requirements for Individuals Requiring Access to CJI",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.12.1.2",
+            "Family": "Personnel",
+            "Description": "Personnel Screening for Contractors and Vendors",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.12.2",
+            "Family": "Personnel",
+            "Description": "Personnel Termination",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.12.3",
+            "Family": "Personnel",
+            "Description": "Personnel Transfer",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.12.4",
+            "Family": "Personnel",
+            "Description": "Personnel Sanctions",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.13",
+            "Family": "Mobile",
+            "Description": "Mobile Devices",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.13.1",
+            "Family": "Mobile",
+            "Description": "Mobile Device Access Control",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.13.2",
+            "Family": "Mobile",
+            "Description": "Bluetooth and Mobile Hotspots",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "5.13.3",
+            "Family": "Mobile",
+            "Description": "Mobile Device Management (MDM)",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "5.13.4",
+            "Family": "Mobile",
+            "Description": "Compensation Controls for Lost or Stolen Devices",
+            "Level": "Required",
+            "SiemValidatable": true
+        }
+    ],
+    "ImportDate": "2026-03-24 00:00:00",
+    "SourceFile": "Built-in (governing body reference)",
+    "SourceHash": "N/A (built-in)",
+    "SourceSize": 0
+}

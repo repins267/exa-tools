@@ -1,0 +1,693 @@
+{
+    "Name": "ISO/IEC 27001:2022",
+    "Framework": "ISO_27001",
+    "Source": "International Organization for Standardization",
+    "Version": "2022",
+    "SourceUrl": "https://www.iso.org/standard/27001",
+    "ControlCount": 97,
+    "Controls": [
+        {
+            "ControlId": "A.5",
+            "Family": "Organizational",
+            "Description": "Organizational controls",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.1",
+            "Family": "Organizational",
+            "Description": "Policies for information security",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.2",
+            "Family": "Organizational",
+            "Description": "Information security roles and responsibilities",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.3",
+            "Family": "Organizational",
+            "Description": "Segregation of duties",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.4",
+            "Family": "Organizational",
+            "Description": "Management responsibilities",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.5",
+            "Family": "Organizational",
+            "Description": "Contact with authorities",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.6",
+            "Family": "Organizational",
+            "Description": "Contact with special interest groups",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.7",
+            "Family": "Organizational",
+            "Description": "Threat intelligence",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.8",
+            "Family": "Organizational",
+            "Description": "Information security in project management",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.9",
+            "Family": "Organizational",
+            "Description": "Inventory of information and other associated assets",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.10",
+            "Family": "Organizational",
+            "Description": "Acceptable use of information and other associated assets",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.11",
+            "Family": "Organizational",
+            "Description": "Return of assets",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.12",
+            "Family": "Organizational",
+            "Description": "Classification of information",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.13",
+            "Family": "Organizational",
+            "Description": "Labelling of information",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.14",
+            "Family": "Organizational",
+            "Description": "Information transfer",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.15",
+            "Family": "Organizational",
+            "Description": "Access control",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.16",
+            "Family": "Organizational",
+            "Description": "Identity management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.17",
+            "Family": "Organizational",
+            "Description": "Authentication information",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.18",
+            "Family": "Organizational",
+            "Description": "Access rights",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.19",
+            "Family": "Organizational",
+            "Description": "Information security in supplier relationships",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.20",
+            "Family": "Organizational",
+            "Description": "Addressing information security within supplier agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.21",
+            "Family": "Organizational",
+            "Description": "Managing information security in the ICT supply chain",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.22",
+            "Family": "Organizational",
+            "Description": "Monitoring, review and change management of supplier services",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.23",
+            "Family": "Organizational",
+            "Description": "Information security for use of cloud services",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.24",
+            "Family": "Organizational",
+            "Description": "Information security incident management planning and preparation",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.25",
+            "Family": "Organizational",
+            "Description": "Assessment and decision on information security events",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.26",
+            "Family": "Organizational",
+            "Description": "Response to information security incidents",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.27",
+            "Family": "Organizational",
+            "Description": "Learning from information security incidents",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.28",
+            "Family": "Organizational",
+            "Description": "Collection of evidence",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.29",
+            "Family": "Organizational",
+            "Description": "Information security during disruption",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.30",
+            "Family": "Organizational",
+            "Description": "ICT readiness for business continuity",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.31",
+            "Family": "Organizational",
+            "Description": "Legal, statutory, regulatory and contractual requirements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.32",
+            "Family": "Organizational",
+            "Description": "Intellectual property rights",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.33",
+            "Family": "Organizational",
+            "Description": "Protection of records",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.34",
+            "Family": "Organizational",
+            "Description": "Privacy and protection of PII",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.35",
+            "Family": "Organizational",
+            "Description": "Independent review of information security",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.5.36",
+            "Family": "Organizational",
+            "Description": "Compliance with policies, rules and standards for information security",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.5.37",
+            "Family": "Organizational",
+            "Description": "Documented operating procedures",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6",
+            "Family": "People",
+            "Description": "People controls",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.1",
+            "Family": "People",
+            "Description": "Screening",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.2",
+            "Family": "People",
+            "Description": "Terms and conditions of employment",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.3",
+            "Family": "People",
+            "Description": "Information security awareness, education and training",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.4",
+            "Family": "People",
+            "Description": "Disciplinary process",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.5",
+            "Family": "People",
+            "Description": "Responsibilities after termination or change of employment",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.6",
+            "Family": "People",
+            "Description": "Confidentiality or non-disclosure agreements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.6.7",
+            "Family": "People",
+            "Description": "Remote working",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.6.8",
+            "Family": "People",
+            "Description": "Information security event reporting",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7",
+            "Family": "Physical",
+            "Description": "Physical controls",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.1",
+            "Family": "Physical",
+            "Description": "Physical security perimeters",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.2",
+            "Family": "Physical",
+            "Description": "Physical entry",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.3",
+            "Family": "Physical",
+            "Description": "Securing offices, rooms and facilities",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.4",
+            "Family": "Physical",
+            "Description": "Physical security monitoring",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.5",
+            "Family": "Physical",
+            "Description": "Protecting against physical and environmental threats",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.6",
+            "Family": "Physical",
+            "Description": "Working in secure areas",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.7",
+            "Family": "Physical",
+            "Description": "Clear desk and clear screen",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.8",
+            "Family": "Physical",
+            "Description": "Equipment siting and protection",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.9",
+            "Family": "Physical",
+            "Description": "Security of assets off-premises",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.10",
+            "Family": "Physical",
+            "Description": "Storage media",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.11",
+            "Family": "Physical",
+            "Description": "Supporting utilities",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.7.12",
+            "Family": "Physical",
+            "Description": "Cabling security",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.13",
+            "Family": "Physical",
+            "Description": "Equipment maintenance",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.7.14",
+            "Family": "Physical",
+            "Description": "Secure disposal or re-use of equipment",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8",
+            "Family": "Technological",
+            "Description": "Technological controls",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.1",
+            "Family": "Technological",
+            "Description": "User endpoint devices",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.2",
+            "Family": "Technological",
+            "Description": "Privileged access rights",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.3",
+            "Family": "Technological",
+            "Description": "Information access restriction",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.4",
+            "Family": "Technological",
+            "Description": "Access to source code",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.5",
+            "Family": "Technological",
+            "Description": "Secure authentication",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.6",
+            "Family": "Technological",
+            "Description": "Capacity management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.7",
+            "Family": "Technological",
+            "Description": "Protection against malware",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.8",
+            "Family": "Technological",
+            "Description": "Management of technical vulnerabilities",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.9",
+            "Family": "Technological",
+            "Description": "Configuration management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.10",
+            "Family": "Technological",
+            "Description": "Information deletion",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.11",
+            "Family": "Technological",
+            "Description": "Data masking",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.12",
+            "Family": "Technological",
+            "Description": "Data leakage prevention",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.13",
+            "Family": "Technological",
+            "Description": "Information backup",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.14",
+            "Family": "Technological",
+            "Description": "Redundancy of information processing facilities",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.15",
+            "Family": "Technological",
+            "Description": "Logging",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.16",
+            "Family": "Technological",
+            "Description": "Monitoring activities",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.17",
+            "Family": "Technological",
+            "Description": "Clock synchronization",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.18",
+            "Family": "Technological",
+            "Description": "Use of privileged utility programs",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.19",
+            "Family": "Technological",
+            "Description": "Installation of software on operational systems",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.20",
+            "Family": "Technological",
+            "Description": "Networks security",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.21",
+            "Family": "Technological",
+            "Description": "Security of network services",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.22",
+            "Family": "Technological",
+            "Description": "Segregation of networks",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.23",
+            "Family": "Technological",
+            "Description": "Web filtering",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.24",
+            "Family": "Technological",
+            "Description": "Use of cryptography",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.25",
+            "Family": "Technological",
+            "Description": "Secure development life cycle",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.26",
+            "Family": "Technological",
+            "Description": "Application security requirements",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.27",
+            "Family": "Technological",
+            "Description": "Secure system architecture and engineering principles",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.28",
+            "Family": "Technological",
+            "Description": "Secure coding",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.29",
+            "Family": "Technological",
+            "Description": "Security testing in development and acceptance",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.30",
+            "Family": "Technological",
+            "Description": "Outsourced development",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.31",
+            "Family": "Technological",
+            "Description": "Separation of development, test and production environments",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.32",
+            "Family": "Technological",
+            "Description": "Change management",
+            "Level": "Required",
+            "SiemValidatable": true
+        },
+        {
+            "ControlId": "A.8.33",
+            "Family": "Technological",
+            "Description": "Test information",
+            "Level": "Required",
+            "SiemValidatable": false
+        },
+        {
+            "ControlId": "A.8.34",
+            "Family": "Technological",
+            "Description": "Protection of information systems during audit testing",
+            "Level": "Required",
+            "SiemValidatable": true
+        }
+    ],
+    "ImportDate": "2026-03-24 00:00:00",
+    "SourceFile": "Built-in (governing body reference)",
+    "SourceHash": "N/A (built-in)",
+    "SourceSize": 0
+}

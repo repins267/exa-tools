@@ -1,0 +1,194 @@
+{
+    "Name":  "Sarbanes-Oxley Act",
+    "Framework":  "SOX",
+    "Source":  "U.S. Congress - Public Company Accounting Oversight",
+    "Version":  "2002",
+    "SourceUrl":  "https://www.congress.gov/bill/107th-congress/house-bill/3763",
+    "ControlCount":  30,
+    "Controls":  [
+                     {
+                         "ControlId":  "302",
+                         "Family":  "Corporate Responsibility",
+                         "Description":  "Corporate responsibility for financial reports - CEO/CFO certify accuracy of financial statements",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "302.1",
+                         "Family":  "Corporate Responsibility",
+                         "Description":  "Officers certify they have reviewed the report and it does not contain untrue statements or material omissions",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "302.2",
+                         "Family":  "Corporate Responsibility",
+                         "Description":  "Officers are responsible for establishing and maintaining internal controls and have evaluated effectiveness within 90 days",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "302.3",
+                         "Family":  "Corporate Responsibility",
+                         "Description":  "Officers have disclosed all significant deficiencies and material weaknesses in internal controls to auditors and audit committee",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "404",
+                         "Family":  "Internal Controls",
+                         "Description":  "Management assessment of internal controls over financial reporting (ICFR)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "404.a",
+                         "Family":  "Internal Controls",
+                         "Description":  "Management must establish and maintain an adequate internal control structure and procedures for financial reporting",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "404.b",
+                         "Family":  "Internal Controls",
+                         "Description":  "External auditor must attest to and report on management's assessment of internal controls",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "409",
+                         "Family":  "Real-Time Disclosure",
+                         "Description":  "Real-time issuer disclosures of material changes in financial condition or operations on a rapid and current basis",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "409.1",
+                         "Family":  "Real-Time Disclosure",
+                         "Description":  "Disclosures shall include trend and qualitative information and graphic presentations as the SEC prescribes",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "802",
+                         "Family":  "Formal Audits",
+                         "Description":  "Criminal penalties for altering, destroying, mutilating, concealing or falsifying documents to obstruct investigation",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "802.1",
+                         "Family":  "Formal Audits",
+                         "Description":  "Audit work papers and review records must be retained for a period of 5 years from end of fiscal period",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "806",
+                         "Family":  "Formal Audits",
+                         "Description":  "Whistleblower protection - no retaliation against employees who report fraud or violations to law enforcement or Congress",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "906",
+                         "Family":  "Certification",
+                         "Description":  "Corporate responsibility for financial reports - criminal penalties for CEO/CFO who knowingly certify false statements",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "906.1",
+                         "Family":  "Certification",
+                         "Description":  "Periodic reports must fully comply with Securities Exchange Act and fairly present financial condition and results of operations",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "1107",
+                         "Family":  "Formal Audits",
+                         "Description":  "Retaliation against informants - criminal penalties for knowingly retaliating against any person providing truthful information to law enforcement",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "Logical access controls - ensure only authorized users can access financial systems and data",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1.1",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "User access provisioning - formal process for granting, modifying and revoking access to financial applications and data",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1.2",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "Periodic access reviews - regular review and recertification of user access rights to financial systems",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1.3",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "Privileged access management - restrict and monitor administrative and elevated access to financial systems",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1.4",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "Authentication controls - password policies, multi-factor authentication, session management for financial systems",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.1.5",
+                         "Family":  "Access to Programs and Data",
+                         "Description":  "Segregation of duties - prevent any single individual from having conflicting access rights that could enable fraud",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.2",
+                         "Family":  "Program Changes",
+                         "Description":  "Change management controls - ensure changes to financial applications are authorized, tested and properly implemented",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.2.1",
+                         "Family":  "Program Changes",
+                         "Description":  "Change authorization - formal approval process for changes to applications, databases and infrastructure supporting financial reporting",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.2.2",
+                         "Family":  "Program Changes",
+                         "Description":  "Change testing - changes must be tested in a non-production environment before deployment to production",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.2.3",
+                         "Family":  "Program Changes",
+                         "Description":  "Separation of environments - development, testing and production environments are logically separated",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.3",
+                         "Family":  "Computer Operations",
+                         "Description":  "IT operations controls - ensure reliable processing, monitoring, backup and recovery of financial systems",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.3.1",
+                         "Family":  "Computer Operations",
+                         "Description":  "Job scheduling and monitoring - batch processing and automated jobs are monitored for successful completion and failures are investigated",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.3.2",
+                         "Family":  "Computer Operations",
+                         "Description":  "Backup and recovery - regular backups of financial data and systems with tested recovery procedures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.3.3",
+                         "Family":  "Computer Operations",
+                         "Description":  "Incident management - process for identifying, logging, resolving and escalating IT incidents affecting financial systems",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "ITGC.4",
+                         "Family":  "Program Development",
+                         "Description":  "System development lifecycle controls - ensure new applications and systems supporting financial reporting are properly designed, developed, tested and approved",
+                         "Level":  "Required"
+                     }
+                 ],
+    "ImportDate":  "2026-03-17 23:15:17",
+    "SourceFile":  "Built-in (governing body reference)",
+    "SourceHash":  "N/A (built-in)",
+    "SourceSize":  0
+}

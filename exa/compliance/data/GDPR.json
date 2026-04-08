@@ -1,0 +1,350 @@
+{
+    "Name":  "General Data Protection Regulation",
+    "Framework":  "GDPR",
+    "Source":  "European Union Regulation 2016/679",
+    "Version":  "2016/679",
+    "SourceUrl":  "https://gdpr-info.eu/",
+    "ControlCount":  56,
+    "Controls":  [
+                     {
+                         "ControlId":  "Art.5",
+                         "Family":  "Principles",
+                         "Description":  "Principles relating to processing of personal data (lawfulness, fairness, transparency, purpose limitation, data minimization, accuracy, storage limitation, integrity, accountability)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1a",
+                         "Family":  "Principles",
+                         "Description":  "Lawfulness, fairness and transparency of processing",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1b",
+                         "Family":  "Principles",
+                         "Description":  "Purpose limitation - collected for specified, explicit and legitimate purposes",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1c",
+                         "Family":  "Principles",
+                         "Description":  "Data minimization - adequate, relevant and limited to what is necessary",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1d",
+                         "Family":  "Principles",
+                         "Description":  "Accuracy - kept up to date, inaccurate data erased or rectified without delay",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1e",
+                         "Family":  "Principles",
+                         "Description":  "Storage limitation - kept no longer than necessary for the purposes",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.1f",
+                         "Family":  "Data Protection",
+                         "Description":  "Integrity and confidentiality - appropriate security including protection against unauthorized or unlawful processing, accidental loss, destruction or damage",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.5.2",
+                         "Family":  "Principles",
+                         "Description":  "Accountability - controller shall be responsible for and able to demonstrate compliance",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.6",
+                         "Family":  "Lawfulness",
+                         "Description":  "Lawfulness of processing - at least one legal basis must apply",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.7",
+                         "Family":  "Lawfulness",
+                         "Description":  "Conditions for consent - demonstrable, distinguishable, intelligible, freely given, withdrawable",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.9",
+                         "Family":  "Lawfulness",
+                         "Description":  "Processing of special categories of personal data (racial, ethnic, political, biometric, health, etc.)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.12",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Transparent information, communication and modalities for exercising data subject rights",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.13",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Information to be provided where personal data are collected from the data subject",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.14",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Information to be provided where personal data have not been obtained from the data subject",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.15",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right of access by the data subject - confirmation and copy of personal data",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.16",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right to rectification of inaccurate personal data",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.17",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right to erasure (right to be forgotten)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.18",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right to restriction of processing",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.19",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Notification obligation regarding rectification, erasure or restriction",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.20",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right to data portability - receive data in structured, commonly used, machine-readable format",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.21",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Right to object to processing based on legitimate interests or public interest",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.22",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Automated individual decision-making including profiling - right not to be subject to solely automated decisions",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.23",
+                         "Family":  "Data Subject Rights",
+                         "Description":  "Restrictions - legislative measures may restrict scope of obligations and rights (Art 12-22)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.24",
+                         "Family":  "Data Protection",
+                         "Description":  "Responsibility of the controller - implement appropriate technical and organizational measures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.25",
+                         "Family":  "Principles",
+                         "Description":  "Data protection by design and by default",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.25.1",
+                         "Family":  "Principles",
+                         "Description":  "Data protection by design - implement appropriate measures such as pseudonymization at the time of determination of means and at time of processing",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.25.2",
+                         "Family":  "Principles",
+                         "Description":  "Data protection by default - only personal data necessary for each specific purpose is processed",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.28",
+                         "Family":  "Data Protection",
+                         "Description":  "Processor - controller shall use only processors providing sufficient guarantees, governed by contract or legal act",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.29",
+                         "Family":  "Data Protection",
+                         "Description":  "Processing under the authority of the controller or processor - only on documented instructions",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.30",
+                         "Family":  "Records",
+                         "Description":  "Records of processing activities - maintain a written record of all categories of processing",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.30.1",
+                         "Family":  "Records",
+                         "Description":  "Controller records - name, purposes, categories of data subjects, categories of personal data, recipients, transfers, time limits for erasure, security measures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.30.2",
+                         "Family":  "Records",
+                         "Description":  "Processor records - name, categories of processing, transfers, security measures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32",
+                         "Family":  "Security",
+                         "Description":  "Security of processing - implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32.1a",
+                         "Family":  "Security",
+                         "Description":  "Pseudonymization and encryption of personal data",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32.1b",
+                         "Family":  "Security",
+                         "Description":  "Ability to ensure ongoing confidentiality, integrity, availability and resilience of processing systems and services",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32.1c",
+                         "Family":  "Security",
+                         "Description":  "Ability to restore availability and access to personal data in a timely manner in the event of a physical or technical incident",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32.1d",
+                         "Family":  "Security",
+                         "Description":  "Process for regularly testing, assessing and evaluating the effectiveness of technical and organizational measures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.32.2",
+                         "Family":  "Security",
+                         "Description":  "Assessing appropriate level of security - account for risks of accidental or unlawful destruction, loss, alteration, unauthorized disclosure or access",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.33",
+                         "Family":  "Breach Notification",
+                         "Description":  "Notification of a personal data breach to the supervisory authority without undue delay (within 72 hours)",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.33.1",
+                         "Family":  "Breach Notification",
+                         "Description":  "Notify supervisory authority within 72 hours of becoming aware, unless unlikely to result in risk to rights and freedoms",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.33.2",
+                         "Family":  "Breach Notification",
+                         "Description":  "Processor shall notify the controller without undue delay after becoming aware of a personal data breach",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.33.3",
+                         "Family":  "Breach Notification",
+                         "Description":  "Notification content - nature of breach, categories and number of data subjects, DPO contact, likely consequences, measures taken or proposed",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.33.5",
+                         "Family":  "Breach Notification",
+                         "Description":  "Document all personal data breaches including facts, effects and remedial action taken",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.34",
+                         "Family":  "Breach Communication",
+                         "Description":  "Communication of a personal data breach to the data subject when likely to result in high risk",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.34.2",
+                         "Family":  "Breach Communication",
+                         "Description":  "Communication shall describe in clear and plain language the nature of the breach and contain recommendations",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.35",
+                         "Family":  "Impact Assessment",
+                         "Description":  "Data protection impact assessment required where processing is likely to result in high risk to rights and freedoms",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.35.7",
+                         "Family":  "Impact Assessment",
+                         "Description":  "DPIA content - systematic description of processing, necessity assessment, risk assessment, measures to address risks",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.36",
+                         "Family":  "Impact Assessment",
+                         "Description":  "Prior consultation with supervisory authority where DPIA indicates high risk without mitigation measures",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.37",
+                         "Family":  "DPO",
+                         "Description":  "Designation of the data protection officer - required for public authorities, large-scale monitoring, or special category processing",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.38",
+                         "Family":  "DPO",
+                         "Description":  "Position of the data protection officer - involved in all data protection issues, independent, reports to highest management level",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.39",
+                         "Family":  "DPO",
+                         "Description":  "Tasks of the DPO - inform, advise, monitor compliance, cooperate with supervisory authority, act as contact point",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.44",
+                         "Family":  "Transfers",
+                         "Description":  "General principle for transfers - any transfer to third country or international organization shall comply with Chapter V conditions",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.45",
+                         "Family":  "Transfers",
+                         "Description":  "Transfers on the basis of an adequacy decision by the European Commission",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.46",
+                         "Family":  "Transfers",
+                         "Description":  "Transfers subject to appropriate safeguards - binding corporate rules, standard contractual clauses, codes of conduct, certification",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.47",
+                         "Family":  "Transfers",
+                         "Description":  "Binding corporate rules - approved by competent supervisory authority for intra-group transfers",
+                         "Level":  "Required"
+                     },
+                     {
+                         "ControlId":  "Art.49",
+                         "Family":  "Transfers",
+                         "Description":  "Derogations for specific situations - explicit consent, contract performance, public interest, legal claims, vital interests",
+                         "Level":  "Required"
+                     }
+                 ],
+    "ImportDate":  "2026-03-17 23:15:17",
+    "SourceFile":  "Built-in (governing body reference)",
+    "SourceHash":  "N/A (built-in)",
+    "SourceSize":  0
+}
