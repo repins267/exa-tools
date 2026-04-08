@@ -11,3 +11,5 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+CLAUDE.md
+CLAUDE.local.md
