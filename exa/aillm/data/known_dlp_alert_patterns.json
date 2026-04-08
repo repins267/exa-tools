@@ -1,0 +1,350 @@
+[
+  {
+    "pattern": "AI Data Upload",
+    "vendor": "Zscaler",
+    "description": "Triggered when user uploads data to a known AI/GenAI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI Application Access",
+    "vendor": "Zscaler",
+    "description": "User accessed a generative AI application",
+    "risk": "medium"
+  },
+  {
+    "pattern": "AI File Upload Detected",
+    "vendor": "Zscaler",
+    "description": "File upload to AI service detected by inline DLP",
+    "risk": "high"
+  },
+  {
+    "pattern": "Sensitive Data to AI Service",
+    "vendor": "Zscaler",
+    "description": "DLP engine detected sensitive data in AI service upload",
+    "risk": "high"
+  },
+  {
+    "pattern": "Source Code Upload to AI",
+    "vendor": "Zscaler",
+    "description": "Source code detected in data sent to AI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "PII Shared with AI Application",
+    "vendor": "Zscaler",
+    "description": "Personally identifiable information detected in AI prompt",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Application - Paste Activity",
+    "vendor": "Zscaler",
+    "description": "Large paste/clipboard content detected in AI chat",
+    "risk": "medium"
+  },
+  {
+    "pattern": "Unauthorized AI Application",
+    "vendor": "Zscaler",
+    "description": "Access to non-sanctioned AI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "DLP Alert - GenAI Upload",
+    "vendor": "Netskope",
+    "description": "Netskope inline DLP detected data upload to GenAI app",
+    "risk": "high"
+  },
+  {
+    "pattern": "Sensitive Data Exposure to AI",
+    "vendor": "Netskope",
+    "description": "Sensitive data shared with AI application via CASB inspection",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI - Source Code Sharing",
+    "vendor": "Netskope",
+    "description": "Source code detected in GenAI application traffic",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI - PII Detected",
+    "vendor": "Netskope",
+    "description": "PII data detected in generative AI application upload",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI - PHI Detected",
+    "vendor": "Netskope",
+    "description": "Protected health information detected in AI upload",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI - Financial Data Detected",
+    "vendor": "Netskope",
+    "description": "Financial data detected in AI application traffic",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI App - File Upload",
+    "vendor": "Netskope",
+    "description": "File upload activity to generative AI application",
+    "risk": "medium"
+  },
+  {
+    "pattern": "Unsanctioned GenAI App Usage",
+    "vendor": "Netskope",
+    "description": "Access to non-approved generative AI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI - Large Prompt Detected",
+    "vendor": "Netskope",
+    "description": "Unusually large prompt submitted to AI service",
+    "risk": "medium"
+  },
+  {
+    "pattern": "AI Service - Sensitive Content",
+    "vendor": "Microsoft Purview",
+    "description": "Microsoft Purview DLP detected sensitive content sent to AI endpoint",
+    "risk": "high"
+  },
+  {
+    "pattern": "Data sent to generative AI site",
+    "vendor": "Microsoft Purview",
+    "description": "Purview endpoint DLP rule for data exfiltration to GenAI sites",
+    "risk": "high"
+  },
+  {
+    "pattern": "Copilot - Sensitive Label Violation",
+    "vendor": "Microsoft Purview",
+    "description": "Sensitivity-labeled content referenced in Microsoft 365 Copilot",
+    "risk": "high"
+  },
+  {
+    "pattern": "Browser upload to AI service",
+    "vendor": "Microsoft Purview",
+    "description": "Endpoint DLP detected browser-based upload to AI domain",
+    "risk": "high"
+  },
+  {
+    "pattern": "Paste to AI web application",
+    "vendor": "Microsoft Purview",
+    "description": "Clipboard paste to known AI web application detected",
+    "risk": "medium"
+  },
+  {
+    "pattern": "Credit card numbers sent to AI",
+    "vendor": "Microsoft Purview",
+    "description": "Credit card data detected in AI service communication",
+    "risk": "high"
+  },
+  {
+    "pattern": "Source code shared externally via AI",
+    "vendor": "Microsoft Purview",
+    "description": "Source code patterns detected in AI service data transfer",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Data Exfiltration",
+    "vendor": "Forcepoint",
+    "description": "Forcepoint DLP detected data exfiltration via AI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "Sensitive Data to GenAI",
+    "vendor": "Forcepoint",
+    "description": "Sensitive data upload to generative AI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Application - Policy Violation",
+    "vendor": "Forcepoint",
+    "description": "Policy violation triggered by AI application activity",
+    "risk": "high"
+  },
+  {
+    "pattern": "Confidential Data to AI Chat",
+    "vendor": "Forcepoint",
+    "description": "Confidential classified data detected in AI chat submission",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Service Upload - Sensitive Content",
+    "vendor": "Digital Guardian",
+    "description": "Digital Guardian detected sensitive content upload to AI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI Data Loss Event",
+    "vendor": "Digital Guardian",
+    "description": "Data loss event triggered by generative AI usage",
+    "risk": "high"
+  },
+  {
+    "pattern": "Source Code to AI Platform",
+    "vendor": "Digital Guardian",
+    "description": "Source code transfer to AI platform detected",
+    "risk": "high"
+  },
+  {
+    "pattern": "Intellectual Property - AI Upload",
+    "vendor": "Digital Guardian",
+    "description": "IP-classified content detected in AI service upload",
+    "risk": "high"
+  },
+  {
+    "pattern": "Sensitive Data to AI Application",
+    "vendor": "Symantec/Broadcom",
+    "description": "Symantec DLP detected sensitive data sent to AI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Service - Confidential Upload",
+    "vendor": "Symantec/Broadcom",
+    "description": "Confidential data upload to AI web service",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI Policy Violation",
+    "vendor": "Symantec/Broadcom",
+    "description": "Generative AI usage policy violation",
+    "risk": "high"
+  },
+  {
+    "pattern": "DLP - AI Content Sharing",
+    "vendor": "Proofpoint",
+    "description": "Proofpoint DLP detected content sharing with AI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Application Data Transfer",
+    "vendor": "Proofpoint",
+    "description": "Data transfer to AI application detected via email or web",
+    "risk": "high"
+  },
+  {
+    "pattern": "Sensitive Content to AI Endpoint",
+    "vendor": "Proofpoint",
+    "description": "Sensitive content detected in AI endpoint communication",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Tool - File Exfiltration",
+    "vendor": "Code42 Incydr",
+    "description": "File exfiltration to AI tool detected by Incydr",
+    "risk": "high"
+  },
+  {
+    "pattern": "GenAI Upload - Source Code",
+    "vendor": "Code42 Incydr",
+    "description": "Source code file uploaded to generative AI service",
+    "risk": "high"
+  },
+  {
+    "pattern": "Untrusted AI Application - Data Exposure",
+    "vendor": "Code42 Incydr",
+    "description": "Data exposure via untrusted AI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Service - Browser Upload",
+    "vendor": "Code42 Incydr",
+    "description": "Browser-based file upload to AI service endpoint",
+    "risk": "medium"
+  },
+  {
+    "pattern": "GenAI Data Upload",
+    "vendor": "Palo Alto Networks",
+    "description": "Prisma Access / NGFW detected data upload to GenAI application",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Application - Sensitive Data",
+    "vendor": "Palo Alto Networks",
+    "description": "Enterprise DLP detected sensitive data in AI application traffic",
+    "risk": "high"
+  },
+  {
+    "pattern": "Unauthorized GenAI Access",
+    "vendor": "Palo Alto Networks",
+    "description": "Access to unauthorized generative AI application blocked or alerted",
+    "risk": "high"
+  },
+  {
+    "pattern": "AI Chatbot - Source Code Paste",
+    "vendor": "Palo Alto Networks",
+    "description": "Source code content detected in AI chatbot session",
+    "risk": "high"
+  },
+  {
+    "pattern": "Malicious npm dependency - plain-crypto-js",
+    "vendor": "Supply Chain IOC",
+    "description": "Compromised axios (1.14.1/0.30.4) installed plain-crypto-js RAT payload. March 31, 2026 supply chain attack. Check package-lock.json for plain-crypto-js or axios 1.14.1/0.30.4",
+    "risk": "high"
+  },
+  {
+    "pattern": "ClaudeCode_x64.exe execution or download",
+    "vendor": "Threat Campaign IOC",
+    "description": "Vidar+GhostSocks dropper disguised as Claude Code installer. Rust binary. Legitimate Claude Code does NOT ship a .exe. Also distributed as TradeAI.exe. MD5: 77c73bd5e7625b7f691bc00a1b561a0f",
+    "risk": "high"
+  },
+  {
+    "pattern": "Claude Code - Leaked Source Code.7z",
+    "vendor": "Threat Campaign IOC",
+    "description": "Malicious archive lure from March 2026 campaign. Also seen as ClaudeCode_x64.7z, claude-cowork-win-x64.7z. Contains Rust dropper delivering Vidar v18.7 + GhostSocks",
+    "risk": "high"
+  },
+  {
+    "pattern": "GhostSocks C2 - 147.45.197.92:443",
+    "vendor": "Threat Campaign IOC",
+    "description": "GhostSocks C2 server from Claude Code/OpenClaw malware lure campaign (March 2026). Also: 94.228.161.88:443",
+    "risk": "high"
+  },
+  {
+    "pattern": "Vidar dead-drop resolver - steamcommunity.com/profiles/76561198721263282",
+    "vendor": "Threat Campaign IOC",
+    "description": "Vidar v18.7 C2 resolver via Steam profile. Also: telegram.me/g1n3sss. Non-browser processes accessing these from dev workstations are IOC",
+    "risk": "high"
+  },
+  {
+    "pattern": "npm namespace squatting - pacifier136 publisher",
+    "vendor": "Supply Chain IOC",
+    "description": "Empty stubs squatting internal Anthropic package names (@anthropic-ai/* namespace). Publisher: pacifier136. Dependency confusion risk",
+    "risk": "high"
+  },
+  {
+    "pattern": "GitHub lure repository - leaked-claude-code",
+    "vendor": "Threat Campaign IOC",
+    "description": "Trojanized repos: github.com/leaked-claude-code/leaked-claude-code, github.com/my3jie/leaked-claude-code, github.com/idbzoomh1. Same threat actor rotating AI brand lures since Feb 2026",
+    "risk": "high"
+  },
+  {
+    "pattern": "OpenClaw Windows malicious redirect",
+    "vendor": "Threat Campaign IOC",
+    "description": "Huntress March 2026: Bing search for 'OpenClaw Windows' redirected to fake installers on GitHub. Same Vidar+GhostSocks dual payload (TradeAI.exe). Same threat actor as Claude Code lures",
+    "risk": "high"
+  },
+  {
+    "pattern": "Local AI Agent Gateway - Port 18789",
+    "vendor": "Network IOC",
+    "description": "OpenClaw default WebSocket gateway port. Outbound or listening on 18789 from endpoints indicates local AI agent framework",
+    "risk": "high"
+  },
+  {
+    "pattern": "Local AI Agent Gateway - Port 42617",
+    "vendor": "Network IOC",
+    "description": "ZeroClaw default gateway port. Outbound or listening on 42617 from endpoints indicates local AI agent framework",
+    "risk": "high"
+  },
+  {
+    "pattern": "Local LLM API - Port 11434",
+    "vendor": "Network IOC",
+    "description": "Ollama default REST API port. Exposed to network is a misconfiguration indicator. Internal use indicates shadow AI model hosting",
+    "risk": "medium"
+  },
+  {
+    "pattern": "Local LLM API - Port 1234",
+    "vendor": "Network IOC",
+    "description": "LM Studio default local server port (OpenAI-compatible API). Indicates local LLM hosting on developer workstation",
+    "risk": "medium"
+  }
+]

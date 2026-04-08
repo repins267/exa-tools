@@ -1,0 +1,82 @@
+[
+  {
+    "category": "AI and ML Applications",
+    "vendor": "Zscaler",
+    "notes": "Predefined ZIA URL category for AI/ML tools broadly"
+  },
+  {
+    "category": "Generative AI",
+    "vendor": "Zscaler",
+    "notes": "Predefined ZIA URL category for generative AI apps (ChatGPT, Claude, Gemini, etc.)"
+  },
+  {
+    "category": "Generative AI",
+    "vendor": "Netskope",
+    "notes": "Primary CCI app category tag for GenAI applications"
+  },
+  {
+    "category": "AI/ML",
+    "vendor": "Netskope",
+    "notes": "CCI category for broader AI/ML platforms and services (SageMaker, Azure ML, etc.)"
+  },
+  {
+    "category": "Cloud App - Generative AI",
+    "vendor": "Netskope",
+    "notes": "Policy-selectable app category for real-time DLP and access control"
+  },
+  {
+    "category": "ChatBot",
+    "vendor": "Netskope",
+    "notes": "CCI functional tag applied to AI chatbot applications"
+  },
+  {
+    "category": "artificial-intelligence",
+    "vendor": "Palo Alto Networks",
+    "notes": "PAN-DB URL filtering category (lowercase with hyphen per PAN-DB convention). Prisma Access / NGFW"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "Cisco Umbrella",
+    "notes": "Primary content category in Umbrella DNS and SWG policy engine"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "Forcepoint",
+    "notes": "Primary URL category in Forcepoint Web Security / ONE SSE"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "McAfee/Trellix",
+    "notes": "URL category in McAfee Web Gateway / Trellix GTI URL database"
+  },
+  {
+    "category": "AI and Machine Learning",
+    "vendor": "Skyhigh Security",
+    "notes": "Cloud Registry category tag for AI/ML cloud app governance (McAfee CASB spinoff)"
+  },
+  {
+    "category": "Artificial Intelligence/Machine Learning",
+    "vendor": "Symantec/Broadcom",
+    "notes": "WebPulse URL category (combined name with slash, per Broadcom naming convention)"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "Fortinet",
+    "notes": "FortiGuard Web Filtering category. Added to ~90-category taxonomy in 2023"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "iboss",
+    "notes": "iboss cloud platform URL category for AI services"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "ContentKeeper",
+    "notes": "ContentKeeper URL category (now part of GFI Software; primarily education sector)"
+  },
+  {
+    "category": "Artificial Intelligence",
+    "vendor": "Barracuda",
+    "notes": "Barracuda Web Security Gateway URL category"
+  }
+]

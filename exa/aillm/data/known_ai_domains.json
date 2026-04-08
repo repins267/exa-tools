@@ -1,0 +1,2009 @@
+[
+  {
+    "domain": "chatgpt.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Primary ChatGPT user-facing domain"
+  },
+  {
+    "domain": "openai.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "OpenAI corporate and product domain"
+  },
+  {
+    "domain": "api.openai.com",
+    "provider": "OpenAI",
+    "app": "OpenAI API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "OpenAI REST API endpoint"
+  },
+  {
+    "domain": "platform.openai.com",
+    "provider": "OpenAI",
+    "app": "OpenAI Platform",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Developer dashboard and API key management"
+  },
+  {
+    "domain": "auth0.openai.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Authentication endpoint"
+  },
+  {
+    "domain": "cdn.openai.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "cdn",
+    "notes": "Static asset CDN"
+  },
+  {
+    "domain": "labs.openai.com",
+    "provider": "OpenAI",
+    "app": "DALL-E",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "subdomain",
+    "notes": "DALL-E image generation interface"
+  },
+  {
+    "domain": "sora.com",
+    "provider": "OpenAI",
+    "app": "Sora",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "OpenAI video generation model"
+  },
+  {
+    "domain": "files.oaiusercontent.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "cdn",
+    "notes": "User-uploaded file storage"
+  },
+  {
+    "domain": "chat.openai.com",
+    "provider": "OpenAI",
+    "app": "ChatGPT",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Legacy ChatGPT domain, redirects to chatgpt.com"
+  },
+  {
+    "domain": "claude.ai",
+    "provider": "Anthropic",
+    "app": "Claude",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Claude chat interface"
+  },
+  {
+    "domain": "anthropic.com",
+    "provider": "Anthropic",
+    "app": "Claude",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Anthropic corporate domain"
+  },
+  {
+    "domain": "api.anthropic.com",
+    "provider": "Anthropic",
+    "app": "Claude API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Claude REST API endpoint"
+  },
+  {
+    "domain": "console.anthropic.com",
+    "provider": "Anthropic",
+    "app": "Claude API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Developer console and API key management"
+  },
+  {
+    "domain": "gemini.google.com",
+    "provider": "Google",
+    "app": "Gemini",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Google Gemini chat interface"
+  },
+  {
+    "domain": "aistudio.google.com",
+    "provider": "Google",
+    "app": "Google AI Studio",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Gemini API playground and key management"
+  },
+  {
+    "domain": "generativelanguage.googleapis.com",
+    "provider": "Google",
+    "app": "Gemini API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Gemini REST API endpoint"
+  },
+  {
+    "domain": "makersuite.google.com",
+    "provider": "Google",
+    "app": "Google AI Studio",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Legacy AI Studio domain, redirects to aistudio.google.com"
+  },
+  {
+    "domain": "bard.google.com",
+    "provider": "Google",
+    "app": "Gemini",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Deprecated Bard domain, redirects to gemini.google.com"
+  },
+  {
+    "domain": "deepmind.google",
+    "provider": "Google",
+    "app": "DeepMind",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Google DeepMind research"
+  },
+  {
+    "domain": "deepmind.com",
+    "provider": "Google",
+    "app": "DeepMind",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Google DeepMind legacy domain"
+  },
+  {
+    "domain": "notebooklm.google.com",
+    "provider": "Google",
+    "app": "NotebookLM",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI-powered research notebook"
+  },
+  {
+    "domain": "aiplatform.googleapis.com",
+    "provider": "Google",
+    "app": "Vertex AI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Google Cloud Vertex AI API"
+  },
+  {
+    "domain": "us-central1-aiplatform.googleapis.com",
+    "provider": "Google",
+    "app": "Vertex AI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Vertex AI regional endpoint (us-central1)"
+  },
+  {
+    "domain": "copilot.microsoft.com",
+    "provider": "Microsoft",
+    "app": "Microsoft Copilot",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Microsoft Copilot chat interface"
+  },
+  {
+    "domain": "copilot.cloud.microsoft",
+    "provider": "Microsoft",
+    "app": "Microsoft Copilot",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Microsoft 365 Copilot cloud endpoint"
+  },
+  {
+    "domain": "oai.azure.com",
+    "provider": "Microsoft",
+    "app": "Azure OpenAI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Azure OpenAI Studio"
+  },
+  {
+    "domain": "cognitiveservices.azure.com",
+    "provider": "Microsoft",
+    "app": "Azure AI Services",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Azure Cognitive Services API"
+  },
+  {
+    "domain": "openai.azure.com",
+    "provider": "Microsoft",
+    "app": "Azure OpenAI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Azure OpenAI API endpoint (wildcard: *.openai.azure.com)"
+  },
+  {
+    "domain": "bing.com",
+    "provider": "Microsoft",
+    "app": "Bing Chat / Copilot",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "Bing with integrated Copilot (path: /chat)"
+  },
+  {
+    "domain": "meta.ai",
+    "provider": "Meta",
+    "app": "Meta AI",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Meta AI assistant (Llama-based)"
+  },
+  {
+    "domain": "llama.meta.com",
+    "provider": "Meta",
+    "app": "Llama",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Llama model downloads and documentation"
+  },
+  {
+    "domain": "ai.meta.com",
+    "provider": "Meta",
+    "app": "Meta AI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Meta AI research portal"
+  },
+  {
+    "domain": "x.ai",
+    "provider": "xAI",
+    "app": "Grok",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "xAI corporate domain"
+  },
+  {
+    "domain": "grok.com",
+    "provider": "xAI",
+    "app": "Grok",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Grok standalone chat interface"
+  },
+  {
+    "domain": "api.x.ai",
+    "provider": "xAI",
+    "app": "Grok API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "xAI/Grok REST API endpoint"
+  },
+  {
+    "domain": "console.x.ai",
+    "provider": "xAI",
+    "app": "Grok API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "xAI developer console"
+  },
+  {
+    "domain": "deepseek.com",
+    "provider": "DeepSeek",
+    "app": "DeepSeek",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "DeepSeek corporate domain; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "chat.deepseek.com",
+    "provider": "DeepSeek",
+    "app": "DeepSeek Chat",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "DeepSeek chat interface"
+  },
+  {
+    "domain": "api.deepseek.com",
+    "provider": "DeepSeek",
+    "app": "DeepSeek API",
+    "risk": "high",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "DeepSeek REST API endpoint"
+  },
+  {
+    "domain": "mistral.ai",
+    "provider": "Mistral AI",
+    "app": "Mistral",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Mistral AI corporate domain"
+  },
+  {
+    "domain": "chat.mistral.ai",
+    "provider": "Mistral AI",
+    "app": "Le Chat",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Mistral Le Chat interface"
+  },
+  {
+    "domain": "api.mistral.ai",
+    "provider": "Mistral AI",
+    "app": "Mistral API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Mistral REST API endpoint"
+  },
+  {
+    "domain": "console.mistral.ai",
+    "provider": "Mistral AI",
+    "app": "Mistral Platform",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Mistral developer console"
+  },
+  {
+    "domain": "cohere.com",
+    "provider": "Cohere",
+    "app": "Cohere",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Cohere corporate domain"
+  },
+  {
+    "domain": "api.cohere.com",
+    "provider": "Cohere",
+    "app": "Cohere API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Cohere REST API endpoint"
+  },
+  {
+    "domain": "dashboard.cohere.com",
+    "provider": "Cohere",
+    "app": "Cohere Platform",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Cohere developer dashboard"
+  },
+  {
+    "domain": "coral.cohere.com",
+    "provider": "Cohere",
+    "app": "Coral",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Cohere Coral chat interface"
+  },
+  {
+    "domain": "ai21.com",
+    "provider": "AI21 Labs",
+    "app": "AI21",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "AI21 Labs corporate domain"
+  },
+  {
+    "domain": "api.ai21.com",
+    "provider": "AI21 Labs",
+    "app": "AI21 API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "AI21 REST API endpoint"
+  },
+  {
+    "domain": "studio.ai21.com",
+    "provider": "AI21 Labs",
+    "app": "AI21 Studio",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "AI21 developer playground"
+  },
+  {
+    "domain": "inflection.ai",
+    "provider": "Inflection AI",
+    "app": "Inflection",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Inflection AI corporate domain"
+  },
+  {
+    "domain": "pi.ai",
+    "provider": "Inflection AI",
+    "app": "Pi",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Pi personal AI assistant"
+  },
+  {
+    "domain": "character.ai",
+    "provider": "Character.AI",
+    "app": "Character.AI",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "AI character chat; consumer-focused, limited enterprise controls"
+  },
+  {
+    "domain": "beta.character.ai",
+    "provider": "Character.AI",
+    "app": "Character.AI",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Legacy beta subdomain"
+  },
+  {
+    "domain": "plus.character.ai",
+    "provider": "Character.AI",
+    "app": "Character.AI",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Premium subscription interface"
+  },
+  {
+    "domain": "perplexity.ai",
+    "provider": "Perplexity",
+    "app": "Perplexity",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI-powered search engine"
+  },
+  {
+    "domain": "api.perplexity.ai",
+    "provider": "Perplexity",
+    "app": "Perplexity API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Perplexity REST API endpoint"
+  },
+  {
+    "domain": "labs.perplexity.ai",
+    "provider": "Perplexity",
+    "app": "Perplexity Labs",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "subdomain",
+    "notes": "Perplexity experimental features"
+  },
+  {
+    "domain": "you.com",
+    "provider": "You.com",
+    "app": "You.com",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI-powered search with chat"
+  },
+  {
+    "domain": "phind.com",
+    "provider": "Phind",
+    "app": "Phind",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI search for developers"
+  },
+  {
+    "domain": "poe.com",
+    "provider": "Quora",
+    "app": "Poe",
+    "risk": "medium",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Multi-model AI chat aggregator"
+  },
+  {
+    "domain": "huggingface.co",
+    "provider": "Hugging Face",
+    "app": "Hugging Face",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Model hub and inference platform"
+  },
+  {
+    "domain": "api-inference.huggingface.co",
+    "provider": "Hugging Face",
+    "app": "Hugging Face Inference",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Serverless inference API"
+  },
+  {
+    "domain": "huggingface.com",
+    "provider": "Hugging Face",
+    "app": "Hugging Face",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Alternate domain"
+  },
+  {
+    "domain": "datasets-server.huggingface.co",
+    "provider": "Hugging Face",
+    "app": "Hugging Face Datasets",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Dataset hosting and access"
+  },
+  {
+    "domain": "api.githubcopilot.com",
+    "provider": "GitHub",
+    "app": "GitHub Copilot",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Copilot API endpoint"
+  },
+  {
+    "domain": "api.individual.githubcopilot.com",
+    "provider": "GitHub",
+    "app": "GitHub Copilot",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Copilot Individual plan API"
+  },
+  {
+    "domain": "api.business.githubcopilot.com",
+    "provider": "GitHub",
+    "app": "GitHub Copilot",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Copilot Business plan API"
+  },
+  {
+    "domain": "copilot-proxy.githubusercontent.com",
+    "provider": "GitHub",
+    "app": "GitHub Copilot",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "cdn",
+    "notes": "Copilot proxy endpoint"
+  },
+  {
+    "domain": "default.exp-tas.com",
+    "provider": "GitHub",
+    "app": "GitHub Copilot",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "cdn",
+    "notes": "Copilot telemetry and experimentation"
+  },
+  {
+    "domain": "tabnine.com",
+    "provider": "Tabnine",
+    "app": "Tabnine",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI code completion"
+  },
+  {
+    "domain": "api.tabnine.com",
+    "provider": "Tabnine",
+    "app": "Tabnine",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Tabnine API endpoint"
+  },
+  {
+    "domain": "codeium.com",
+    "provider": "Codeium",
+    "app": "Codeium",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI code completion"
+  },
+  {
+    "domain": "api.codeium.com",
+    "provider": "Codeium",
+    "app": "Codeium",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Codeium API endpoint"
+  },
+  {
+    "domain": "server.codeium.com",
+    "provider": "Codeium",
+    "app": "Codeium",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Codeium language server endpoint"
+  },
+  {
+    "domain": "windsurf.com",
+    "provider": "Codeium",
+    "app": "Windsurf",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Codeium rebranded IDE (Windsurf Editor)"
+  },
+  {
+    "domain": "cursor.com",
+    "provider": "Anysphere",
+    "app": "Cursor",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI-powered code editor"
+  },
+  {
+    "domain": "cursor.sh",
+    "provider": "Anysphere",
+    "app": "Cursor",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Cursor original domain"
+  },
+  {
+    "domain": "api2.cursor.sh",
+    "provider": "Anysphere",
+    "app": "Cursor",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Cursor API endpoint"
+  },
+  {
+    "domain": "replit.com",
+    "provider": "Replit",
+    "app": "Replit",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Online IDE with AI assistant"
+  },
+  {
+    "domain": "repl.it",
+    "provider": "Replit",
+    "app": "Replit",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Replit legacy short domain"
+  },
+  {
+    "domain": "sourcegraph.com",
+    "provider": "Sourcegraph",
+    "app": "Sourcegraph Cody",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Code intelligence platform with AI assistant"
+  },
+  {
+    "domain": "cody.dev",
+    "provider": "Sourcegraph",
+    "app": "Sourcegraph Cody",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Cody AI assistant standalone domain"
+  },
+  {
+    "domain": "codewhisperer.us-east-1.amazonaws.com",
+    "provider": "Amazon",
+    "app": "Amazon Q Developer",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "AWS CodeWhisperer/Q Developer API (legacy name)"
+  },
+  {
+    "domain": "q.us-east-1.amazonaws.com",
+    "provider": "Amazon",
+    "app": "Amazon Q Developer",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Amazon Q Developer API endpoint"
+  },
+  {
+    "domain": "ai.jetbrains.com",
+    "provider": "JetBrains",
+    "app": "JetBrains AI",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "JetBrains AI Assistant"
+  },
+  {
+    "domain": "grazie.ai",
+    "provider": "JetBrains",
+    "app": "JetBrains AI",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Grazie AI writing/code assistance backend"
+  },
+  {
+    "domain": "grazie.aws.intellij.net",
+    "provider": "JetBrains",
+    "app": "JetBrains AI",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "api",
+    "notes": "Grazie AI cloud endpoint"
+  },
+  {
+    "domain": "together.ai",
+    "provider": "Together AI",
+    "app": "Together AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Open-source model hosting platform"
+  },
+  {
+    "domain": "api.together.xyz",
+    "provider": "Together AI",
+    "app": "Together AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Together AI API endpoint (legacy)"
+  },
+  {
+    "domain": "api.together.ai",
+    "provider": "Together AI",
+    "app": "Together AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Together AI API endpoint (current)"
+  },
+  {
+    "domain": "groq.com",
+    "provider": "Groq",
+    "app": "Groq",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "LPU inference platform"
+  },
+  {
+    "domain": "api.groq.com",
+    "provider": "Groq",
+    "app": "Groq API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Groq REST API endpoint"
+  },
+  {
+    "domain": "console.groq.com",
+    "provider": "Groq",
+    "app": "Groq",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Groq developer console"
+  },
+  {
+    "domain": "replicate.com",
+    "provider": "Replicate",
+    "app": "Replicate",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Model hosting and inference platform"
+  },
+  {
+    "domain": "api.replicate.com",
+    "provider": "Replicate",
+    "app": "Replicate",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Replicate REST API endpoint"
+  },
+  {
+    "domain": "fireworks.ai",
+    "provider": "Fireworks AI",
+    "app": "Fireworks AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Fast model inference platform"
+  },
+  {
+    "domain": "api.fireworks.ai",
+    "provider": "Fireworks AI",
+    "app": "Fireworks AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Fireworks REST API endpoint"
+  },
+  {
+    "domain": "anyscale.com",
+    "provider": "Anyscale",
+    "app": "Anyscale",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Ray-based model serving platform"
+  },
+  {
+    "domain": "api.endpoints.anyscale.com",
+    "provider": "Anyscale",
+    "app": "Anyscale Endpoints",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Anyscale model endpoints API"
+  },
+  {
+    "domain": "lepton.ai",
+    "provider": "Lepton AI",
+    "app": "Lepton AI",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "AI model deployment platform"
+  },
+  {
+    "domain": "baseten.co",
+    "provider": "Baseten",
+    "app": "Baseten",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Model inference infrastructure"
+  },
+  {
+    "domain": "model.baseten.co",
+    "provider": "Baseten",
+    "app": "Baseten",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Baseten model serving endpoint"
+  },
+  {
+    "domain": "modal.com",
+    "provider": "Modal",
+    "app": "Modal",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Serverless compute for AI/ML"
+  },
+  {
+    "domain": "banana.dev",
+    "provider": "Banana",
+    "app": "Banana",
+    "risk": "high",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "ML inference hosting; service status uncertain"
+  },
+  {
+    "domain": "langchain.com",
+    "provider": "LangChain",
+    "app": "LangChain",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "LLM application framework"
+  },
+  {
+    "domain": "smith.langchain.com",
+    "provider": "LangChain",
+    "app": "LangSmith",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "LangSmith observability platform"
+  },
+  {
+    "domain": "api.smith.langchain.com",
+    "provider": "LangChain",
+    "app": "LangSmith",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "LangSmith API endpoint"
+  },
+  {
+    "domain": "llamaindex.ai",
+    "provider": "LlamaIndex",
+    "app": "LlamaIndex",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "LLM data framework"
+  },
+  {
+    "domain": "cloud.llamaindex.ai",
+    "provider": "LlamaIndex",
+    "app": "LlamaIndex Cloud",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "LlamaIndex managed cloud service"
+  },
+  {
+    "domain": "wandb.ai",
+    "provider": "Weights & Biases",
+    "app": "W&B",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "ML experiment tracking and model training"
+  },
+  {
+    "domain": "api.wandb.ai",
+    "provider": "Weights & Biases",
+    "app": "W&B",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "W&B REST API endpoint"
+  },
+  {
+    "domain": "bedrock.us-east-1.amazonaws.com",
+    "provider": "Amazon",
+    "app": "AWS Bedrock",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "AWS Bedrock control plane API"
+  },
+  {
+    "domain": "bedrock-runtime.us-east-1.amazonaws.com",
+    "provider": "Amazon",
+    "app": "AWS Bedrock",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "AWS Bedrock inference runtime API"
+  },
+  {
+    "domain": "midjourney.com",
+    "provider": "Midjourney",
+    "app": "Midjourney",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI image generation (web + Discord)"
+  },
+  {
+    "domain": "cdn.midjourney.com",
+    "provider": "Midjourney",
+    "app": "Midjourney",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "cdn",
+    "notes": "Midjourney CDN for generated images"
+  },
+  {
+    "domain": "www.midjourney.com",
+    "provider": "Midjourney",
+    "app": "Midjourney",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "subdomain",
+    "notes": "Midjourney web gallery and generation interface"
+  },
+  {
+    "domain": "stability.ai",
+    "provider": "Stability AI",
+    "app": "Stable Diffusion",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Stability AI corporate domain"
+  },
+  {
+    "domain": "api.stability.ai",
+    "provider": "Stability AI",
+    "app": "Stability AI API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "Stability AI REST API"
+  },
+  {
+    "domain": "dreamstudio.ai",
+    "provider": "Stability AI",
+    "app": "DreamStudio",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Stable Diffusion web interface"
+  },
+  {
+    "domain": "stablediffusionweb.com",
+    "provider": "Stability AI",
+    "app": "Stable Diffusion",
+    "risk": "high",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Third-party Stable Diffusion web UI; not official Stability AI"
+  },
+  {
+    "domain": "firefly.adobe.com",
+    "provider": "Adobe",
+    "app": "Adobe Firefly",
+    "risk": "low",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Adobe AI image generation (enterprise-grade)"
+  },
+  {
+    "domain": "leonardo.ai",
+    "provider": "Leonardo AI",
+    "app": "Leonardo AI",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI image generation platform"
+  },
+  {
+    "domain": "app.leonardo.ai",
+    "provider": "Leonardo AI",
+    "app": "Leonardo AI",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "subdomain",
+    "notes": "Leonardo AI web application"
+  },
+  {
+    "domain": "api.leonardo.ai",
+    "provider": "Leonardo AI",
+    "app": "Leonardo AI",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "api",
+    "notes": "Leonardo AI REST API"
+  },
+  {
+    "domain": "ideogram.ai",
+    "provider": "Ideogram",
+    "app": "Ideogram",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI image generation with text rendering"
+  },
+  {
+    "domain": "playground.com",
+    "provider": "Playground AI",
+    "app": "Playground",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI image generation and editing"
+  },
+  {
+    "domain": "nightcafe.studio",
+    "provider": "NightCafe",
+    "app": "NightCafe",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI art generator"
+  },
+  {
+    "domain": "blackforestlabs.ai",
+    "provider": "Black Forest Labs",
+    "app": "FLUX",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "FLUX image generation model"
+  },
+  {
+    "domain": "elevenlabs.io",
+    "provider": "ElevenLabs",
+    "app": "ElevenLabs",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI voice synthesis and cloning"
+  },
+  {
+    "domain": "api.elevenlabs.io",
+    "provider": "ElevenLabs",
+    "app": "ElevenLabs",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "api",
+    "notes": "ElevenLabs REST API"
+  },
+  {
+    "domain": "murf.ai",
+    "provider": "Murf AI",
+    "app": "Murf AI",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI voice generator"
+  },
+  {
+    "domain": "descript.com",
+    "provider": "Descript",
+    "app": "Descript",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI-powered audio/video editing"
+  },
+  {
+    "domain": "speechify.com",
+    "provider": "Speechify",
+    "app": "Speechify",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI text-to-speech"
+  },
+  {
+    "domain": "play.ht",
+    "provider": "Play.ht",
+    "app": "Play.ht",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI voice generation"
+  },
+  {
+    "domain": "api.play.ht",
+    "provider": "Play.ht",
+    "app": "Play.ht",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "api",
+    "notes": "Play.ht REST API"
+  },
+  {
+    "domain": "resemble.ai",
+    "provider": "Resemble AI",
+    "app": "Resemble AI",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI voice cloning"
+  },
+  {
+    "domain": "suno.com",
+    "provider": "Suno",
+    "app": "Suno",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI music generation"
+  },
+  {
+    "domain": "udio.com",
+    "provider": "Udio",
+    "app": "Udio",
+    "risk": "medium",
+    "category": "Voice/Audio AI",
+    "type": "primary",
+    "notes": "AI music generation"
+  },
+  {
+    "domain": "runwayml.com",
+    "provider": "Runway",
+    "app": "Runway",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI video generation and editing"
+  },
+  {
+    "domain": "api.runwayml.com",
+    "provider": "Runway",
+    "app": "Runway",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "api",
+    "notes": "Runway REST API"
+  },
+  {
+    "domain": "app.runwayml.com",
+    "provider": "Runway",
+    "app": "Runway",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "subdomain",
+    "notes": "Runway web application"
+  },
+  {
+    "domain": "pika.art",
+    "provider": "Pika",
+    "app": "Pika",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI video generation"
+  },
+  {
+    "domain": "synthesia.io",
+    "provider": "Synthesia",
+    "app": "Synthesia",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI avatar video generation"
+  },
+  {
+    "domain": "heygen.com",
+    "provider": "HeyGen",
+    "app": "HeyGen",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI video creation with avatars"
+  },
+  {
+    "domain": "app.heygen.com",
+    "provider": "HeyGen",
+    "app": "HeyGen",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "subdomain",
+    "notes": "HeyGen web application"
+  },
+  {
+    "domain": "lumalabs.ai",
+    "provider": "Luma AI",
+    "app": "Luma Dream Machine",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI video and 3D generation"
+  },
+  {
+    "domain": "api.lumalabs.ai",
+    "provider": "Luma AI",
+    "app": "Luma AI",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "api",
+    "notes": "Luma AI REST API"
+  },
+  {
+    "domain": "klingai.com",
+    "provider": "Kuaishou",
+    "app": "Kling AI",
+    "risk": "high",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "China-based AI video generation; data jurisdiction concerns"
+  },
+  {
+    "domain": "invideo.io",
+    "provider": "InVideo",
+    "app": "InVideo AI",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "AI-powered video creation"
+  },
+  {
+    "domain": "elicit.com",
+    "provider": "Elicit",
+    "app": "Elicit",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI research assistant"
+  },
+  {
+    "domain": "elicit.org",
+    "provider": "Elicit",
+    "app": "Elicit",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "Elicit alternate domain"
+  },
+  {
+    "domain": "consensus.app",
+    "provider": "Consensus",
+    "app": "Consensus",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI-powered academic search"
+  },
+  {
+    "domain": "semanticscholar.org",
+    "provider": "Allen AI",
+    "app": "Semantic Scholar",
+    "risk": "low",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI-powered academic paper search"
+  },
+  {
+    "domain": "api.semanticscholar.org",
+    "provider": "Allen AI",
+    "app": "Semantic Scholar",
+    "risk": "low",
+    "category": "AI Search",
+    "type": "api",
+    "notes": "Semantic Scholar REST API"
+  },
+  {
+    "domain": "scite.ai",
+    "provider": "Scite",
+    "app": "Scite",
+    "risk": "medium",
+    "category": "AI Search",
+    "type": "primary",
+    "notes": "AI citation analysis"
+  },
+  {
+    "domain": "jasper.ai",
+    "provider": "Jasper",
+    "app": "Jasper",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI marketing content platform"
+  },
+  {
+    "domain": "api.jasper.ai",
+    "provider": "Jasper",
+    "app": "Jasper",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "api",
+    "notes": "Jasper REST API"
+  },
+  {
+    "domain": "copy.ai",
+    "provider": "Copy.ai",
+    "app": "Copy.ai",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI copywriting tool"
+  },
+  {
+    "domain": "writesonic.com",
+    "provider": "Writesonic",
+    "app": "Writesonic",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI writing assistant"
+  },
+  {
+    "domain": "otter.ai",
+    "provider": "Otter.ai",
+    "app": "Otter.ai",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI meeting transcription"
+  },
+  {
+    "domain": "mem.ai",
+    "provider": "Mem",
+    "app": "Mem",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI-powered note taking"
+  },
+  {
+    "domain": "tome.app",
+    "provider": "Tome",
+    "app": "Tome",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI presentation generator"
+  },
+  {
+    "domain": "gamma.app",
+    "provider": "Gamma",
+    "app": "Gamma",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI presentation and document creator"
+  },
+  {
+    "domain": "notion.so",
+    "provider": "Notion",
+    "app": "Notion AI",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "Workspace with integrated AI features"
+  },
+  {
+    "domain": "grammarly.com",
+    "provider": "Grammarly",
+    "app": "Grammarly",
+    "risk": "medium",
+    "category": "AI Productivity",
+    "type": "primary",
+    "notes": "AI writing assistance with generative features"
+  },
+  {
+    "domain": "runway.ml",
+    "provider": "Runway",
+    "app": "Runway",
+    "risk": "medium",
+    "category": "Video AI",
+    "type": "primary",
+    "notes": "Runway alternate domain"
+  },
+  {
+    "domain": "civitai.com",
+    "provider": "CivitAI",
+    "app": "CivitAI",
+    "risk": "high",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Community model sharing; unmoderated content risk"
+  },
+  {
+    "domain": "tensor.art",
+    "provider": "Tensor.Art",
+    "app": "Tensor.Art",
+    "risk": "high",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI image generation community; limited enterprise controls"
+  },
+  {
+    "domain": "seaart.ai",
+    "provider": "SeaArt",
+    "app": "SeaArt",
+    "risk": "high",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "AI art generator; consumer-only, no enterprise controls"
+  },
+  {
+    "domain": "openrouter.ai",
+    "provider": "OpenRouter",
+    "app": "OpenRouter",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Multi-provider LLM API gateway"
+  },
+  {
+    "domain": "api.openrouter.ai",
+    "provider": "OpenRouter",
+    "app": "OpenRouter",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "api",
+    "notes": "OpenRouter REST API endpoint"
+  },
+  {
+    "domain": "ollama.com",
+    "provider": "Ollama",
+    "app": "Ollama",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Local LLM runner; downloads may indicate shadow AI"
+  },
+  {
+    "domain": "lmstudio.ai",
+    "provider": "LM Studio",
+    "app": "LM Studio",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Local LLM desktop application"
+  },
+  {
+    "domain": "jan.ai",
+    "provider": "Jan",
+    "app": "Jan",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Open-source local LLM client"
+  },
+  {
+    "domain": "code.claude.ai",
+    "provider": "Anthropic",
+    "app": "Claude Code",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "subdomain",
+    "notes": "Claude Code web interface"
+  },
+  {
+    "domain": "v0.dev",
+    "provider": "Vercel",
+    "app": "v0",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI UI component generator"
+  },
+  {
+    "domain": "bolt.new",
+    "provider": "StackBlitz",
+    "app": "Bolt",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI full-stack web app generator"
+  },
+  {
+    "domain": "lovable.dev",
+    "provider": "Lovable",
+    "app": "Lovable",
+    "risk": "medium",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI app builder (formerly GPT Engineer)"
+  },
+  {
+    "domain": "aider.chat",
+    "provider": "Aider",
+    "app": "Aider",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "AI pair programming CLI tool"
+  },
+  {
+    "domain": "continue.dev",
+    "provider": "Continue",
+    "app": "Continue",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Open-source AI code assistant"
+  },
+  {
+    "domain": "supermaven.com",
+    "provider": "Supermaven",
+    "app": "Supermaven",
+    "risk": "low",
+    "category": "Code Assistant",
+    "type": "primary",
+    "notes": "Fast AI code completion"
+  },
+  {
+    "domain": "qwen.ai",
+    "provider": "Alibaba",
+    "app": "Qwen",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Alibaba Qwen chat; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "chat.qwen.ai",
+    "provider": "Alibaba",
+    "app": "Qwen",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Qwen chat interface"
+  },
+  {
+    "domain": "doubao.com",
+    "provider": "ByteDance",
+    "app": "Doubao",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "ByteDance AI assistant; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "kimi.moonshot.cn",
+    "provider": "Moonshot AI",
+    "app": "Kimi",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Moonshot Kimi AI; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "chatglm.cn",
+    "provider": "Zhipu AI",
+    "app": "ChatGLM",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Zhipu ChatGLM; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "ernie.baidu.com",
+    "provider": "Baidu",
+    "app": "ERNIE Bot",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "primary",
+    "notes": "Baidu AI chat; China-based, data jurisdiction concerns"
+  },
+  {
+    "domain": "yiyan.baidu.com",
+    "provider": "Baidu",
+    "app": "ERNIE Bot",
+    "risk": "high",
+    "category": "Generative AI",
+    "type": "subdomain",
+    "notes": "Baidu Wenxin Yiyan (ERNIE Bot Chinese interface)"
+  },
+  {
+    "domain": "ai.google",
+    "provider": "Google",
+    "app": "Google AI",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Google AI portal"
+  },
+  {
+    "domain": "ai.google.dev",
+    "provider": "Google",
+    "app": "Gemini API",
+    "risk": "low",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Gemini developer documentation"
+  },
+  {
+    "domain": "docs.anthropic.com",
+    "provider": "Anthropic",
+    "app": "Claude API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Anthropic API documentation"
+  },
+  {
+    "domain": "docs.mistral.ai",
+    "provider": "Mistral AI",
+    "app": "Mistral API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Mistral API documentation"
+  },
+  {
+    "domain": "hf.co",
+    "provider": "Hugging Face",
+    "app": "Hugging Face",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Hugging Face short URL domain (redirects to huggingface.co)"
+  },
+  {
+    "domain": "cdn-lfs.huggingface.co",
+    "provider": "Hugging Face",
+    "app": "Hugging Face",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "cdn",
+    "notes": "Hugging Face large file storage CDN (model downloads)"
+  },
+  {
+    "domain": "designer.microsoft.com",
+    "provider": "Microsoft",
+    "app": "Microsoft Designer",
+    "risk": "medium",
+    "category": "Image Generation",
+    "type": "primary",
+    "notes": "Microsoft AI image generation tool (DALL-E powered)"
+  },
+  {
+    "domain": "platform.deepseek.com",
+    "provider": "DeepSeek",
+    "app": "DeepSeek API",
+    "risk": "high",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "DeepSeek developer platform"
+  },
+  {
+    "domain": "docs.x.ai",
+    "provider": "xAI",
+    "app": "Grok API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "xAI API documentation"
+  },
+  {
+    "domain": "docs.cohere.com",
+    "provider": "Cohere",
+    "app": "Cohere API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Cohere API documentation"
+  },
+  {
+    "domain": "docs.perplexity.ai",
+    "provider": "Perplexity",
+    "app": "Perplexity API",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "subdomain",
+    "notes": "Perplexity API documentation"
+  },
+  {
+    "domain": "openclaw.ai",
+    "provider": "OpenClaw",
+    "app": "OpenClaw",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Open-source autonomous AI agent. Local gateway on port 18789. Full host shell access by default. Bridges corporate/personal messaging. Active malware lure target (March 2026)"
+  },
+  {
+    "domain": "docs.openclaw.ai",
+    "provider": "OpenClaw",
+    "app": "OpenClaw",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "OpenClaw documentation"
+  },
+  {
+    "domain": "clawhub.com",
+    "provider": "OpenClaw",
+    "app": "ClawHub",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "ClawHub skill registry — dynamic agent capability install (like npm for agent skills)"
+  },
+  {
+    "domain": "zeroclawlabs.ai",
+    "provider": "ZeroClaw",
+    "app": "ZeroClaw",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "LEGITIMATE domain. Rust-based autonomous AI agent. Local gateway on port 42617. Better security defaults than OpenClaw (supervised mode, sandboxing)"
+  },
+  {
+    "domain": "zeroclaw.org",
+    "provider": "ZeroClaw Impersonator",
+    "app": "ZeroClaw (Unauthorized Fork)",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
+  },
+  {
+    "domain": "zeroclaw.net",
+    "provider": "ZeroClaw Impersonator",
+    "app": "ZeroClaw (Unauthorized Fork)",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
+  },
+  {
+    "domain": "cline.bot",
+    "provider": "Cline",
+    "app": "Cline",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Editor-native autonomous coding agent (VS Code). Formerly Claude Dev. Executes terminal commands and file read/write"
+  },
+  {
+    "domain": "all-hands.dev",
+    "provider": "All Hands AI",
+    "app": "OpenHands",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Autonomous software engineering agent (formerly OpenDevin). Containerized sandbox. Controls terminal, browser, IDE"
+  },
+  {
+    "domain": "app.all-hands.dev",
+    "provider": "All Hands AI",
+    "app": "OpenHands",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "OpenHands cloud application"
+  },
+  {
+    "domain": "crewai.com",
+    "provider": "CrewAI",
+    "app": "CrewAI",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Multi-agent orchestration framework. Self-hostable via Docker"
+  },
+  {
+    "domain": "app.crewai.com",
+    "provider": "CrewAI",
+    "app": "CrewAI",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "CrewAI cloud SaaS tier"
+  },
+  {
+    "domain": "n8n.io",
+    "provider": "n8n",
+    "app": "n8n",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Workflow automation with AI agent nodes. 400+ integrations. Self-hostable"
+  },
+  {
+    "domain": "app.n8n.cloud",
+    "provider": "n8n",
+    "app": "n8n",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "n8n cloud tier"
+  },
+  {
+    "domain": "dify.ai",
+    "provider": "Dify",
+    "app": "Dify",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Open-source LLM platform with RAG and agent runtime. Docker-based self-deployment"
+  },
+  {
+    "domain": "cloud.dify.ai",
+    "provider": "Dify",
+    "app": "Dify",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "Dify cloud tier"
+  },
+  {
+    "domain": "flowiseai.com",
+    "provider": "Flowise",
+    "app": "Flowise",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Low-code visual LangChain agent builder. Runs locally"
+  },
+  {
+    "domain": "openinterpreter.com",
+    "provider": "Open Interpreter",
+    "app": "Open Interpreter",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "LLMs execute code locally (Python, JS, shell). No sandboxing by default. Direct OS-level access"
+  },
+  {
+    "domain": "ollama.ai",
+    "provider": "Ollama",
+    "app": "Ollama",
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "type": "primary",
+    "notes": "Ollama alternate domain. Local LLM runner exposes REST API on port 11434"
+  },
+  {
+    "domain": "agpt.co",
+    "provider": "AutoGPT",
+    "app": "AutoGPT",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Autonomous AI agent framework (Forge). Self-hostable toolkit"
+  },
+  {
+    "domain": "platform.agpt.co",
+    "provider": "AutoGPT",
+    "app": "AutoGPT",
+    "risk": "high",
+    "category": "Shadow AI",
+    "type": "subdomain",
+    "notes": "AutoGPT cloud platform"
+  },
+  {
+    "domain": "agno.com",
+    "provider": "Agno",
+    "app": "Agno",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Python framework for LLM function-calling agents (formerly Phidata)"
+  },
+  {
+    "domain": "phidata.com",
+    "provider": "Agno",
+    "app": "Agno",
+    "risk": "medium",
+    "category": "Shadow AI",
+    "type": "primary",
+    "notes": "Legacy domain, redirects to agno.com"
+  }
+]

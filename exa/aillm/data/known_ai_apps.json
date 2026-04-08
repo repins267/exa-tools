@@ -1,0 +1,646 @@
+[
+  {
+    "app": "ChatGPT",
+    "provider": "OpenAI",
+    "aliases": ["chatgpt", "chat gpt", "chat-gpt", "openai chat", "gpt-4", "gpt-4o", "gpt4", "gpt 4"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "OpenAI API",
+    "provider": "OpenAI",
+    "aliases": ["openai api", "openai platform", "gpt api", "openai"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "DALL-E",
+    "provider": "OpenAI",
+    "aliases": ["dall-e", "dalle", "dall e", "dalle-3", "dalle3", "openai image"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "Sora",
+    "provider": "OpenAI",
+    "aliases": ["sora", "openai sora", "openai video"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "Claude",
+    "provider": "Anthropic",
+    "aliases": ["claude", "claude ai", "anthropic claude", "claude.ai", "claude-3", "claude 3", "claude opus", "claude sonnet", "claude haiku"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Claude API",
+    "provider": "Anthropic",
+    "aliases": ["anthropic api", "claude api", "anthropic"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Claude Code",
+    "provider": "Anthropic",
+    "aliases": ["claude code", "claude-code", "claude coding"],
+    "risk": "medium",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Gemini",
+    "provider": "Google",
+    "aliases": ["gemini", "google gemini", "gemini pro", "gemini ultra", "gemini advanced", "google bard", "bard"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Google AI Studio",
+    "provider": "Google",
+    "aliases": ["ai studio", "google ai studio", "makersuite", "maker suite"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Vertex AI",
+    "provider": "Google",
+    "aliases": ["vertex ai", "google vertex", "vertex", "google cloud ai"],
+    "risk": "low",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "NotebookLM",
+    "provider": "Google",
+    "aliases": ["notebooklm", "notebook lm", "google notebooklm", "google notebook"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Microsoft Copilot",
+    "provider": "Microsoft",
+    "aliases": ["copilot", "microsoft copilot", "ms copilot", "bing copilot", "bing chat", "bing ai", "windows copilot"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Microsoft 365 Copilot",
+    "provider": "Microsoft",
+    "aliases": ["m365 copilot", "office copilot", "copilot for microsoft 365", "copilot word", "copilot excel", "copilot teams"],
+    "risk": "low",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Azure OpenAI",
+    "provider": "Microsoft",
+    "aliases": ["azure openai", "azure ai", "azure gpt", "aoai"],
+    "risk": "low",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Meta AI",
+    "provider": "Meta",
+    "aliases": ["meta ai", "meta llama", "llama", "llama 3", "llama-3", "facebook ai"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Grok",
+    "provider": "xAI",
+    "aliases": ["grok", "x ai", "xai", "x.ai", "grok ai", "grok-2", "grok 2", "twitter ai"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "DeepSeek",
+    "provider": "DeepSeek",
+    "aliases": ["deepseek", "deep seek", "deep-seek", "deepseek chat", "deepseek-r1", "deepseek r1", "deepseek v3"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Mistral",
+    "provider": "Mistral AI",
+    "aliases": ["mistral", "mistral ai", "le chat", "lechat", "le-chat", "mistral large", "mixtral"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Cohere",
+    "provider": "Cohere",
+    "aliases": ["cohere", "cohere ai", "command r", "command-r", "coral"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "AI21",
+    "provider": "AI21 Labs",
+    "aliases": ["ai21", "ai21 labs", "ai21 studio", "jamba", "jurassic"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Pi",
+    "provider": "Inflection AI",
+    "aliases": ["pi", "pi ai", "pi.ai", "inflection pi", "inflection ai"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Character.AI",
+    "provider": "Character.AI",
+    "aliases": ["character ai", "character.ai", "c.ai", "chai", "character-ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Perplexity",
+    "provider": "Perplexity",
+    "aliases": ["perplexity", "perplexity ai", "perplexity.ai", "pplx"],
+    "risk": "medium",
+    "category": "AI Search"
+  },
+  {
+    "app": "You.com",
+    "provider": "You.com",
+    "aliases": ["you.com", "you ai", "youchat", "you chat"],
+    "risk": "medium",
+    "category": "AI Search"
+  },
+  {
+    "app": "Phind",
+    "provider": "Phind",
+    "aliases": ["phind", "phind.com", "phind ai"],
+    "risk": "medium",
+    "category": "AI Search"
+  },
+  {
+    "app": "Poe",
+    "provider": "Quora",
+    "aliases": ["poe", "poe ai", "poe.com", "quora poe"],
+    "risk": "medium",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Hugging Face",
+    "provider": "Hugging Face",
+    "aliases": ["huggingface", "hugging face", "hf", "huggingface.co"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "GitHub Copilot",
+    "provider": "GitHub",
+    "aliases": ["github copilot", "copilot github", "gh copilot", "copilot code", "copilot chat"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Tabnine",
+    "provider": "Tabnine",
+    "aliases": ["tabnine", "tab nine", "tab-nine"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Codeium",
+    "provider": "Codeium",
+    "aliases": ["codeium", "windsurf", "windsurf editor", "windsurf ai"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Cursor",
+    "provider": "Anysphere",
+    "aliases": ["cursor", "cursor ai", "cursor editor", "cursor ide"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Replit",
+    "provider": "Replit",
+    "aliases": ["replit", "repl.it", "replit ai", "ghostwriter", "replit ghostwriter"],
+    "risk": "medium",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Sourcegraph Cody",
+    "provider": "Sourcegraph",
+    "aliases": ["cody", "sourcegraph cody", "cody ai", "sourcegraph"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Amazon Q Developer",
+    "provider": "Amazon",
+    "aliases": ["amazon q", "aws q", "codewhisperer", "amazon codewhisperer", "aws codewhisperer", "q developer"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "JetBrains AI",
+    "provider": "JetBrains",
+    "aliases": ["jetbrains ai", "jetbrains assistant", "grazie", "intellij ai"],
+    "risk": "low",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Together AI",
+    "provider": "Together AI",
+    "aliases": ["together ai", "together.ai", "together"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Groq",
+    "provider": "Groq",
+    "aliases": ["groq", "groq ai", "groq cloud", "groq lpu"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Replicate",
+    "provider": "Replicate",
+    "aliases": ["replicate", "replicate.com", "replicate ai"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Fireworks AI",
+    "provider": "Fireworks AI",
+    "aliases": ["fireworks", "fireworks ai", "fireworks.ai"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "AWS Bedrock",
+    "provider": "Amazon",
+    "aliases": ["bedrock", "aws bedrock", "amazon bedrock"],
+    "risk": "low",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "OpenRouter",
+    "provider": "OpenRouter",
+    "aliases": ["openrouter", "open router", "openrouter.ai"],
+    "risk": "medium",
+    "category": "AI Platform/API"
+  },
+  {
+    "app": "Ollama",
+    "provider": "Ollama",
+    "aliases": ["ollama", "ollama ai", "ollama serve", "ollama run"],
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "notes": "Local LLM runner. Default API port 11434. Powers most local agent frameworks"
+  },
+  {
+    "app": "LM Studio",
+    "provider": "LM Studio",
+    "aliases": ["lm studio", "lmstudio", "lm-studio", "lm studio server"],
+    "risk": "medium",
+    "category": "AI Platform/API",
+    "notes": "Local LLM GUI. Local server port 1234 (OpenAI-compatible API)"
+  },
+  {
+    "app": "Midjourney",
+    "provider": "Midjourney",
+    "aliases": ["midjourney", "mid journey", "mid-journey", "mj"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "Stable Diffusion",
+    "provider": "Stability AI",
+    "aliases": ["stable diffusion", "stablediffusion", "stability ai", "stability", "sd", "sdxl", "dreamstudio"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "Adobe Firefly",
+    "provider": "Adobe",
+    "aliases": ["firefly", "adobe firefly", "adobe ai"],
+    "risk": "low",
+    "category": "Image Generation"
+  },
+  {
+    "app": "Leonardo AI",
+    "provider": "Leonardo AI",
+    "aliases": ["leonardo", "leonardo ai", "leonardo.ai"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "Ideogram",
+    "provider": "Ideogram",
+    "aliases": ["ideogram", "ideogram ai", "ideogram.ai"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "FLUX",
+    "provider": "Black Forest Labs",
+    "aliases": ["flux", "flux ai", "flux.1", "black forest labs", "bfl"],
+    "risk": "medium",
+    "category": "Image Generation"
+  },
+  {
+    "app": "CivitAI",
+    "provider": "CivitAI",
+    "aliases": ["civitai", "civit ai", "civit"],
+    "risk": "high",
+    "category": "Image Generation"
+  },
+  {
+    "app": "ElevenLabs",
+    "provider": "ElevenLabs",
+    "aliases": ["elevenlabs", "eleven labs", "eleven-labs", "11labs"],
+    "risk": "medium",
+    "category": "Voice/Audio AI"
+  },
+  {
+    "app": "Descript",
+    "provider": "Descript",
+    "aliases": ["descript", "descript ai"],
+    "risk": "medium",
+    "category": "Voice/Audio AI"
+  },
+  {
+    "app": "Suno",
+    "provider": "Suno",
+    "aliases": ["suno", "suno ai", "suno music"],
+    "risk": "medium",
+    "category": "Voice/Audio AI"
+  },
+  {
+    "app": "Udio",
+    "provider": "Udio",
+    "aliases": ["udio", "udio ai", "udio music"],
+    "risk": "medium",
+    "category": "Voice/Audio AI"
+  },
+  {
+    "app": "Runway",
+    "provider": "Runway",
+    "aliases": ["runway", "runway ml", "runwayml", "runway ai", "gen-2", "gen-3"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "Pika",
+    "provider": "Pika",
+    "aliases": ["pika", "pika ai", "pika art", "pika video"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "Synthesia",
+    "provider": "Synthesia",
+    "aliases": ["synthesia", "synthesia ai", "synthesia.io"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "HeyGen",
+    "provider": "HeyGen",
+    "aliases": ["heygen", "hey gen", "hey-gen", "heygen ai"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "Luma Dream Machine",
+    "provider": "Luma AI",
+    "aliases": ["luma", "luma ai", "dream machine", "lumalabs"],
+    "risk": "medium",
+    "category": "Video AI"
+  },
+  {
+    "app": "Kling AI",
+    "provider": "Kuaishou",
+    "aliases": ["kling", "kling ai", "klingai"],
+    "risk": "high",
+    "category": "Video AI"
+  },
+  {
+    "app": "Jasper",
+    "provider": "Jasper",
+    "aliases": ["jasper", "jasper ai", "jasper.ai", "jarvis ai"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Copy.ai",
+    "provider": "Copy.ai",
+    "aliases": ["copy ai", "copy.ai", "copyai"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Writesonic",
+    "provider": "Writesonic",
+    "aliases": ["writesonic", "write sonic"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Grammarly",
+    "provider": "Grammarly",
+    "aliases": ["grammarly", "grammarly ai", "grammarly go"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Notion AI",
+    "provider": "Notion",
+    "aliases": ["notion ai", "notion"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Otter.ai",
+    "provider": "Otter.ai",
+    "aliases": ["otter", "otter ai", "otter.ai"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Tome",
+    "provider": "Tome",
+    "aliases": ["tome", "tome ai", "tome.app"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Gamma",
+    "provider": "Gamma",
+    "aliases": ["gamma", "gamma ai", "gamma.app", "gamma app"],
+    "risk": "medium",
+    "category": "AI Productivity"
+  },
+  {
+    "app": "Elicit",
+    "provider": "Elicit",
+    "aliases": ["elicit", "elicit ai", "elicit.org"],
+    "risk": "medium",
+    "category": "AI Search"
+  },
+  {
+    "app": "Consensus",
+    "provider": "Consensus",
+    "aliases": ["consensus", "consensus ai", "consensus.app"],
+    "risk": "medium",
+    "category": "AI Search"
+  },
+  {
+    "app": "v0",
+    "provider": "Vercel",
+    "aliases": ["v0", "v0.dev", "vercel v0", "vercel ai"],
+    "risk": "medium",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Bolt",
+    "provider": "StackBlitz",
+    "aliases": ["bolt", "bolt.new", "bolt ai", "stackblitz bolt"],
+    "risk": "medium",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Lovable",
+    "provider": "Lovable",
+    "aliases": ["lovable", "lovable.dev", "gpt engineer", "gptengineer"],
+    "risk": "medium",
+    "category": "Code Assistant"
+  },
+  {
+    "app": "Qwen",
+    "provider": "Alibaba",
+    "aliases": ["qwen", "qwen ai", "tongyi qianwen", "alibaba ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "ERNIE Bot",
+    "provider": "Baidu",
+    "aliases": ["ernie", "ernie bot", "wenxin yiyan", "baidu ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "ChatGLM",
+    "provider": "Zhipu AI",
+    "aliases": ["chatglm", "glm", "zhipu", "zhipu ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Kimi",
+    "provider": "Moonshot AI",
+    "aliases": ["kimi", "kimi ai", "moonshot", "moonshot ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "Doubao",
+    "provider": "ByteDance",
+    "aliases": ["doubao", "bytedance ai", "doubao ai"],
+    "risk": "high",
+    "category": "Generative AI"
+  },
+  {
+    "app": "OpenClaw",
+    "provider": "OpenClaw",
+    "aliases": ["openclaw", "open claw", "open-claw", "openclaw agent", "openclaw gateway", "clawhub"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "Local gateway port 18789. 350k stars. Full host shell access by default. Active malware lure target (March 2026)"
+  },
+  {
+    "app": "ZeroClaw",
+    "provider": "ZeroClaw Labs",
+    "aliases": ["zeroclaw", "zero claw", "zero-claw", "zeroclaw-labs"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "Local gateway port 42617. Rust single binary. Supervised mode default. Impersonator domains: zeroclaw.org, zeroclaw.net"
+  },
+  {
+    "app": "Cline",
+    "provider": "Cline",
+    "aliases": ["cline", "cline ai", "cline bot", "claude dev", "claude-dev"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "VS Code autonomous coding agent. Formerly Claude Dev. Model-agnostic"
+  },
+  {
+    "app": "OpenHands",
+    "provider": "All Hands AI",
+    "aliases": ["openhands", "open hands", "open-hands", "opendevin", "open devin"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "Autonomous software engineering agent. Containerized sandbox. Controls terminal/browser/IDE"
+  },
+  {
+    "app": "CrewAI",
+    "provider": "CrewAI",
+    "aliases": ["crewai", "crew ai", "crew-ai"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "Multi-agent orchestration framework. Python. Self-hostable via Docker"
+  },
+  {
+    "app": "n8n",
+    "provider": "n8n",
+    "aliases": ["n8n", "n8n.io", "n8n ai", "n8n workflow"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "Workflow automation with AI agent nodes. 400+ integrations. Self-hostable"
+  },
+  {
+    "app": "Dify",
+    "provider": "Dify",
+    "aliases": ["dify", "dify ai", "dify.ai"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "Open-source LLM platform with RAG and agent runtime. Docker-based"
+  },
+  {
+    "app": "Flowise",
+    "provider": "Flowise",
+    "aliases": ["flowise", "flowise ai", "flowiseai"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "Low-code visual LangChain agent builder. Runs locally"
+  },
+  {
+    "app": "Open Interpreter",
+    "provider": "Open Interpreter",
+    "aliases": ["open interpreter", "open-interpreter", "openinterpreter", "oi"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "LLMs execute arbitrary code locally (Python, JS, shell). No sandbox by default"
+  },
+  {
+    "app": "AutoGPT",
+    "provider": "Significant Gravitas",
+    "aliases": ["autogpt", "auto gpt", "auto-gpt", "agpt", "autogpt forge"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "Original autonomous AI agent framework. Self-hostable Forge toolkit"
+  },
+  {
+    "app": "Agent Zero",
+    "provider": "Agent Zero",
+    "aliases": ["agent zero", "agent-zero", "agentzero"],
+    "risk": "high",
+    "category": "Shadow AI",
+    "notes": "Self-modifying autonomous agent. Minimal safety constraints by design"
+  },
+  {
+    "app": "Agno",
+    "provider": "Agno",
+    "aliases": ["agno", "agno ai", "phidata", "phi data", "agno-agi"],
+    "risk": "medium",
+    "category": "Shadow AI",
+    "notes": "Python LLM function-calling agent framework. Formerly Phidata"
+  }
+]
