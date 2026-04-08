@@ -223,8 +223,74 @@ def _parse_condition(
     return expr, all_mappings, warnings
 
 
+_MAX_DESC_LEN = 900
+_TRUNCATED_SUFFIX = " | (truncated)"
+
+
+def _build_description(sigma: dict[str, Any], mitre_tags: list[str]) -> str:
+    """Build a structured description with metadata, capped at 900 chars.
+
+    Ported from Convert-SigmaToExaRule.ps1 production logic.
+    MITRE/Tags/Use Cases are NOT settable via the correlation rules API,
+    so they are packed into the description as structured text.
+
+    Format: "<desc> | Sigma ID: <id> | Author: <author> | MITRE: ... | Tags: ..."
+    """
+    parts: list[str] = []
+    desc = sigma.get("description", "")
+    if desc:
+        parts.append(str(desc).replace("\n", " ").strip())
+    sigma_id = sigma.get("id", "")
+    if sigma_id:
+        parts.append(f"Sigma ID: {sigma_id}")
+    author = sigma.get("author", "")
+    if author:
+        parts.append(f"Author: {author}")
+    refs = sigma.get("references", [])
+    if isinstance(refs, list):
+        for ref in refs:
+            if ref:
+                parts.append(f"Reference: {ref}")
+    if mitre_tags:
+        parts.append(f"MITRE: {','.join(mitre_tags)}")
+    tags = sigma.get("tags", [])
+    if isinstance(tags, list) and tags:
+        parts.append(f"Tags: {','.join(str(t) for t in tags)}")
+
+    # Incremental assembly: add parts until we'd exceed 900 chars
+    description = ""
+    truncated = False
+    for p in parts:
+        candidate = p if not description else f"{description} | {p}"
+        if len(candidate) <= _MAX_DESC_LEN:
+            description = candidate
+        else:
+            truncated = True
+            break
+
+    # Fallback: if nothing fit incrementally, hard-join and truncate
+    if not description:
+        description = " | ".join(parts)
+        if len(description) > _MAX_DESC_LEN:
+            description = description[:_MAX_DESC_LEN]
+            truncated = True
+
+    if truncated:
+        if len(description) + len(_TRUNCATED_SUFFIX) <= _MAX_DESC_LEN:
+            description += _TRUNCATED_SUFFIX
+        else:
+            description = description[:_MAX_DESC_LEN - len(_TRUNCATED_SUFFIX)] + _TRUNCATED_SUFFIX
+
+    return description
+
+
 def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
     """Convert a parsed Sigma rule dict to an Exabeam correlation rule.
+
+    Matches Convert-SigmaToExaRule.ps1 production behavior:
+    - Rule name always prefixed with "[Sigma] "
+    - MITRE/Tags packed into description (API does not support tags)
+    - Description capped at 900 chars with truncation indicator
 
     Returns a dict with:
       - name, description, severity, tags
@@ -275,6 +341,13 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
         tags = [tags] if tags else []
     mitre_tags = [t for t in tags if isinstance(t, str) and t.startswith("attack.")]
 
+    # Rule name: always "[Sigma] " prefix for bulk management
+    title = sigma.get("title", "Unnamed Sigma Rule")
+    name = f"[Sigma] {title}"
+
+    # Build structured description (MITRE/tags packed in, 900 char cap)
+    description = _build_description(sigma, mitre_tags)
+
     # Check for unmapped fields
     unmapped = [m for m in field_mappings if m["sigma"].split("|")[0] == m["cim2"]]
     for um in unmapped:
@@ -293,8 +366,8 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
         deploy_ready = "Yes"
 
     return {
-        "name": sigma.get("title", "Untitled Sigma Rule"),
-        "description": sigma.get("description", ""),
+        "name": name,
+        "description": description,
         "severity": severity,
         "sigma_id": sigma.get("id", ""),
         "sigma_status": sigma.get("status", ""),
