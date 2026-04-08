@@ -1,0 +1,1 @@
+"""Internal tier gating decorator."""
