@@ -109,6 +109,7 @@ class TestSearchEvents:
     def test_search_events_raw(self, exa, mock_auth):
         from exa.search.events import search_events
 
+        # EXA-UNVERIFIED — "metadata" field not confirmed in CLAUDE.md
         mock_auth.add_response(
             url=f"{BASE_URL}/search/v2/events",
             method="POST",

@@ -118,12 +118,13 @@ class TestClassifyRecords:
 
 class TestDiscoverSourceMappings:
     def test_high_confidence_match(self, exa, mock_auth):
+        # Mock verified against Exabeam API docs - 2026-04-09
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables",
             method="GET",
             json=[
-                {"name": "Privileged Users", "id": "t1", "numRecords": 50},
-                {"name": "Service Accounts", "id": "t2", "numRecords": 30},
+                {"name": "Privileged Users", "id": "t1", "totalItems": 50},
+                {"name": "Service Accounts", "id": "t2", "totalItems": 30},
             ],
         )
         suggestions = discover_source_mappings(exa)
@@ -132,12 +133,13 @@ class TestDiscoverSourceMappings:
         assert priv.confidence == "High"
 
     def test_skips_compliance_tables(self, exa, mock_auth):
+        # Mock verified against Exabeam API docs - 2026-04-09
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables",
             method="GET",
             json=[
-                {"name": "Compliance - Privileged Users", "id": "t1", "numRecords": 10},
-                {"name": "AD Privileged Users", "id": "t2", "numRecords": 25},
+                {"name": "Compliance - Privileged Users", "id": "t1", "totalItems": 10},
+                {"name": "AD Privileged Users", "id": "t2", "totalItems": 25},
             ],
         )
         suggestions = discover_source_mappings(exa)
