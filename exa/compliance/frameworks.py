@@ -70,8 +70,21 @@ class Framework:
         return [c for c in self.controls if not c.is_leaf]
 
 
+def _validate_framework_id(framework_id: str) -> None:
+    """Validate framework ID — no path traversal or injection."""
+    from exa.exceptions import ExaConfigError
+
+    if any(c in framework_id for c in ("/", "\\", "..", "\x00", ";", " ")):
+        available = ", ".join(AVAILABLE_FRAMEWORKS)
+        raise ExaConfigError(
+            f"Invalid framework ID: {framework_id!r}. "
+            f"Available: {available}"
+        )
+
+
 def load_framework(framework_id: str) -> Framework:
     """Load a framework definition from bundled data."""
+    _validate_framework_id(framework_id)
     data_dir = importlib.resources.files("exa.compliance.data")
     text = (data_dir / f"{framework_id}.json").read_text(encoding="utf-8-sig")
     raw = json.loads(text)
