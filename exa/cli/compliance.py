@@ -93,8 +93,8 @@ def sync_ootb(
     client = ExaClient(tenant=tenant)
     client.authenticate()
     try:
-        with console.status("Syncing controls..."):
-            result = sync_ootb_tables(client, fw_id)
+        with console.status("Syncing controls + mapping..."):
+            sync_results = sync_ootb_tables(client, fw_id)
 
         tbl = Table(title="OOTB Sync Results", show_lines=True)
         tbl.add_column("Table Name", style="white", max_width=40)
@@ -102,23 +102,25 @@ def sync_ootb(
         tbl.add_column("Records", justify="right")
         tbl.add_column("Errors", justify="right")
 
-        action = (
-            "[green]Created[/green]" if result.created
-            else "[cyan]Updated[/cyan]"
-        )
-        err_n = len(result.errors)
-        err_s = "red" if err_n else "green"
+        for r in sync_results:
+            action = (
+                "[green]Created[/green]" if r.created
+                else "[cyan]Updated[/cyan]"
+            )
+            err_n = len(r.errors)
+            err_s = "red" if err_n else "green"
+            tbl.add_row(
+                r.table_name,
+                action,
+                str(r.records_written),
+                f"[{err_s}]{err_n}[/{err_s}]",
+            )
 
-        tbl.add_row(
-            result.table_name,
-            action,
-            str(result.records_written),
-            f"[{err_s}]{err_n}[/{err_s}]",
-        )
         console.print(tbl)
 
-        for err in result.errors:
-            console.print(f"  Error: {err}", style="red")
+        for r in sync_results:
+            for err in r.errors:
+                console.print(f"  Error: {err}", style="red")
     finally:
         client.close()
 
