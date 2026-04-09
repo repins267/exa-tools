@@ -27,6 +27,7 @@ from exa.context.tables import (
     create_table,
     get_all_records,
     get_attributes,
+    get_records,
     get_table,
     get_tables,
 )
@@ -262,29 +263,81 @@ class TableStatus:
     note: str = ""
 
 
+def _find_table_by_name(
+    tables: list[dict[str, Any]],
+    target_name: str,
+) -> dict[str, Any] | None:
+    """Find a table by name or displayName (case-insensitive).
+
+    OOTB Exabeam tables may use 'displayName' as the human-readable
+    name while 'name' is an internal identifier.
+    """
+    target_lower = target_name.lower()
+    for t in tables:
+        if t.get("name", "").lower() == target_lower:
+            return t
+        if t.get("displayName", "").lower() == target_lower:
+            return t
+    return None
+
+
+def _get_record_count(
+    client: ExaClient,
+    table_id: str,
+    list_count: int,
+) -> int:
+    """Get accurate record count for a table.
+
+    Tries GET /tables/{id} first for numRecords. If that returns 0
+    but we suspect data exists, falls back to reading one page of
+    records and using the count.
+    """
+    try:
+        detail = get_table(client, table_id)
+        count = int(detail.get("numRecords", 0))
+        if count > 0:
+            return count
+    except Exception:
+        pass
+
+    # Fallback: use list response count
+    if list_count > 0:
+        return list_count
+
+    # Last resort: read first page and count
+    try:
+        resp = get_records(client, table_id, limit=1, offset=0)
+        if isinstance(resp, dict):
+            total = resp.get("totalRecords", resp.get("total", 0))
+            if total:
+                return int(total)
+            recs = resp.get("records", [])
+            if recs:
+                return len(recs)
+    except Exception:
+        pass
+
+    return 0
+
+
 def get_identity_table_status(
     client: ExaClient,
 ) -> list[TableStatus]:
     """Query all 6 OOTB compliance tables and return their status.
 
-    Looks up each table by display name, then queries by ID for
-    accurate record counts. If a table doesn't exist in the tenant,
-    record_count=0 and note="Not created".
+    Matches by both 'name' and 'displayName' to handle OOTB
+    Exabeam tables correctly. Queries each table by ID for
+    accurate record counts.
     """
     all_tables = get_tables(client)
-    name_to_table = {t["name"]: t for t in all_tables}
 
     results: list[TableStatus] = []
     for target_name in TARGET_TABLE_MAP.values():
-        if target_name in name_to_table:
-            t = name_to_table[target_name]
+        t = _find_table_by_name(all_tables, target_name)
+        if t is not None:
             table_id = t.get("id", "")
-            # Query by ID for accurate record count
-            try:
-                detail = get_table(client, table_id)
-                count = int(detail.get("numRecords", 0))
-            except Exception:
-                count = int(t.get("numRecords", 0))
+            list_count = int(t.get("numRecords", 0))
+            count = _get_record_count(client, table_id, list_count)
             results.append(TableStatus(
                 name=target_name,
                 record_count=count,
