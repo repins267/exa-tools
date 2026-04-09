@@ -40,32 +40,29 @@ def _get_client(
 def configure() -> None:
     """Set up tenant credentials (stored in Windows Credential Manager)."""
     from rich.prompt import Prompt
-    from rich.table import Table
 
-    from exa.config import REGIONS, save_profile, set_default_tenant
+    from exa.config import resolve_fqdn, save_profile, set_default_tenant
 
-    # Tenant name
-    tenant = Prompt.ask("Tenant name (e.g. sademodev22)")
-    if not tenant.strip():
-        console.print("Tenant name cannot be empty.", style="red")
-        raise typer.Exit(1)
-    tenant = tenant.strip()
-
-    # Region selection
-    region_list = list(REGIONS.items())
-    table = Table(title="Regions", show_header=True)
-    table.add_column("#", style="cyan", width=4)
-    table.add_column("Region", style="white")
-    table.add_column("API Server", style="dim")
-    for i, (name, url) in enumerate(region_list, 1):
-        table.add_row(str(i), name, url)
-    console.print(table)
-
-    choice = Prompt.ask(
-        "Select region",
-        choices=[str(i) for i in range(1, len(region_list) + 1)],
+    # Tenant FQDN
+    fqdn_input = Prompt.ask(
+        "Tenant FQDN or name "
+        "(e.g. sademodev22.exabeam.cloud or "
+        "csdevfusion.use1.exabeam.cloud)"
     )
-    region_name, api_server = region_list[int(choice) - 1]
+    if not fqdn_input.strip():
+        console.print("Tenant FQDN cannot be empty.", style="red")
+        raise typer.Exit(1)
+
+    try:
+        nickname, fqdn, api_server, region = resolve_fqdn(fqdn_input)
+    except ValueError as e:
+        console.print(f"\u2717 {e}", style="red")
+        raise typer.Exit(1)
+
+    console.print(
+        f"\u2713 Resolved: {fqdn} \u2192 {region} ({api_server})",
+        style="green",
+    )
 
     # Credentials
     client_id = Prompt.ask("Client ID")
@@ -88,24 +85,42 @@ def configure() -> None:
         test_client.authenticate()
         test_client.close()
     except Exception as e:
-        console.print(f"\u2717 Connection failed \u2014 {e}", style="red")
+        console.print(
+            f"\u2717 Connection failed \u2014 "
+            f"verify credentials and region\n"
+            f"  API server tried: {api_server}\n"
+            f"  Error: {e}",
+            style="red",
+        )
         raise typer.Exit(1)
 
-    console.print(f"\u2713 Connected \u2014 {tenant} ({region_name})", style="green")
+    console.print(
+        f"\u2713 Connected \u2014 {fqdn} ({region})",
+        style="green",
+    )
 
     # Save profile
-    save_profile(tenant, api_server, client_id, client_secret)
-    console.print("  Credentials saved to Windows Credential Manager", style="dim")
+    save_profile(
+        nickname, api_server, client_id, client_secret,
+        fqdn=fqdn, region=region,
+    )
+    console.print(
+        "  Credentials saved to Windows Credential Manager",
+        style="dim",
+    )
 
     # Default tenant
-    set_as_default = Prompt.ask("Set as default tenant?", choices=["Y", "n"], default="Y")
+    set_as_default = Prompt.ask(
+        "Set as default tenant?", choices=["Y", "n"], default="Y",
+    )
     if set_as_default.upper() == "Y":
-        set_default_tenant(tenant)
-        console.print(f"  Default tenant: {tenant}", style="dim")
+        set_default_tenant(nickname)
+        console.print(f"  Default tenant: {nickname}", style="dim")
 
     # CIM2 reference data
     download_cim2 = Prompt.ask(
-        "Download CIM2 reference data now?", choices=["Y", "n"], default="Y",
+        "Download CIM2 reference data now?",
+        choices=["Y", "n"], default="Y",
     )
     if download_cim2.upper() == "Y":
         from exa.cli.update import _run_update
@@ -173,34 +188,6 @@ def sync_aillm(
         client.close()
 
 
-# -- Compliance audit ---------------------------------------------------------
-
-@app.command()
-def audit(
-    framework: Annotated[str, typer.Argument(help="Framework ID (e.g. NIST_CSF, CMMC_L2)")],
-    base_url: Annotated[str, typer.Option("--url", help="Exabeam base URL")],
-    client_id: Annotated[str, typer.Option("--client-id", help="API client ID")],
-    client_secret: Annotated[Optional[str], typer.Option("--client-secret")] = None,
-    lookback_days: Annotated[int, typer.Option("--lookback", help="Days to search back")] = 30,
-    min_evidence: Annotated[int, typer.Option("--min-evidence", help="Min events per control")] = 10,
-    output: Annotated[Optional[str], typer.Option("--output", "-o", help="Save report to JSON file")] = None,
-) -> None:
-    """Run a compliance framework audit."""
-    from exa.compliance import run_compliance_audit
-
-    client = _get_client(base_url, client_id, client_secret)
-    try:
-        run_compliance_audit(
-            client,
-            framework,
-            lookback_days=lookback_days,
-            minimum_evidence=min_evidence,
-            output_report=output,
-        )
-    finally:
-        client.close()
-
-
 # -- Search -------------------------------------------------------------------
 
 @app.command()
@@ -239,6 +226,13 @@ def frameworks() -> None:
             console.print(f"  {fw_id:<20} {fw.name:<35} ({testable} testable controls)")
         except Exception:
             console.print(f"  {fw_id:<20} (load error)", style="red")
+
+
+# -- Compliance ---------------------------------------------------------------
+
+from exa.cli.compliance import compliance_app
+
+app.add_typer(compliance_app)
 
 
 # -- Config -------------------------------------------------------------------

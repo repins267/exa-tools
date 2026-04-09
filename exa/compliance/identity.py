@@ -246,3 +246,46 @@ def sync_compliance_identity_tables(
     console.print(f"  Total upserted: {total_upserted} | Errors: {total_errors}")
 
     return results
+
+
+# -- Status -------------------------------------------------------------------
+
+
+@dataclass
+class TableStatus:
+    """Status of a single compliance context table."""
+
+    name: str
+    record_count: int = 0
+    table_id: str = ""
+    note: str = ""
+
+
+def get_identity_table_status(
+    client: ExaClient,
+) -> list[TableStatus]:
+    """Query all 6 OOTB compliance tables and return their status.
+
+    Returns record counts for each table. If a table doesn't exist
+    in the tenant, record_count=0 and note="Not created".
+    """
+    all_tables = get_tables(client)
+    existing = {t["name"]: t for t in all_tables}
+
+    results: list[TableStatus] = []
+    for target_name in TARGET_TABLE_MAP.values():
+        if target_name in existing:
+            t = existing[target_name]
+            results.append(TableStatus(
+                name=target_name,
+                record_count=int(t.get("numRecords", 0)),
+                table_id=t.get("id", ""),
+            ))
+        else:
+            results.append(TableStatus(
+                name=target_name,
+                record_count=0,
+                note="Not created",
+            ))
+
+    return results

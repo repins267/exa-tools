@@ -7,7 +7,11 @@ from exa.compliance.frameworks import (
     load_control_queries,
     load_framework,
 )
-from exa.compliance.identity import sync_compliance_identity_tables
+from exa.compliance.identity import (
+    TableStatus,
+    get_identity_table_status,
+    sync_compliance_identity_tables,
+)
 from exa.compliance.mapping import (
     classify_records,
     discover_source_mappings,
@@ -24,5 +28,7 @@ __all__ = [
     "load_control_queries",
     "load_framework",
     "run_compliance_audit",
+    "TableStatus",
+    "get_identity_table_status",
     "sync_compliance_identity_tables",
 ]
