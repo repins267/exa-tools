@@ -1,16 +1,15 @@
 """Tests for exa/config.py credential storage and tenant profiles."""
 
-import json
 from unittest.mock import patch
 
 import pytest
 
 from exa.config import (
-    _CONFIG_FILE,
-    _KEYRING_SERVICE,
+    DEFAULT_API_SERVER,
     get_default_tenant,
     load_config,
     load_profile,
+    resolve_fqdn,
     save_config,
     save_profile,
     set_default_tenant,
@@ -139,3 +138,92 @@ class TestGenericConfig:
 
     def test_load_missing_key(self):
         assert load_config("nonexistent") is None
+
+
+class TestResolveFqdn:
+    def test_with_region_code(self):
+        nick, fqdn, api, region = resolve_fqdn(
+            "csdevfusion.use1.exabeam.cloud",
+        )
+        assert nick == "csdevfusion"
+        assert fqdn == "csdevfusion.use1.exabeam.cloud"
+        assert api == "https://api.us-east.exabeam.cloud"
+        assert region == "US East"
+
+    def test_without_region_code(self):
+        nick, fqdn, api, region = resolve_fqdn(
+            "sademodev22.exabeam.cloud",
+        )
+        assert nick == "sademodev22"
+        assert api == DEFAULT_API_SERVER
+        assert region == "US West"
+
+    def test_nickname_only(self):
+        nick, fqdn, api, region = resolve_fqdn("sademodev22")
+        assert nick == "sademodev22"
+        assert fqdn == "sademodev22.exabeam.cloud"
+        assert api == DEFAULT_API_SERVER
+
+    def test_unknown_region_code(self):
+        with pytest.raises(ValueError, match="Unknown region code 'xyz99'"):
+            resolve_fqdn("tenant.xyz99.exabeam.cloud")
+
+    def test_invalid_domain(self):
+        with pytest.raises(ValueError, match="Invalid tenant FQDN"):
+            resolve_fqdn("tenant.aws.amazon.com")
+
+    def test_strips_whitespace(self):
+        nick, fqdn, api, _ = resolve_fqdn(
+            "  sademodev22.exabeam.cloud  ",
+        )
+        assert nick == "sademodev22"
+        assert fqdn == "sademodev22.exabeam.cloud"
+
+    def test_all_region_codes(self):
+        from exa.config import FQDN_REGION_MAP, REGION_LABELS
+
+        for code, expected_api in FQDN_REGION_MAP.items():
+            nick, fqdn, api, region = resolve_fqdn(
+                f"test.{code}.exabeam.cloud",
+            )
+            assert api == expected_api
+            assert region == REGION_LABELS[code]
+
+
+class TestConfigureStoresFqdn:
+    def test_save_profile_stores_fqdn_and_region(self):
+        stored: dict = {}
+
+        def mock_set(svc: str, key: str, val: str) -> None:
+            stored.setdefault(svc, {})[key] = val
+
+        with patch(
+            "exa.config.keyring.set_password", side_effect=mock_set,
+        ):
+            save_profile(
+                "csdevfusion",
+                "https://api.us-east.exabeam.cloud",
+                "id", "secret",
+                fqdn="csdevfusion.use1.exabeam.cloud",
+                region="US East",
+            )
+
+        import json as json_mod
+
+        from exa.config import _CONFIG_FILE as _CFG_FILE
+
+        data = json_mod.loads(_CFG_FILE.read_text(encoding="utf-8"))
+        t = data["tenants"]["csdevfusion"]
+        assert t["fqdn"] == "csdevfusion.use1.exabeam.cloud"
+        assert t["region"] == "US East"
+        assert t["api_server"] == "https://api.us-east.exabeam.cloud"
+
+
+class TestFqdnPathTraversal:
+    def test_path_traversal_in_fqdn(self):
+        with pytest.raises(ValueError):
+            resolve_fqdn("../../etc/passwd.exabeam.cloud")
+
+    def test_null_byte_in_fqdn(self):
+        with pytest.raises(ValueError):
+            resolve_fqdn("tenant\x00.exabeam.cloud")

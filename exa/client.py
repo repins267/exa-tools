@@ -86,19 +86,35 @@ class ExaClient:
         client_secret: str | None = None,
         *,
         tenant: str | None = None,
+        fqdn: str | None = None,
         timeout: float = 30.0,
         max_retries: int = _MAX_RETRIES,
     ) -> None:
         if base_url and client_id and client_secret:
             # Explicit credentials (backwards compat)
+            if not base_url.startswith("https://"):
+                raise ValueError("API server URL must use HTTPS")
             self.base_url = base_url.rstrip("/")
             self._client_id = client_id
             self._client_secret = client_secret
-        elif tenant is not None or (base_url is None and client_id is None):
-            # Load from keyring
+        elif fqdn is not None:
+            # Resolve FQDN → API server, then load creds by nickname
+            from exa.config import load_profile, resolve_fqdn
+
+            nickname, _, api_server, _ = resolve_fqdn(fqdn)
+            api_server_r, cid, csecret = load_profile(nickname)
+            self.base_url = api_server_r.rstrip("/")
+            self._client_id = cid
+            self._client_secret = csecret
+        elif tenant is not None or (
+            base_url is None and client_id is None
+        ):
+            # Load from keyring by tenant nickname or FQDN
             from exa.config import load_profile
 
             api_server, cid, csecret = load_profile(tenant)
+            if not api_server.startswith("https://"):
+                raise ValueError("API server URL must use HTTPS")
             self.base_url = api_server.rstrip("/")
             self._client_id = cid
             self._client_secret = csecret
@@ -233,3 +249,9 @@ class ExaClient:
 
     def close(self) -> None:
         self._http.close()
+
+    def __repr__(self) -> str:
+        return f"ExaClient(base_url={self.base_url!r})"
+
+    def __str__(self) -> str:
+        return f"ExaClient({self.base_url})"
