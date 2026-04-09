@@ -175,6 +175,108 @@ def _deploy_rules(
     console.print(deploy_table)
 
 
+@sigma_app.command("browse")
+def browse(
+    category: Annotated[
+        str | None,
+        typer.Option("--category", "-c", help="Filter by logsource category"),
+    ] = None,
+    product: Annotated[
+        str | None,
+        typer.Option("--product", "-p", help="Filter by product"),
+    ] = None,
+    level: Annotated[
+        str | None,
+        typer.Option("--level", "-l", help="Filter by level"),
+    ] = None,
+    tag: Annotated[
+        str | None,
+        typer.Option("--tag", help="Filter by ATT&CK tag"),
+    ] = None,
+    search: Annotated[
+        str | None,
+        typer.Option("--search", "-s", help="Search rule titles"),
+    ] = None,
+) -> None:
+    """Browse SigmaHQ community rules from local index."""
+    from exa.update import load_cim2_cache
+
+    try:
+        rules = load_cim2_cache("sigma_index")
+    except Exception:
+        console.print(
+            "Sigma index not found. Run 'exa update' first.",
+            style="red",
+        )
+        raise typer.Exit(1)
+
+    # Apply filters
+    filtered = rules
+    if category:
+        cat_l = category.lower()
+        filtered = [
+            r for r in filtered if cat_l in r.get("category", "").lower()
+        ]
+    if product:
+        prod_l = product.lower()
+        filtered = [
+            r for r in filtered if prod_l in r.get("product", "").lower()
+        ]
+    if level:
+        lvl_l = level.lower()
+        filtered = [
+            r for r in filtered if r.get("level", "").lower() == lvl_l
+        ]
+    if tag:
+        tag_l = tag.lower()
+        filtered = [
+            r for r in filtered
+            if any(tag_l in t.lower() for t in r.get("tags", []))
+        ]
+    if search:
+        search_l = search.lower()
+        filtered = [
+            r for r in filtered if search_l in r.get("title", "").lower()
+        ]
+
+    if not filtered:
+        console.print("  No rules match the filters.", style="yellow")
+        raise typer.Exit(0)
+
+    # Show results (limit to 50 for readability)
+    shown = filtered[:50]
+    table = Table(
+        title=f"SigmaHQ Rules ({len(filtered)} matches"
+        f"{', showing first 50' if len(filtered) > 50 else ''})",
+        show_lines=True,
+    )
+    table.add_column("#", style="cyan", width=4)
+    table.add_column("Title", style="white", max_width=45)
+    table.add_column("Category", style="dim", max_width=20)
+    table.add_column("Product", max_width=12)
+    table.add_column("Level", max_width=10)
+    table.add_column("Tags", style="dim", max_width=30)
+
+    for i, r in enumerate(shown, 1):
+        tags_str = ", ".join(r.get("tags", [])[:3])
+        table.add_row(
+            str(i),
+            r.get("title", ""),
+            r.get("category", ""),
+            r.get("product", ""),
+            r.get("level", ""),
+            tags_str,
+        )
+    console.print(table)
+
+    if len(filtered) > 50:
+        console.print(
+            f"  {len(filtered) - 50} more rules not shown. "
+            "Narrow your search with filters.",
+            style="dim",
+        )
+
+
 @sigma_app.command("convert")
 def convert(
     rule: Annotated[

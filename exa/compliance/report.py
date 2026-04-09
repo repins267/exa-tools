@@ -19,6 +19,14 @@ _DISCLAIMER = (
 )
 
 
+def _load_logo_b64() -> str:
+    """Load the embedded Exabeam logo as base64."""
+    logo_path = Path(__file__).parent / "_logo_b64.txt"
+    if logo_path.exists():
+        return logo_path.read_text(encoding="utf-8").strip()
+    return ""
+
+
 def _esc(text: str) -> str:
     """Escape HTML special characters."""
     return (
@@ -39,8 +47,10 @@ def _card(cls: str, value: str, label: str) -> str:
 
 
 def _coverage_bar(pct: int) -> str:
-    color = "#00C389" if pct >= 80 else (
-        "#F0AD4E" if pct >= 50 else "#D9534F"
+    color = (
+        "#00C389" if pct >= 80
+        else "#F0AD4E" if pct >= 50
+        else "#E53E3E"
     )
     return (
         f'<div class="bar-bg">'
@@ -64,13 +74,17 @@ def generate_html_report(report: AuditReport) -> str:
         else:
             family_stats[cr.family]["fail"] += 1
 
-    # Coverage color for card
-    cov_color = "#00C389" if report.coverage_pct >= 80 else (
-        "#F0AD4E" if report.coverage_pct >= 50 else "#D9534F"
-    )
+    # Logo
+    logo_b64 = _load_logo_b64()
+    logo_html = ""
+    if logo_b64:
+        logo_html = (
+            f'<img src="data:image/png;base64,{logo_b64}" '
+            f'alt="Exabeam" style="height:32px;margin-right:16px;'
+            f'vertical-align:middle">'
+        )
 
     # --- Build HTML ---
-
     parts.append(f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,30 +97,31 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
   Roboto,sans-serif;color:#333;background:#f5f6f8}}
 .header{{background:linear-gradient(135deg,#00C389,#0078D4);
   color:#fff;padding:32px 40px}}
-.header h1{{font-size:24px;font-weight:600}}
+.header h1{{font-size:24px;font-weight:600;
+  display:flex;align-items:center}}
 .header .sub{{opacity:.9;margin-top:6px;font-size:14px}}
 .wrap{{max-width:1100px;margin:0 auto;padding:24px}}
 .cards{{display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:16px;margin:24px 0}}
 .card{{background:#fff;border-radius:8px;padding:20px;
-  box-shadow:0 1px 3px rgba(0,0,0,.1);text-align:center}}
-.card .value{{font-size:32px;font-weight:700}}
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);text-align:center}}
+.card .value{{font-size:32px;font-weight:800}}
 .card .label{{font-size:13px;color:#666;margin-top:4px}}
 .card.pass .value{{color:#00C389}}
-.card.fail .value{{color:#D9534F}}
-.card.cov .value{{color:{cov_color}}}
-.card.ev .value{{color:#0078D4}}
+.card.fail .value{{color:#E53E3E}}
+.card.cov .value{{color:#0078D4}}
+.card.ev .value{{color:#718096}}
 h2{{font-size:18px;margin:28px 0 12px;color:#1a1a1a}}
 table{{width:100%;border-collapse:collapse;background:#fff;
   border-radius:8px;overflow:hidden;
-  box-shadow:0 1px 3px rgba(0,0,0,.1);margin-bottom:24px}}
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}}
 th{{background:#f0f2f5;text-align:left;padding:10px 14px;
   font-size:13px;font-weight:600;color:#555}}
 td{{padding:10px 14px;border-top:1px solid #eee;font-size:13px}}
 tr:hover{{background:#fafbfc}}
 .status-pass{{color:#00C389;font-weight:600}}
-.status-fail{{color:#D9534F;font-weight:600}}
+.status-fail{{color:#E53E3E;font-weight:600}}
 .bar-bg{{display:inline-block;width:80px;height:10px;
   background:#e9ecef;border-radius:5px;vertical-align:middle}}
 .bar{{height:10px;border-radius:5px}}
@@ -118,11 +133,12 @@ tr:hover{{background:#fafbfc}}
 </head>
 <body>""")
 
-    # Header
+    # Header with logo
     ts = _esc(report.timestamp[:19])
     fw = _esc(report.framework_name)
     parts.append(
-        f'<div class="header"><h1>exa-tools | {fw}</h1>'
+        f'<div class="header">'
+        f"<h1>{logo_html}exa-tools | {fw}</h1>"
         f'<div class="sub">Generated: {ts} UTC '
         f'| Lookback: {report.lookback_days} days</div></div>'
     )
@@ -150,7 +166,9 @@ tr:hover{{background:#fafbfc}}
     )
     for fam in sorted(family_stats):
         s = family_stats[fam]
-        pct = round(s["pass"] / s["total"] * 100) if s["total"] else 0
+        pct = (
+            round(s["pass"] / s["total"] * 100) if s["total"] else 0
+        )
         parts.append(
             f"<tr><td>{_esc(fam)}</td><td>{s['total']}</td>"
             f"<td>{s['pass']}</td><td>{s['fail']}</td>"
@@ -218,6 +236,22 @@ tr:hover{{background:#fafbfc}}
     parts.append("</body></html>")
 
     return "\n".join(parts)
+
+
+def default_report_path(
+    tenant: str,
+    framework_name: str,
+    date_str: str,
+) -> Path:
+    """Generate default HTML report path in reports/ folder.
+
+    e.g. reports/sademodev22-nist-csf-v2-0-2026-04-09.html
+    """
+    import re
+
+    slug = re.sub(r"[^a-z0-9]+", "-", framework_name.lower()).strip("-")
+    filename = f"{tenant}-{slug}-{date_str}.html"
+    return Path("reports") / filename
 
 
 def save_html_report(report: AuditReport, path: str | Path) -> None:

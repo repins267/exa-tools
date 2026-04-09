@@ -19,10 +19,14 @@ from exa.exceptions import ExaConfigError
 _DATA_DIR = Path.home() / ".exa"
 _CIM2_DIR = _DATA_DIR / "cim2"
 _CONTENT_HUB_DIR = _DATA_DIR / "content-hub"
+_SIGMA_DIR = _DATA_DIR / "sigma"
 _CACHE_DIR = _DATA_DIR / "cache"
 
 _CIM2_REPO = "https://github.com/ExabeamLabs/Content-Library-CIM2.git"
-_CONTENT_HUB_REPO = "https://github.com/ExabeamLabs/new-scale-content-hub.git"
+_CONTENT_HUB_REPO = (
+    "https://github.com/ExabeamLabs/new-scale-content-hub.git"
+)
+_SIGMA_REPO = "https://github.com/SigmaHQ/sigma.git"
 
 # Markdown files to parse from CIM2 repo
 _CIM2_PARSE_TARGETS: dict[str, str] = {
@@ -241,6 +245,59 @@ def _cache_parsed_data(
 # -- Public API ---------------------------------------------------------------
 
 
+def _build_sigma_index(
+    sigma_dir: Path,
+    cache_dir: Path,
+) -> CacheResult:
+    """Parse SigmaHQ rules directory and build a rule index."""
+    from exa.sigma.parser import parse_sigma_yaml
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    rules_dir = sigma_dir / "rules"
+    if not rules_dir.is_dir():
+        return CacheResult(
+            name="sigma_index",
+            error="rules/ directory not found in sigma repo",
+        )
+
+    index: list[dict[str, Any]] = []
+    for yml in rules_dir.rglob("*.yml"):
+        try:
+            text = yml.read_text(encoding="utf-8")
+            parsed = parse_sigma_yaml(text)
+            title = parsed.get("title", yml.stem)
+            tags = parsed.get("tags", [])
+            if not isinstance(tags, list):
+                tags = [tags] if tags else []
+            level = parsed.get("level", "")
+            logsource = parsed.get("logsource", {})
+            if not isinstance(logsource, dict):
+                logsource = {}
+            category = logsource.get("category", "")
+            product = logsource.get("product", "")
+            rel = str(yml.relative_to(sigma_dir)).replace("\\", "/")
+            index.append({
+                "path": rel,
+                "title": str(title) if title else yml.stem,
+                "tags": [str(t) for t in tags],
+                "level": str(level) if level else "",
+                "category": str(category) if category else "",
+                "product": str(product) if product else "",
+            })
+        except Exception:
+            continue
+
+    cache_file = cache_dir / "sigma_index.json"
+    cache_file.write_text(
+        json.dumps(index, indent=2), encoding="utf-8",
+    )
+    return CacheResult(
+        name="sigma_index",
+        records=len(index),
+        updated=datetime.now(UTC).isoformat()[:19],
+    )
+
+
 @dataclass
 class UpdateResult:
     """Result of a full update operation."""
@@ -249,6 +306,8 @@ class UpdateResult:
     cim2_sha: str = ""
     content_hub_action: str = ""
     content_hub_sha: str = ""
+    sigma_action: str = ""
+    sigma_sha: str = ""
     cache_results: list[CacheResult] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -256,15 +315,18 @@ class UpdateResult:
 def update_reference_data(
     *,
     data_dir: Path | None = None,
+    include_sigma: bool = True,
 ) -> UpdateResult:
-    """Clone/pull CIM2 and content-hub repos, parse and cache.
+    """Clone/pull CIM2, content-hub, and SigmaHQ repos; parse and cache.
 
     Args:
         data_dir: Override base directory (default ~/.exa/).
+        include_sigma: Whether to clone/pull SigmaHQ repo.
     """
     base = data_dir or _DATA_DIR
     cim2_dir = base / "cim2"
     content_hub_dir = base / "content-hub"
+    sigma_dir = base / "sigma"
     cache_dir = base / "cache"
 
     result = UpdateResult()
@@ -285,9 +347,23 @@ def update_reference_data(
     except Exception as e:
         result.errors.append(f"Content Hub: {e}")
 
-    # Parse and cache
+    # Sync SigmaHQ
+    if include_sigma:
+        try:
+            action, _ = _sync_repo(_SIGMA_REPO, sigma_dir)
+            result.sigma_action = action
+            result.sigma_sha = _git_head_sha(sigma_dir)
+        except Exception as e:
+            result.errors.append(f"SigmaHQ: {e}")
+
+    # Parse and cache CIM2
     if cim2_dir.exists():
         result.cache_results = _cache_parsed_data(cim2_dir, cache_dir)
+
+    # Build sigma index
+    if include_sigma and sigma_dir.exists():
+        sigma_result = _build_sigma_index(sigma_dir, cache_dir)
+        result.cache_results.append(sigma_result)
 
     return result
 
@@ -314,6 +390,12 @@ def check_reference_data(
         status["content-hub"] = _git_head_sha(hub_dir)
     else:
         status["content-hub"] = "not cloned"
+
+    sigma_dir = base / "sigma"
+    if sigma_dir.exists() and (sigma_dir / ".git").is_dir():
+        status["sigma"] = _git_head_sha(sigma_dir)
+    else:
+        status["sigma"] = "not cloned"
 
     return status
 

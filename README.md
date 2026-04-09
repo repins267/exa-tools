@@ -46,16 +46,16 @@ exa sigma convert --rule proc_creation_powershell_encoded.yml
 
 ### `exa configure`
 
-Interactive setup: tenant name, region selection (10 regions), client ID, client secret (hidden input). Tests the connection, saves credentials to keyring, and optionally downloads CIM2 reference data.
+Interactive setup: enter your tenant FQDN (e.g. `sademodev22.exabeam.cloud` or `csdevfusion.use1.exabeam.cloud`), client ID, and client secret. The region is resolved automatically from the FQDN. Tests the connection, saves credentials to keyring, and optionally downloads CIM2/SigmaHQ reference data.
 
 ### `exa update`
 
 ```bash
-exa update           # clone/pull CIM2 + content-hub repos, parse to ~/.exa/cache/
+exa update           # clone/pull CIM2 + content-hub + SigmaHQ repos, parse to ~/.exa/cache/
 exa update --check   # show current commit SHAs without pulling
 ```
 
-Downloads [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2) and [new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub), then parses markdown tables into JSON cache files for field and activity_type validation.
+Downloads [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2), [new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub), and [SigmaHQ/sigma](https://github.com/SigmaHQ/sigma), then parses data into JSON cache files for field validation and rule browsing.
 
 ### `exa config`
 
@@ -92,16 +92,29 @@ Convert and deploy a single rule in one step.
 
 Short alias: `exa sd`
 
+### `exa sigma browse`
+
+```bash
+exa sigma browse --category process_creation --level high
+exa sigma browse --tag t1059 --product windows
+exa sigma browse --search "powershell"
+```
+
+Browse SigmaHQ community rules from the local index (built by `exa update`). Filter by category, product, level, ATT&CK tag, or keyword search.
+
+### `exa compliance audit`
+
+```bash
+exa compliance audit --framework "NIST CSF v2.0" --lookback 30
+exa compliance audit --framework "NIST CSF v2.0" --output-html report.html
+```
+
+Run a compliance gap analysis audit. HTML reports are saved to `reports/` by default and include an executive summary, family coverage breakdown, and gap analysis.
+
 ### `exa search`
 
 ```bash
 exa search 'activity_type:"authentication"' --url $URL --client-id $ID --lookback 7 --limit 500
-```
-
-### `exa audit`
-
-```bash
-exa audit NIST_CSF --url $URL --client-id $ID --lookback 30
 ```
 
 ### `exa tables`

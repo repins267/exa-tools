@@ -87,6 +87,12 @@ def _run_update() -> None:
             f"[green]{result.content_hub_action}[/green]",
             result.content_hub_sha,
         )
+    if result.sigma_action:
+        repo_table.add_row(
+            "SigmaHQ/sigma",
+            f"[green]{result.sigma_action}[/green]",
+            result.sigma_sha,
+        )
     for err in result.errors:
         repo_table.add_row("", f"[red]{err}[/red]", "")
 

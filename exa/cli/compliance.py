@@ -320,8 +320,10 @@ def audit(
     ] = None,
     output_html: Annotated[
         str | None,
-        typer.Option("--output-html",
-                     help="Save HTML report to file"),
+        typer.Option(
+            "--output-html",
+            help="Save HTML report (default: reports/<tenant>-<fw>-<date>.html)",
+        ),
     ] = None,
     tenant: Annotated[
         str | None,
@@ -346,12 +348,25 @@ def audit(
             output_report=output_json,
         )
 
-        if output_html:
-            from exa.compliance.report import save_html_report
+        if output_html is not None:
+            from exa.compliance.report import (
+                default_report_path,
+                save_html_report,
+            )
 
-            save_html_report(report, output_html)
+            if output_html == "":
+                # Default path: reports/<tenant>-<fw>-<date>.html
+                t_name = tenant or "default"
+                date_str = report.timestamp[:10]
+                html_path = default_report_path(
+                    t_name, report.framework_name, date_str,
+                )
+            else:
+                html_path = output_html  # type: ignore[assignment]
+
+            save_html_report(report, html_path)
             console.print(
-                f"\n  HTML report saved: {output_html}",
+                f"\n  HTML report saved: {html_path}",
                 style="green",
             )
     finally:

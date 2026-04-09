@@ -127,6 +127,17 @@ def configure() -> None:
 
         _run_update()
 
+    # SigmaHQ community rules
+    download_sigma = Prompt.ask(
+        "Download SigmaHQ community rules? (~500MB)",
+        choices=["Y", "n"], default="n",
+    )
+    if download_sigma.upper() == "Y":
+        from exa.update import update_reference_data
+
+        console.print("Cloning SigmaHQ...", style="dim")
+        update_reference_data(include_sigma=True)
+
 
 # -- Auth test ----------------------------------------------------------------
 
