@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import getpass
-from typing import TYPE_CHECKING, Annotated, Optional
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.console import Console
@@ -18,18 +17,14 @@ app = typer.Typer(
 )
 console = Console()
 
+_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
 
-def _get_client(
-    base_url: str,
-    client_id: str,
-    client_secret: str | None = None,
-) -> ExaClient:
-    """Create and authenticate an ExaClient with explicit credentials."""
+
+def _make_client(tenant: str | None = None) -> ExaClient:
+    """Create and authenticate an ExaClient from keyring."""
     from exa.client import ExaClient
 
-    if not client_secret:
-        client_secret = getpass.getpass("Client Secret: ")
-    client = ExaClient(base_url, client_id, client_secret)
+    client = ExaClient(tenant=tenant)
     client.authenticate()
     return client
 
@@ -143,15 +138,22 @@ def configure() -> None:
 
 @app.command()
 def auth(
-    base_url: Annotated[str, typer.Option("--url", help="Exabeam base URL")],
-    client_id: Annotated[str, typer.Option("--client-id", help="API client ID")],
-    client_secret: Annotated[Optional[str], typer.Option("--client-secret", help="API client secret (prompted if omitted)")] = None,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
 ) -> None:
-    """Test authentication against Exabeam API."""
+    """Test authentication against saved tenant credentials."""
+    import time
+
     try:
-        client = _get_client(base_url, client_id, client_secret)
-        console.print("Authentication successful", style="green")
-        console.print(f"  Token expires in {int(client._expires_at - __import__('time').time())}s")
+        client = _make_client(tenant)
+        ttl = int(client._expires_at - time.time())
+        console.print(
+            "Authentication successful", style="green",
+        )
+        console.print(f"  Token expires in {ttl}s")
+        console.print(f"  API server: {client.base_url}", style="dim")
         client.close()
     except Exception as e:
         console.print(f"Authentication failed: {e}", style="red")
@@ -162,19 +164,25 @@ def auth(
 
 @app.command()
 def tables(
-    base_url: Annotated[str, typer.Option("--url", help="Exabeam base URL")],
-    client_id: Annotated[str, typer.Option("--client-id", help="API client ID")],
-    client_secret: Annotated[Optional[str], typer.Option("--client-secret")] = None,
-    name: Annotated[Optional[str], typer.Option("--name", help="Filter by name")] = None,
+    name: Annotated[
+        str | None,
+        typer.Option("--name", help="Filter by name"),
+    ] = None,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
 ) -> None:
     """List context tables."""
     from exa.context import get_tables
 
-    client = _get_client(base_url, client_id, client_secret)
+    client = _make_client(tenant)
     try:
         result = get_tables(client, name=name)
         for t in result:
-            console.print(f"  {t.get('id', '?'):<40} {t.get('name', '?')}")
+            console.print(
+                f"  {t.get('id', '?'):<40} {t.get('name', '?')}",
+            )
         console.print(f"\n  {len(result)} tables", style="dim")
     finally:
         client.close()
@@ -184,15 +192,19 @@ def tables(
 
 @app.command()
 def sync_aillm(
-    base_url: Annotated[str, typer.Option("--url", help="Exabeam base URL")],
-    client_id: Annotated[str, typer.Option("--client-id", help="API client ID")],
-    client_secret: Annotated[Optional[str], typer.Option("--client-secret")] = None,
-    force: Annotated[bool, typer.Option("--force", help="Replace instead of append")] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Replace instead of append"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
 ) -> None:
     """Sync AI/LLM context tables from reference data."""
     from exa.aillm import sync_aillm_context_tables
 
-    client = _get_client(base_url, client_id, client_secret)
+    client = _make_client(tenant)
     try:
         sync_aillm_context_tables(client, force=force)
     finally:
@@ -203,19 +215,30 @@ def sync_aillm(
 
 @app.command()
 def search(
-    filter_str: Annotated[str, typer.Argument(help="EQL filter string")],
-    base_url: Annotated[str, typer.Option("--url", help="Exabeam base URL")],
-    client_id: Annotated[str, typer.Option("--client-id", help="API client ID")],
-    client_secret: Annotated[Optional[str], typer.Option("--client-secret")] = None,
-    lookback_days: Annotated[int, typer.Option("--lookback", help="Days to search back")] = 1,
-    limit: Annotated[int, typer.Option("--limit", help="Max events")] = 100,
+    filter_str: Annotated[
+        str, typer.Argument(help="EQL filter string"),
+    ],
+    lookback_days: Annotated[
+        int,
+        typer.Option("--lookback", help="Days to search back"),
+    ] = 1,
+    limit: Annotated[
+        int, typer.Option("--limit", help="Max events"),
+    ] = 100,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
 ) -> None:
     """Search Exabeam events."""
     from exa.search import search_events
 
-    client = _get_client(base_url, client_id, client_secret)
+    client = _make_client(tenant)
     try:
-        events = search_events(client, filter_str, lookback_days=lookback_days, limit=limit)
+        events = search_events(
+            client, filter_str,
+            lookback_days=lookback_days, limit=limit,
+        )
         for e in events:
             console.print(e)
         console.print(f"\n  {len(events)} events", style="dim")
@@ -228,15 +251,23 @@ def search(
 @app.command()
 def frameworks() -> None:
     """List available compliance frameworks."""
-    from exa.compliance.frameworks import AVAILABLE_FRAMEWORKS, load_framework
+    from exa.compliance.frameworks import (
+        AVAILABLE_FRAMEWORKS,
+        load_framework,
+    )
 
     for fw_id in AVAILABLE_FRAMEWORKS:
         try:
             fw = load_framework(fw_id)
             testable = len(fw.testable_controls)
-            console.print(f"  {fw_id:<20} {fw.name:<35} ({testable} testable controls)")
+            console.print(
+                f"  {fw_id:<20} {fw.name:<35} "
+                f"({testable} testable controls)",
+            )
         except Exception:
-            console.print(f"  {fw_id:<20} (load error)", style="red")
+            console.print(
+                f"  {fw_id:<20} (load error)", style="red",
+            )
 
 
 # -- Compliance ---------------------------------------------------------------
@@ -267,8 +298,12 @@ from exa.cli.sigma import sigma_app
 app.add_typer(sigma_app)
 
 # Short aliases: exa sc → exa sigma convert, exa sd → exa sigma deploy
-sc_app = typer.Typer(name="sc", hidden=True, invoke_without_command=True)
-sd_app = typer.Typer(name="sd", hidden=True, invoke_without_command=True)
+sc_app = typer.Typer(
+    name="sc", hidden=True, invoke_without_command=True,
+)
+sd_app = typer.Typer(
+    name="sd", hidden=True, invoke_without_command=True,
+)
 
 
 @sc_app.callback(invoke_without_command=True)

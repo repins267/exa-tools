@@ -27,6 +27,7 @@ from exa.context.tables import (
     create_table,
     get_all_records,
     get_attributes,
+    get_table,
     get_tables,
 )
 
@@ -266,20 +267,28 @@ def get_identity_table_status(
 ) -> list[TableStatus]:
     """Query all 6 OOTB compliance tables and return their status.
 
-    Returns record counts for each table. If a table doesn't exist
-    in the tenant, record_count=0 and note="Not created".
+    Looks up each table by display name, then queries by ID for
+    accurate record counts. If a table doesn't exist in the tenant,
+    record_count=0 and note="Not created".
     """
     all_tables = get_tables(client)
-    existing = {t["name"]: t for t in all_tables}
+    name_to_table = {t["name"]: t for t in all_tables}
 
     results: list[TableStatus] = []
     for target_name in TARGET_TABLE_MAP.values():
-        if target_name in existing:
-            t = existing[target_name]
+        if target_name in name_to_table:
+            t = name_to_table[target_name]
+            table_id = t.get("id", "")
+            # Query by ID for accurate record count
+            try:
+                detail = get_table(client, table_id)
+                count = int(detail.get("numRecords", 0))
+            except Exception:
+                count = int(t.get("numRecords", 0))
             results.append(TableStatus(
                 name=target_name,
-                record_count=int(t.get("numRecords", 0)),
-                table_id=t.get("id", ""),
+                record_count=count,
+                table_id=table_id,
             ))
         else:
             results.append(TableStatus(

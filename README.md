@@ -33,6 +33,16 @@ cd exa-tools
 uv sync
 ```
 
+## First-Time Setup
+
+After cloning, install `exa` as a global command:
+
+```bash
+uv tool install -e .       # install exa globally from local source
+exa configure              # set up tenant credentials (stored in keyring)
+exa update                 # download CIM2 + SigmaHQ reference data
+```
+
 ## Quick Start
 
 ```bash
@@ -114,13 +124,15 @@ Run a compliance gap analysis audit. HTML reports are saved to `reports/` by def
 ### `exa search`
 
 ```bash
-exa search 'activity_type:"authentication"' --url $URL --client-id $ID --lookback 7 --limit 500
+exa search 'activity_type:"authentication"' --lookback 7 --limit 500
+exa search 'user:"admin"' --tenant sademodev22
 ```
 
 ### `exa tables`
 
 ```bash
-exa tables --url $URL --client-id $ID --name "Public AI Domains and Risk"
+exa tables --name "Public AI Domains and Risk"
+exa tables --tenant sademodev22
 ```
 
 ### `exa frameworks`
