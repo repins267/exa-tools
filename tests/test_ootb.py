@@ -11,8 +11,8 @@ class TestBuildRecords:
         fw = load_framework("NIST_CSF")
         records = _build_records(fw.name, fw.leaf_controls)
         assert len(records) == len(fw.leaf_controls)
-        assert records[0]["key"]  # has a control_id
-        assert records[0]["Family"]  # has a family
+        assert records[0]["Control ID"]  # has a control_id
+        assert records[0]["Control Family"]  # has a family
         assert records[0]["Compliance Framework"] == "NIST CSF v2.0"
 
     def test_description_truncated(self):
@@ -29,7 +29,7 @@ class TestBuildRecords:
             )
         ]
         records = _build_records("Test", controls)
-        assert len(records[0]["Description"]) <= 500
+        assert len(records[0]["Control Description"]) <= 500
 
     def test_testable_flag(self):
         """Testable column reflects siem_validatable."""
@@ -40,8 +40,8 @@ class TestBuildRecords:
             Control("A-02", "F", "desc", siem_validatable=False),
         ]
         records = _build_records("Test", controls)
-        assert records[0]["Testable"] == "Yes"
-        assert records[1]["Testable"] == "No"
+        assert records[0]["SIEM Testable"] == "Yes"
+        assert records[1]["SIEM Testable"] == "No"
 
     def test_uses_compliance_framework_column(self):
         """Uses 'Compliance Framework' not 'Framework' (EXA-CONTEXT-SCHEMA-35)."""

@@ -32,17 +32,18 @@ class OOTBSyncResult:
     errors: list[str] = field(default_factory=list)
 
 
-# EXA-CONTEXT-SCHEMA-35 workaround: "Framework" as a column name
-# causes 409 conflicts because the displayName is globally scoped.
-# Use "Compliance Framework" instead.
+# EXA-CONTEXT-SCHEMA-35 workaround: column displayNames are globally
+# scoped. Generic names like "key", "Title", "Description" will
+# collide with columns already in use by other tables.
+# All columns use "Control" or "Compliance" prefixes to avoid this.
 
 _ATTRIBUTES: list[dict[str, Any]] = [
-    {"displayName": "key", "isKey": True},
-    {"displayName": "Title", "isKey": False},
-    {"displayName": "Family", "isKey": False},
-    {"displayName": "Description", "isKey": False},
-    {"displayName": "MITRE", "isKey": False},
-    {"displayName": "Testable", "isKey": False},
+    {"displayName": "Control ID", "isKey": True},
+    {"displayName": "Control Title", "isKey": False},
+    {"displayName": "Control Family", "isKey": False},
+    {"displayName": "Control Description", "isKey": False},
+    {"displayName": "MITRE Techniques", "isKey": False},
+    {"displayName": "SIEM Testable", "isKey": False},
     {"displayName": "Compliance Framework", "isKey": False},
 ]
 
@@ -54,14 +55,23 @@ def _build_records(
     """Build context table records from framework controls."""
     records: list[dict[str, str]] = []
     for c in controls:
-        desc = c.description[:500] if len(c.description) > 500 else c.description
+        desc = (
+            c.description[:500]
+            if len(c.description) > 500
+            else c.description
+        )
+        title = (
+            c.description.split(".")[0]
+            if "." in c.description
+            else c.description[:80]
+        )
         records.append({
-            "key": c.control_id,
-            "Title": c.description.split(".")[0] if "." in c.description else c.description[:80],
-            "Family": c.family,
-            "Description": desc,
-            "MITRE": "",
-            "Testable": "Yes" if c.siem_validatable else "No",
+            "Control ID": c.control_id,
+            "Control Title": title,
+            "Control Family": c.family,
+            "Control Description": desc,
+            "MITRE Techniques": "",
+            "SIEM Testable": "Yes" if c.siem_validatable else "No",
             "Compliance Framework": fw_name,
         })
     return records
