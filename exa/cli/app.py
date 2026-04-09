@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import getpass
-from typing import Annotated, Optional
+from typing import TYPE_CHECKING, Annotated, Optional
 
 import typer
 from rich.console import Console
 
+if TYPE_CHECKING:
+    from exa.client import ExaClient
+
 app = typer.Typer(
     name="exa",
-    help="Python toolkit for Exabeam New-Scale SIEM automation.",
+    help="Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM.",
     no_args_is_help=True,
 )
 console = Console()
@@ -20,8 +23,8 @@ def _get_client(
     base_url: str,
     client_id: str,
     client_secret: str | None = None,
-) -> "ExaClient":
-    """Create and authenticate an ExaClient."""
+) -> ExaClient:
+    """Create and authenticate an ExaClient with explicit credentials."""
     from exa.client import ExaClient
 
     if not client_secret:
@@ -29,6 +32,85 @@ def _get_client(
     client = ExaClient(base_url, client_id, client_secret)
     client.authenticate()
     return client
+
+
+# -- Configure ----------------------------------------------------------------
+
+@app.command()
+def configure() -> None:
+    """Set up tenant credentials (stored in Windows Credential Manager)."""
+    from rich.prompt import Prompt
+    from rich.table import Table
+
+    from exa.config import REGIONS, save_profile, set_default_tenant
+
+    # Tenant name
+    tenant = Prompt.ask("Tenant name (e.g. sademodev22)")
+    if not tenant.strip():
+        console.print("Tenant name cannot be empty.", style="red")
+        raise typer.Exit(1)
+    tenant = tenant.strip()
+
+    # Region selection
+    region_list = list(REGIONS.items())
+    table = Table(title="Regions", show_header=True)
+    table.add_column("#", style="cyan", width=4)
+    table.add_column("Region", style="white")
+    table.add_column("API Server", style="dim")
+    for i, (name, url) in enumerate(region_list, 1):
+        table.add_row(str(i), name, url)
+    console.print(table)
+
+    choice = Prompt.ask(
+        "Select region",
+        choices=[str(i) for i in range(1, len(region_list) + 1)],
+    )
+    region_name, api_server = region_list[int(choice) - 1]
+
+    # Credentials
+    client_id = Prompt.ask("Client ID")
+    if not client_id.strip():
+        console.print("Client ID cannot be empty.", style="red")
+        raise typer.Exit(1)
+    client_id = client_id.strip()
+
+    client_secret = Prompt.ask("Client Secret", password=True)
+    if not client_secret:
+        console.print("Client Secret cannot be empty.", style="red")
+        raise typer.Exit(1)
+
+    # Test connection
+    from exa.client import ExaClient
+
+    console.print("\nTesting connection...", style="dim")
+    try:
+        test_client = ExaClient(api_server, client_id, client_secret)
+        test_client.authenticate()
+        test_client.close()
+    except Exception as e:
+        console.print(f"\u2717 Connection failed \u2014 {e}", style="red")
+        raise typer.Exit(1)
+
+    console.print(f"\u2713 Connected \u2014 {tenant} ({region_name})", style="green")
+
+    # Save profile
+    save_profile(tenant, api_server, client_id, client_secret)
+    console.print("  Credentials saved to Windows Credential Manager", style="dim")
+
+    # Default tenant
+    set_as_default = Prompt.ask("Set as default tenant?", choices=["Y", "n"], default="Y")
+    if set_as_default.upper() == "Y":
+        set_default_tenant(tenant)
+        console.print(f"  Default tenant: {tenant}", style="dim")
+
+    # CIM2 reference data
+    download_cim2 = Prompt.ask(
+        "Download CIM2 reference data now?", choices=["Y", "n"], default="Y",
+    )
+    if download_cim2.upper() == "Y":
+        from exa.cli.update import _run_update
+
+        _run_update()
 
 
 # -- Auth test ----------------------------------------------------------------
@@ -159,9 +241,58 @@ def frameworks() -> None:
             console.print(f"  {fw_id:<20} (load error)", style="red")
 
 
+# -- Config -------------------------------------------------------------------
+
+from exa.cli.config import config_app
+
+app.add_typer(config_app)
+
+
+# -- Update -------------------------------------------------------------------
+
+from exa.cli.update import update_app
+
+app.add_typer(update_app)
+
+
+# -- Sigma --------------------------------------------------------------------
+
+from exa.cli.sigma import sigma_app
+
+app.add_typer(sigma_app)
+
+# Short aliases: exa sc → exa sigma convert, exa sd → exa sigma deploy
+sc_app = typer.Typer(name="sc", hidden=True, invoke_without_command=True)
+sd_app = typer.Typer(name="sd", hidden=True, invoke_without_command=True)
+
+
+@sc_app.callback(invoke_without_command=True)
+def sc_alias(ctx: typer.Context) -> None:
+    """Alias for 'exa sigma convert'."""
+    from exa.cli.sigma import convert
+
+    ctx.invoke(convert)
+
+
+@sd_app.callback(invoke_without_command=True)
+def sd_alias(ctx: typer.Context) -> None:
+    """Alias for 'exa sigma deploy'."""
+    from exa.cli.sigma import deploy_cmd
+
+    ctx.invoke(deploy_cmd)
+
+
+app.add_typer(sc_app)
+app.add_typer(sd_app)
+
+
 # -- Dev (internal only) ------------------------------------------------------
 
-dev_app = typer.Typer(name="dev", help="Internal development commands (requires @exabeam.com).", no_args_is_help=True)
+dev_app = typer.Typer(
+    name="dev",
+    help="Internal development commands (requires @exabeam.com).",
+    no_args_is_help=True,
+)
 app.add_typer(dev_app)
 
 

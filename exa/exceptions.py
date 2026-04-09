@@ -18,5 +18,13 @@ class ExaAPIError(ExaError):
         super().__init__(f"HTTP {status_code}: {detail}")
 
 
+class ExaConfigError(ExaError):
+    """Missing or invalid configuration (credentials, tenant, config file)."""
+
+
+class SigmaConversionError(ExaError):
+    """Sigma rule conversion failed (unmatched selection, invalid condition, etc.)."""
+
+
 class ExaInternalFeatureError(ExaError):
     """Raised when a feature requires internal/employee tier access."""

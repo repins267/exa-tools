@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import math
 import time
 from typing import Any
@@ -67,31 +66,48 @@ class _RetryTransport(httpx.BaseTransport):
 class ExaClient:
     """Exabeam New-Scale API client.
 
-    Usage::
+    Can be created two ways:
 
-        async with ExaClient(base_url, client_id, client_secret) as exa:
-            tables = exa.get("/context-management/v1/tables")
+    1. From saved profile (keyring)::
 
-    Or synchronously::
+        client = ExaClient(tenant="sademodev22")
+        # or use default tenant:
+        client = ExaClient()
 
-        exa = ExaClient(base_url, client_id, client_secret)
-        exa.authenticate()
-        tables = exa.get("/context-management/v1/tables")
-        exa.close()
+    2. With explicit credentials (backwards compat, tests, dev)::
+
+        client = ExaClient(base_url, client_id, client_secret)
     """
 
     def __init__(
         self,
-        base_url: str,
-        client_id: str,
-        client_secret: str,
+        base_url: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
         *,
+        tenant: str | None = None,
         timeout: float = 30.0,
         max_retries: int = _MAX_RETRIES,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
-        self._client_id = client_id
-        self._client_secret = client_secret
+        if base_url and client_id and client_secret:
+            # Explicit credentials (backwards compat)
+            self.base_url = base_url.rstrip("/")
+            self._client_id = client_id
+            self._client_secret = client_secret
+        elif tenant is not None or (base_url is None and client_id is None):
+            # Load from keyring
+            from exa.config import load_profile
+
+            api_server, cid, csecret = load_profile(tenant)
+            self.base_url = api_server.rstrip("/")
+            self._client_id = cid
+            self._client_secret = csecret
+        else:
+            raise ExaAuthError(
+                "Provide all of (base_url, client_id, client_secret) "
+                "or use tenant= to load from saved credentials."
+            )
+
         self._access_token: str | None = None
         self._expires_at: float = 0.0
 
@@ -110,8 +126,10 @@ class ExaClient:
 
     def authenticate(self) -> None:
         """Obtain a new access token via client credentials grant."""
-        # Use a plain httpx.Client for the token request to avoid retry transport
-        # on auth failures (we want immediate feedback on bad creds).
+        self._refresh_token()
+
+    def _refresh_token(self) -> None:
+        """POST to /auth/v1/token for a new access token."""
         response = self._http.post(
             "/auth/v1/token",
             json={
@@ -130,15 +148,20 @@ class ExaClient:
         expires_in = int(data.get("expires_in", 14400))
         self._expires_at = time.time() + expires_in
 
+    def _get_valid_token(self) -> str:
+        """Return a valid access token, refreshing if needed."""
+        if self._access_token is None or time.time() >= (self._expires_at - _TOKEN_TTL_BUFFER):
+            self._refresh_token()
+        return self._access_token  # type: ignore[return-value]
+
     def _ensure_token(self) -> None:
         """Refresh token if expired or within buffer window."""
-        if self._access_token is None or time.time() >= (self._expires_at - _TOKEN_TTL_BUFFER):
-            self.authenticate()
+        self._get_valid_token()
 
     @property
     def _auth_headers(self) -> dict[str, str]:
-        self._ensure_token()
-        return {"Authorization": f"Bearer {self._access_token}"}
+        token = self._get_valid_token()
+        return {"Authorization": f"Bearer {token}"}
 
     # -- HTTP helpers ---------------------------------------------------------
 
@@ -151,11 +174,28 @@ class ExaClient:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        """Make an authenticated API request, auto-refreshing the token."""
+        """Make an authenticated API request with automatic token refresh.
+
+        On 401 response: force one token refresh and retry once.
+        On second 401: raise ExaAuthError.
+        """
         merged_headers = {**self._auth_headers, **(headers or {})}
         response = self._http.request(
             method, path, json=json, params=params, headers=merged_headers
         )
+
+        # 401 retry: force refresh once, then retry
+        if response.status_code == 401:
+            self._refresh_token()
+            merged_headers = {**self._auth_headers, **(headers or {})}
+            response = self._http.request(
+                method, path, json=json, params=params, headers=merged_headers
+            )
+            if response.status_code == 401:
+                raise ExaAuthError(
+                    "Authentication failed after token refresh. Check credentials."
+                )
+
         if response.status_code >= 400:
             raise ExaAPIError(response.status_code, response.text)
         return response

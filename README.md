@@ -1,75 +1,145 @@
 # exa-tools
 
-Python toolkit for Exabeam New-Scale SIEM automation.
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
+![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
 
-## Install
+Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM.
+
+## Features
+
+- **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
+- **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
+- **One-step deployment** — convert and deploy Sigma rules to your tenant in a single command
+- **CIM2 reference data** — sync ExabeamLabs Content-Library-CIM2 and new-scale-content-hub repos locally for field validation
+- **Context table management** — CRUD operations with 20k batch support and pagination
+- **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
+- **Compliance auditing** — automated evidence collection across 11 frameworks (NIST CSF, CMMC L2, etc.)
+- **Event search** — EQL query interface with time range and result limiting
+
+## Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
+- git (required for `exa update`)
+- Windows Credential Manager (Windows) / Keychain (macOS) / Secret Service (Linux)
+
+## Installation
 
 ```bash
-uv sync          # install deps into .venv
-uv run exa --help
+git clone <repo-url> exa-tools
+cd exa-tools
+uv sync
 ```
 
 ## Quick Start
 
-```python
-from exa.client import ExaClient
-from exa.context import get_tables
-from exa.search import search_events
-
-with ExaClient(base_url, client_id, client_secret) as exa:
-    # List context tables
-    tables = get_tables(exa)
-
-    # Search events
-    events = search_events(exa, 'activity_type:"authentication"', lookback_days=7)
-
-    # Sync AI/LLM context tables
-    from exa.aillm import sync_aillm_context_tables
-    sync_aillm_context_tables(exa)
-
-    # Run a compliance audit
-    from exa.compliance import run_compliance_audit
-    report = run_compliance_audit(exa, "NIST_CSF", lookback_days=30)
+```bash
+exa configure                                    # set up tenant + credentials
+exa update                                       # download CIM2 reference data
+exa config set sigma.rules-dir /path/to/sigma    # set default Sigma rules directory
+exa sigma convert --rule proc_creation_powershell_encoded.yml
 ```
 
-## CLI
+## Commands
+
+### `exa configure`
+
+Interactive setup: tenant name, region selection (10 regions), client ID, client secret (hidden input). Tests the connection, saves credentials to keyring, and optionally downloads CIM2 reference data.
+
+### `exa update`
 
 ```bash
-exa auth --url https://api.us-west.exabeam.cloud --client-id $ID
-exa tables --url $URL --client-id $ID
-exa sync-aillm --url $URL --client-id $ID
+exa update           # clone/pull CIM2 + content-hub repos, parse to ~/.exa/cache/
+exa update --check   # show current commit SHAs without pulling
+```
+
+Downloads [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2) and [new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub), then parses markdown tables into JSON cache files for field and activity_type validation.
+
+### `exa config`
+
+```bash
+exa config set sigma.rules-dir "E:\SigmaHQ\rules\windows"
+exa config set default-tenant sademodev22
+exa config get sigma.rules-dir
+exa config show
+```
+
+Configuration stored at `~/.exa/config.json`. Secrets are never written to this file.
+
+### `exa sigma convert`
+
+```bash
+exa sigma convert --rule proc_creation_powershell_encoded.yml
+exa sigma convert --dir ./rules/windows/
+exa sigma convert --dir ./rules/ --deploy
+exa sigma convert --dir ./rules/ --deploy --tenant sademodev22
+```
+
+Converts Sigma YAML rules to Exabeam EQL and displays a results table with deploy-readiness assessment. With `--deploy`, creates correlation rules on the tenant via the API.
+
+Short alias: `exa sc`
+
+### `exa sigma deploy`
+
+```bash
+exa sigma deploy --rule proc_creation_powershell_encoded.yml
+exa sigma deploy --rule proc_creation_powershell_encoded.yml --tenant sademodev22
+```
+
+Convert and deploy a single rule in one step.
+
+Short alias: `exa sd`
+
+### `exa search`
+
+```bash
+exa search 'activity_type:"authentication"' --url $URL --client-id $ID --lookback 7 --limit 500
+```
+
+### `exa audit`
+
+```bash
 exa audit NIST_CSF --url $URL --client-id $ID --lookback 30
-exa search 'activity_type:"authentication"' --url $URL --client-id $ID
-exa frameworks
 ```
 
-## Modules
-
-| Module | Description |
-|--------|-------------|
-| `exa.client` | ExaClient with retry, auto-refresh, batch helpers |
-| `exa.context` | Context table CRUD (20k batch, pagination) |
-| `exa.aillm` | AI/LLM domain sync (6 tables, reference data) |
-| `exa.compliance` | Identity sync, audit engine, 11 frameworks |
-| `exa.search` | Event search with EQL |
-| `exa.correlation` | Correlation rule management |
-| `exa.detection` | Detection/analytics rule management |
-| `exa.platform` | Tenant info, API keys, roles, users |
-| `exa.internal` | Internal tier gating (`@require_internal`) |
-
-## API Quirks
-
-- Table name: "Public AI Domains and Risk" (no trailing s)
-- `addRecords` is additive -- use `operation="replace"` or check existing records
-- `follow_redirects=True` for http:// redirect on table creation
-- DirectMap key priority: `u_account > u_user > username > hostname > ip > key`
-- EXA-CONTEXT-SCHEMA-35: attribute display names are globally scoped
-- Token TTL: 14400s, auto-refresh 60s before expiry
-- 1s sleep between table writes in sync loops
-- "hippa" is Exabeam's OOTB typo in compliance schema (not "hipaa")
-
-## Tests
+### `exa tables`
 
 ```bash
-uv run pytest -v
+exa tables --url $URL --client-id $ID --name "Public AI Domains and Risk"
 ```
+
+### `exa frameworks`
+
+```bash
+exa frameworks    # list all available compliance frameworks with testable control counts
+```
+
+## Sigma Converter
+
+The Sigma converter translates [SigmaHQ](https://github.com/SigmaHQ/sigma) YAML detection rules into Exabeam EQL correlation rules.
+
+- **CIM2 field mapping** — 43 Sigma fields mapped to Exabeam CIM2 schema (process, network, file, registry, web proxy, DNS, cloud/AWS, auth)
+- **Activity type hints** — logsource category/service mapped to CIM2 activity_type values, validated against bundled snapshot or CIM2 cache
+- **Modifier support** — `contains`, `endswith`, `startswith`, `re`, `all`; unsupported modifiers (`base64`, `wide`, `cidr`, etc.) emit warnings and fall back to exact match
+- **Deploy-ready assessment** — each rule rated Yes / Needs review / No based on unmapped fields and warning count
+- **MITRE enrichment** — ATT&CK tags extracted and packed into the rule description (API does not support tag fields)
+- **`[Sigma]` prefix** — all converted rules are prefixed with `[Sigma]` for bulk management via `get_correlation_rules(name="[Sigma]*")`
+
+## Internal Features
+
+Additional features are available for Exabeam employees.
+
+## Development
+
+```bash
+uv sync                    # install deps
+uv run pytest -v           # run tests
+uv run pytest tests/test_sigma.py::TestProxyFieldMappings  # single test
+uv run ruff check exa/     # lint
+```
+
+## License
+
+MIT

@@ -41,6 +41,10 @@ CIM2_FIELD_MAP: dict[str, str] = {
     # Registry
     "TargetObject": "registry_path",
     "Details": "registry_value",
+    # Web proxy
+    "c-uri": "url",
+    "cs-uri-stem": "url_path",
+    "r-dns": "web_domain",
     # DNS
     "QueryName": "query",
     # Cloud / AWS — CIM2 verified from Content-Library-CIM2/DS/Amazon/aws_cloudtrail
@@ -65,7 +69,7 @@ CIM2_FIELD_MAP: dict[str, str] = {
 
 # Sigma logsource → Exabeam activity_type hint
 LOGSOURCE_ACTIVITY_MAP: dict[str, str] = {
-    "process_creation": "process-created",
+    "process_creation": "process-create",
     "network_connection": "network-connection",
     "firewall": "network-connection",
     "dns_query": "dns-query",
@@ -76,6 +80,45 @@ LOGSOURCE_ACTIVITY_MAP: dict[str, str] = {
     "authentication": "authentication",
     "cloudtrail": "app-activity",  # CIM2 verified: CloudTrail → app-activity:success
 }
+
+# Modifiers that cannot be faithfully converted to EQL
+_UNSUPPORTED_MODIFIERS: frozenset[str] = frozenset({
+    "base64", "base64offset", "cidr", "wide", "utf16le", "utf16be",
+    "utf16", "windash", "expand",
+})
+
+# Supported modifier for "all values must match" (AND instead of OR)
+_ALL_MODIFIER = "all"
+
+
+# Known valid CIM2 activity_type values (bundled snapshot from CLAUDE.md)
+# Used for validation; cache augments this when available
+_BUNDLED_ACTIVITY_TYPES: frozenset[str] = frozenset({
+    "web-activity-allowed", "web-activity-denied", "dns-query",
+    "dns-response", "network-session", "http-session", "http-traffic",
+    "authentication", "process-create", "file-write", "file-delete",
+    "rule-trigger", "audit_policy-modify", "physical_location-access",
+    "app-activity", "network-connection", "registry-write",
+    "dll-loaded", "driver-loaded",
+})
+
+
+def _load_known_activity_types() -> set[str]:
+    """Load known activity_type values.
+
+    Tries CIM2 cache first, falls back to bundled snapshot.
+    Never fails — always returns at least the bundled set.
+    """
+    known = set(_BUNDLED_ACTIVITY_TYPES)
+    try:
+        from exa.update import load_cim2_cache
+
+        cached = load_cim2_cache("activity_types")
+        if isinstance(cached, list):
+            known.update(str(v) for v in cached)
+    except Exception:
+        pass  # Cache missing — use bundled snapshot
+    return known
 
 
 def _map_field(sigma_field: str) -> tuple[str, str | None]:
@@ -101,30 +144,58 @@ def _escape_eql_value(val: Any) -> str:
     return s
 
 
-def _build_field_condition(field: str, modifier: str | None, values: list[Any]) -> str:
+def _build_field_condition(
+    field: str,
+    modifier: str | None,
+    values: list[Any],
+    *,
+    sigma_field: str = "",
+    warnings: list[str] | None = None,
+) -> str:
     """Build an EQL condition for a single field with values."""
     conditions: list[str] = []
+
+    # Detect unsupported modifiers — warn but still attempt conversion
+    effective_modifier = modifier
+    if modifier and modifier in _UNSUPPORTED_MODIFIERS:
+        msg = (
+            f"Unsupported modifier '{modifier}' on field "
+            f"'{sigma_field or field}' \u2014 EQL may be incomplete"
+        )
+        if warnings is not None:
+            warnings.append(msg)
+        effective_modifier = None  # fall back to exact match
+
+    # "all" modifier: AND instead of OR
+    use_and = False
+    if effective_modifier == _ALL_MODIFIER:
+        use_and = True
+        effective_modifier = None
 
     for val in values:
         val_str = str(val)
 
-        if modifier == "endswith":
+        if effective_modifier == "endswith":
             conditions.append(f'{field}:WLDi("*{_escape_eql_value(val_str)}")')
-        elif modifier == "startswith":
+        elif effective_modifier == "startswith":
             conditions.append(f'{field}:WLDi("{_escape_eql_value(val_str)}*")')
-        elif modifier == "contains":
+        elif effective_modifier == "contains":
             conditions.append(f'{field}:WLDi("*{_escape_eql_value(val_str)}*")')
-        elif modifier == "re":
+        elif effective_modifier == "re":
             conditions.append(f'{field}:RGXi("{_escape_eql_value(val_str)}")')
         else:
             conditions.append(f'{field}:"{_escape_eql_value(val_str)}"')
 
     if len(conditions) == 1:
         return conditions[0]
-    return "(" + " OR ".join(conditions) + ")"
+    joiner = " AND " if use_and else " OR "
+    return "(" + joiner.join(conditions) + ")"
 
 
-def _build_selection_eql(selection: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
+def _build_selection_eql(
+    selection: dict[str, Any],
+    warnings: list[str] | None = None,
+) -> tuple[str, list[dict[str, str]]]:
     """Build EQL for a single selection block.
 
     Returns (eql_string, field_mappings) where field_mappings tracks
@@ -138,7 +209,7 @@ def _build_selection_eql(selection: dict[str, Any]) -> tuple[str, list[dict[str,
         sub_parts: list[str] = []
         for item in selection:
             if isinstance(item, dict):
-                sub_eql, sub_maps = _build_selection_eql(item)
+                sub_eql, sub_maps = _build_selection_eql(item, warnings)
                 sub_parts.append(sub_eql)
                 mappings.extend(sub_maps)
         if len(sub_parts) == 1:
@@ -152,24 +223,35 @@ def _build_selection_eql(selection: dict[str, Any]) -> tuple[str, list[dict[str,
             values = [values]
 
         cim2_field, modifier = _map_field(field_key)
-        mappings.append({"sigma": field_key, "cim2": cim2_field, "modifier": modifier or "exact"})
+        mappings.append(
+            {"sigma": field_key, "cim2": cim2_field, "modifier": modifier or "exact"}
+        )
 
-        part = _build_field_condition(cim2_field, modifier, values)
+        part = _build_field_condition(
+            cim2_field, modifier, values,
+            sigma_field=field_key, warnings=warnings,
+        )
         parts.append(part)
 
     if len(parts) == 1:
         return parts[0], mappings
-    return "(" + " AND ".join(parts) + ")"  , mappings
+    return "(" + " AND ".join(parts) + ")", mappings
 
 
 def _parse_condition(
     condition: str,
     selections: dict[str, Any],
+    *,
+    rule_title: str = "",
 ) -> tuple[str, list[dict[str, str]], list[str]]:
     """Parse a Sigma condition string and build the EQL query.
 
     Returns (eql_query, field_mappings, warnings).
+    Raises SigmaConversionError if a selection name in the condition
+    does not match any defined selection.
     """
+    from exa.exceptions import SigmaConversionError
+
     warnings: list[str] = []
     all_mappings: list[dict[str, str]] = []
 
@@ -178,7 +260,7 @@ def _parse_condition(
     for sel_name, sel_data in selections.items():
         if sel_name == "condition":
             continue
-        eql, maps = _build_selection_eql(sel_data)
+        eql, maps = _build_selection_eql(sel_data, warnings)
         selection_eql[sel_name] = eql
         all_mappings.extend(maps)
 
@@ -219,6 +301,17 @@ def _parse_condition(
     expr = re.sub(r"\band\b", "AND", expr, flags=re.IGNORECASE)
     expr = re.sub(r"\bor\b", "OR", expr, flags=re.IGNORECASE)
     expr = re.sub(r"\bnot\b", "NOT", expr, flags=re.IGNORECASE)
+
+    # Detect unmatched selection names left as literal text
+    # After substitution, any bare word that looks like a selection name
+    # (not a boolean keyword or parenthesized EQL) indicates a missing selection
+    unmatched = re.findall(r"\b(selection\w*|filter\w*)\b", expr)
+    if unmatched:
+        ctx = f" in rule '{rule_title}'" if rule_title else ""
+        raise SigmaConversionError(
+            f"Unmatched selection(s) {unmatched}{ctx} "
+            f"— not defined in detection block"
+        )
 
     return expr, all_mappings, warnings
 
@@ -324,10 +417,19 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
     )
 
     # Build EQL query
-    eql_query, field_mappings, warnings = _parse_condition(condition, selections)
+    title = sigma.get("title", "Unnamed Sigma Rule")
+    eql_query, field_mappings, warnings = _parse_condition(
+        condition, selections, rule_title=title,
+    )
 
-    # Prepend activity type hint if available
+    # Validate activity_type against known CIM2 values
     if activity_hint:
+        known = _load_known_activity_types()
+        if activity_hint not in known:
+            warnings.append(
+                f"activity_type '{activity_hint}' not found in CIM2 "
+                f"Data Sources \u2014 rule may not match"
+            )
         eql_query = f'activity_type:"{activity_hint}" AND {eql_query}'
 
     # Map severity
