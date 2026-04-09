@@ -27,8 +27,6 @@ from exa.context.tables import (
     create_table,
     get_all_records,
     get_attributes,
-    get_records,
-    get_table,
     get_tables,
 )
 
@@ -281,42 +279,19 @@ def _find_table_by_name(
     return None
 
 
-def _get_record_count(
-    client: ExaClient,
-    table_id: str,
-    list_count: int,
-) -> int:
-    """Get accurate record count for a table.
+def _extract_count(table_data: dict[str, Any]) -> int:
+    """Extract record count from a table API response.
 
-    Tries GET /tables/{id} first for numRecords. If that returns 0
-    but we suspect data exists, falls back to reading one page of
-    records and using the count.
+    The Exabeam context API uses 'totalItems' (not 'numRecords').
+    Falls back through multiple field names for safety.
     """
-    try:
-        detail = get_table(client, table_id)
-        count = int(detail.get("numRecords", 0))
-        if count > 0:
-            return count
-    except Exception:
-        pass
-
-    # Fallback: use list response count
-    if list_count > 0:
-        return list_count
-
-    # Last resort: read first page and count
-    try:
-        resp = get_records(client, table_id, limit=1, offset=0)
-        if isinstance(resp, dict):
-            total = resp.get("totalRecords", resp.get("total", 0))
-            if total:
-                return int(total)
-            recs = resp.get("records", [])
-            if recs:
-                return len(recs)
-    except Exception:
-        pass
-
+    for field in ("totalItems", "numRecords", "totalRecords", "count"):
+        val = table_data.get(field)
+        if val is not None:
+            try:
+                return int(val)
+            except (ValueError, TypeError):
+                continue
     return 0
 
 
@@ -326,8 +301,7 @@ def get_identity_table_status(
     """Query all 6 OOTB compliance tables and return their status.
 
     Matches by both 'name' and 'displayName' to handle OOTB
-    Exabeam tables correctly. Queries each table by ID for
-    accurate record counts.
+    Exabeam tables. Uses 'totalItems' field for record counts.
     """
     all_tables = get_tables(client)
 
@@ -336,8 +310,7 @@ def get_identity_table_status(
         t = _find_table_by_name(all_tables, target_name)
         if t is not None:
             table_id = t.get("id", "")
-            list_count = int(t.get("numRecords", 0))
-            count = _get_record_count(client, table_id, list_count)
+            count = _extract_count(t)
             results.append(TableStatus(
                 name=target_name,
                 record_count=count,
