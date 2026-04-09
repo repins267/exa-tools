@@ -282,16 +282,16 @@ def _find_table_by_name(
 def _extract_count(table_data: dict[str, Any]) -> int:
     """Extract record count from a table API response.
 
-    The Exabeam context API uses 'totalItems' (not 'numRecords').
-    Falls back through multiple field names for safety.
+    # Verified live against sademodev22 - totalItems only
+    The Exabeam context API uses 'totalItems' as the record count
+    field. 'numRecords' does NOT exist in this API.
     """
-    for field in ("totalItems", "numRecords", "totalRecords", "count"):
-        val = table_data.get(field)
-        if val is not None:
-            try:
-                return int(val)
-            except (ValueError, TypeError):
-                continue
+    val = table_data.get("totalItems")
+    if val is not None:
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            pass
     return 0
 
 
