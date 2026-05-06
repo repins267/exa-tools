@@ -63,6 +63,13 @@ LOOKUP_TO_CONTEXT_TABLE: dict[str, str] = {
     "ai_hostnames": "AI Platform Hostnames",
 }
 
+# Splunk built-in lookups that should be silently ignored (not user-created CSVs)
+BUILTIN_LOOKUPS: frozenset[str] = frozenset({
+    "dnslookup", "geo_attr_ips", "geo_attr_countries",
+    "asset_lookup_by_str", "asset_lookup_by_cidr",
+    "identity_lookup_expanded",
+})
+
 
 def resolve_activity_type(index: str, sourcetype: str | None) -> str | None:
     """Return activity_type for given index + sourcetype, or None if unknown."""

@@ -16,6 +16,7 @@ from typing import Any
 from exa.splunk.field_map import SPL_TO_CIM2, UNVERIFIED_FIELDS, KNOWN_CIM2_FIELDS
 from exa.splunk.parser import ParsedSPL, parse_spl
 from exa.splunk.source_map import (
+    BUILTIN_LOOKUPS,
     LOOKUP_TO_CONTEXT_TABLE,
     INDEX_DISPLAY,
     resolve_activity_type,
@@ -35,9 +36,14 @@ _DROPPED_STAGE_LABELS: dict[str, str] = {
     "fillnull": "null filling (fillnull)",
     "dedup": "deduplication (dedup)",
     "makemv": "multival expansion (makemv)",
+    "mvexpand": "multival expansion (mvexpand)",
     "ldapsearch": "LDAP query (ldapsearch)",
     "where": "post-pipeline filter (where)",
     "join": "subsearch join (join)",
+    "rename": "field rename (rename)",
+    "sort": "result sorting (sort)",
+    "strcat": "string concatenation (strcat)",
+    "table": "column selection (table)",
 }
 def _map_spl_field(spl_field: str) -> tuple[str, bool]:
     """Map SPL field to CIM2.
@@ -184,6 +190,8 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
     # Resolve context tables from lookup references
     context_tables: list[str] = []
     for lookup_name in parsed.lookup_names:
+        if lookup_name.lower() in BUILTIN_LOOKUPS:
+            continue  # Splunk built-in — no context table needed
         ct = LOOKUP_TO_CONTEXT_TABLE.get(lookup_name)
         if ct and ct not in context_tables:
             context_tables.append(ct)

@@ -154,7 +154,8 @@ def parse_spl(search: str, title: str = "") -> ParsedSPL:
     """
     result = ParsedSPL(raw=search, title=title)
 
-    # Normalise whitespace
+    # Normalise whitespace and strip Excel carriage-return encoding (_x000d_ / _x000D_)
+    search = re.sub(r'_x000[dD]_', '', search)
     search_norm = " ".join(search.split())
 
     # Remove backtick macros
