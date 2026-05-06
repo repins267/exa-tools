@@ -51,11 +51,11 @@ def configure() -> None:
     try:
         nickname, fqdn, api_server, region = resolve_fqdn(fqdn_input)
     except ValueError as e:
-        console.print(f"\u2717 {e}", style="red")
+        console.print(f"✗ {e}", style="red")
         raise typer.Exit(1)
 
     console.print(
-        f"\u2713 Resolved: {fqdn} \u2192 {region} ({api_server})",
+        f"✓ Resolved: {fqdn} → {region} ({api_server})",
         style="green",
     )
 
@@ -81,7 +81,7 @@ def configure() -> None:
         test_client.close()
     except Exception as e:
         console.print(
-            f"\u2717 Connection failed \u2014 "
+            f"✗ Connection failed — "
             f"verify credentials and region\n"
             f"  API server tried: {api_server}\n"
             f"  Error: {e}",
@@ -90,7 +90,7 @@ def configure() -> None:
         raise typer.Exit(1)
 
     console.print(
-        f"\u2713 Connected \u2014 {fqdn} ({region})",
+        f"✓ Connected — {fqdn} ({region})",
         style="green",
     )
 
@@ -188,27 +188,11 @@ def tables(
         client.close()
 
 
-# -- AI/LLM sync -------------------------------------------------------------
+# -- AI/LLM ------------------------------------------------------------------
 
-@app.command()
-def sync_aillm(
-    force: Annotated[
-        bool,
-        typer.Option("--force", help="Replace instead of append"),
-    ] = False,
-    tenant: Annotated[
-        str | None,
-        typer.Option("--tenant", "-t", help=_TENANT_HELP),
-    ] = None,
-) -> None:
-    """Sync AI/LLM context tables from reference data."""
-    from exa.aillm import sync_aillm_context_tables
+from exa.cli.aillm import aillm_app
 
-    client = _make_client(tenant)
-    try:
-        sync_aillm_context_tables(client, force=force)
-    finally:
-        client.close()
+app.add_typer(aillm_app)
 
 
 # -- Search -------------------------------------------------------------------
@@ -291,6 +275,13 @@ from exa.cli.update import update_app
 app.add_typer(update_app)
 
 
+# -- Splunk -------------------------------------------------------------------
+
+from exa.cli.splunk_convert import splunk_app
+
+app.add_typer(splunk_app)
+
+
 # -- Sigma --------------------------------------------------------------------
 
 from exa.cli.sigma import sigma_app
@@ -347,7 +338,7 @@ def connect() -> None:
         client = get_dev_client_from_env()
         ttl = int(client._expires_at - time.time())
         console.print("Connected (internal tier)", style="green")
-        console.print(f"  Token expires in {ttl}s")
+        console.print("  Token expires in {}s".format(ttl))
         client.close()
     except Exception as e:
         console.print(f"Failed: {e}", style="red")
