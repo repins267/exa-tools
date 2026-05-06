@@ -2,6 +2,7 @@
 
 Commands:
   exa splunk convert  -- Convert Splunk searches from Excel to Exabeam rules
+  exa splunk one      -- Convert a single SPL search string inline (no file needed)
   exa splunk deploy   -- Deploy converted rules to Exabeam (disabled by default)
 """
 
@@ -161,6 +162,95 @@ def convert_cmd(
         "  Deploy with:  [bold]exa splunk deploy[/bold] " + str(output),
         style="dim",
     )
+
+
+# ── one ──────────────────────────────────────────────────────────────────────
+
+
+@splunk_app.command("one")
+def one_cmd(
+    search: Annotated[
+        str,
+        typer.Argument(help="SPL search string to convert"),
+    ],
+    title: Annotated[
+        str,
+        typer.Option("--title", "-t", help="Rule title (default: 'Ad-hoc SPL Search')"),
+    ] = "Ad-hoc SPL Search",
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Save API payload to JSON file"),
+    ] = None,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json", help="Print raw JSON payload instead of rich output"),
+    ] = False,
+) -> None:
+    """Convert a single SPL search string to an Exabeam EQL correlation rule.
+
+    Converts inline without needing an Excel file.  Prints the EQL query,
+    description, and all warnings.  Optionally saves the API payload to JSON.
+
+    Examples:
+
+      exa splunk one 'index=c42 severity="High" | stats count by username'
+
+      exa splunk one 'index=o365 Operation=Send' --title "O365 Email Send"
+
+      exa splunk one 'index=fireamp_stream severity="High"' -o rule.json
+    """
+    import json as _json
+
+    from exa.splunk.converter import convert_spl_to_exa_rule, to_api_payload
+
+    rule = convert_spl_to_exa_rule(title, search)
+    payload = to_api_payload(rule)
+
+    if json_out:
+        console.print_json(_json.dumps(payload, indent=2))
+        if output:
+            output.write_text(_json.dumps([payload], indent=2), encoding="utf-8")
+        return
+
+    console.rule("[bold cyan]SPL → Exabeam Conversion[/bold cyan]")
+    console.print(f"  [bold]Rule:[/bold]  {rule['name']}")
+    console.print(f"  [bold]Index:[/bold] {rule['index'] or '—'}  |  "
+                  f"[bold]Activity Type:[/bold] {rule['activity_type_hint'] or '—'}")
+    console.print()
+
+    console.print("[bold]EQL Query:[/bold]")
+    console.print(f"  [green]{rule['eql_query']}[/green]")
+    console.print()
+
+    console.print("[bold]Description:[/bold]")
+    console.print(f"  [dim]{rule['description']}[/dim]")
+    console.print()
+
+    if rule["context_tables"]:
+        console.print(f"[bold]Context Tables Needed:[/bold] "
+                      f"[yellow]{', '.join(rule['context_tables'])}[/yellow]")
+        console.print()
+
+    if rule["dropped_stages"]:
+        console.print(f"[bold]Dropped SPL stages:[/bold] "
+                      f"[dim]{', '.join(rule['dropped_stages'])}[/dim]")
+        console.print()
+
+    if rule["warnings"]:
+        console.print("[bold]Warnings:[/bold]")
+        for w in rule["warnings"]:
+            console.print(f"  [yellow]⚠[/yellow] {w}")
+        console.print()
+
+    console.print(
+        f"  [yellow]deploy_ready: {rule['deploy_ready']}[/yellow] — "
+        "review EQL before deploying",
+        style="dim",
+    )
+
+    if output:
+        output.write_text(_json.dumps([payload], indent=2), encoding="utf-8")
+        console.print(f"\n  [green]✓[/green] Payload saved → {output}")
 
 
 # ── deploy ────────────────────────────────────────────────────────────────────
