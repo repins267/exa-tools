@@ -108,6 +108,7 @@ def sync_aillm_context_tables(
     discovered_apps: list[str] | None = None,
     risk_override_path: str | Path | None = None,
     force: bool = False,
+    dry_run: bool = False,
 ) -> list[SyncResult]:
     """Sync AI/LLM reference data to Exabeam context tables.
 
@@ -118,16 +119,18 @@ def sync_aillm_context_tables(
         discovered_apps: App names from log discovery to merge.
         risk_override_path: Path to customer risk override JSON.
         force: Use 'replace' instead of 'append' operation.
+        dry_run: Preview what would be synced without writing.
 
     Returns:
-        List of SyncResult per table.
+        List of SyncResult per table (empty list if dry_run=True).
     """
     all_buckets = list(TABLE_MAP.keys())
     sync_buckets = buckets or all_buckets
     results: list[SyncResult] = []
     operation = "replace" if force else "append"
 
-    console.rule("AI/LLM Context Table Sync")
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.rule(f"{prefix}AI/LLM Context Table Sync")
     console.print(f"  Tables: {len(sync_buckets)} | Operation: {operation}")
 
     # Phase 1: Load reference data
@@ -155,6 +158,25 @@ def sync_aillm_context_tables(
         console.print(f"  Discovered: {ms.discovered_new} new domains from {ms.discovered_total}")
     if discovered_apps:
         console.print(f"  Discovered: {ms.discovered_apps_new} new apps from {ms.discovered_apps_total}")
+
+    # Dry run: show what would be written and return early
+    if dry_run:
+        from rich.table import Table as RichTable
+
+        console.print()
+        tbl = RichTable(show_header=True, header_style="bold", box=None)
+        tbl.add_column("Table", style="cyan", no_wrap=True)
+        tbl.add_column("Records", justify="right")
+        total = 0
+        for bucket in sync_buckets:
+            exa_name = TABLE_MAP[bucket]
+            records: list[dict[str, str]] = getattr(merged, bucket)
+            tbl.add_row(exa_name, str(len(records)))
+            total += len(records)
+        console.print(tbl)
+        console.print(f"\n  Total: {total} records across {len(sync_buckets)} tables")
+        console.print("  Dry run — no changes made.", style="dim")
+        return []
 
     # Phase 3: Resolve tables
     console.print("\n[3/4] Resolving target context tables...", style="yellow")
