@@ -11,6 +11,8 @@ dependencies = [
     "rich>=13.0",
     "typer>=0.12",
     "pydantic>=2.0",
+    "pandas>=3.0.2",
+    "openpyxl>=3.1.5",
 ]
 
 [dependency-groups]
