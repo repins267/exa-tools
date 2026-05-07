@@ -265,22 +265,6 @@ def status(
         client.close()
 
 
-def _render_pdf(html_path: Path, pdf_path: Path) -> None:
-    """Render an HTML file to PDF using playwright chromium."""
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        console.print(
-            "  playwright not installed. Run: uv run playwright install chromium",
-            style="yellow",
-        )
-        return
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(f"file:///{html_path.resolve()}")
-        page.pdf(path=str(pdf_path), format="A4", print_background=True)
-        browser.close()
 
 
 def _print_status(client: object) -> None:
@@ -351,7 +335,7 @@ def audit(
         str | None,
         typer.Option(
             "--output-pdf",
-            help="Render HTML report to PDF (requires: uv run playwright install chromium)",
+            help="Render HTML report to PDF (requires: weasyprint)",
         ),
     ] = None,
     tenant: Annotated[
@@ -399,18 +383,29 @@ def audit(
             console.print(f"\n  HTML report saved: {html_path}", style="green")
 
         if output_pdf is not None:
-            pdf_path = Path(output_pdf)
-            if html_path is not None:
-                _render_pdf(html_path, pdf_path)
-            else:
+            pdf_path = Path(output_pdf) if output_pdf else html_path.with_suffix(".pdf")
+            pdf_path.parent.mkdir(parents=True, exist_ok=True)
+            if html_path is None:
                 tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
                 tmp_path = Path(tmp.name)
                 tmp.close()
                 tmp_path.write_text(generate_html_report(report), encoding="utf-8")
-                try:
-                    _render_pdf(tmp_path, pdf_path)
-                finally:
+                src_path = tmp_path
+            else:
+                src_path = html_path
+                tmp_path = None
+            try:
+                from weasyprint import HTML
+                HTML(filename=str(src_path)).write_pdf(str(pdf_path))
+                console.print(f"\n  PDF report saved: {pdf_path}", style="green")
+            except ImportError:
+                console.print(
+                    "  weasyprint not installed. Run: uv add weasyprint", style="yellow"
+                )
+            except Exception as exc:
+                console.print(f"  PDF generation failed: {exc}", style="red")
+            finally:
+                if tmp_path is not None:
                     tmp_path.unlink(missing_ok=True)
-            console.print(f"\n  PDF report saved: {pdf_path}", style="green")
     finally:
         client.close()
