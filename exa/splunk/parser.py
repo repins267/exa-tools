@@ -245,5 +245,4 @@ def parse_spl(search: str, title: str = "") -> ParsedSPL:
             rm = re.search(r'(\w[\w.\-]*)\s*!?=\s*"([^"]+)"', stage)
             if rm:
                 result.regex_conditions.append((rm.group(1), rm.group(2)))
-
     return result

@@ -38,6 +38,7 @@ CIM2_FIELD_MAP: dict[str, str] = {
     # File
     "TargetFilename": "file_name",
     "SourceFilename": "file_name",
+    "filePath": "file_path",         # EXA-UNVERIFIED: verify file_path in CIM2 DS/
     # Registry
     "TargetObject": "registry_path",
     "Details": "registry_value",
@@ -55,6 +56,9 @@ CIM2_FIELD_MAP: dict[str, str] = {
     "userIdentity.arn": "user_arn",
     "requestParameters.bucketName": "bucket_name",
     "responseElements.ConsoleLogin": "console_login",
+    # Hostname
+    "ComputerName": "dest_host",     # CIM2: dest_host (verified in CLAUDE.md known fields)
+    "SourceHostname": "src_host",    # EXA-UNVERIFIED: src_host field name in CIM2
     # Auth
     "LogonType": "logon_type",
     "TargetUserName": "dest_user",

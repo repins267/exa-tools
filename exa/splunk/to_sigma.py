@@ -54,10 +54,12 @@ SPL_TO_SIGMA_FIELD: dict[str, str] = {
     "sourceIPAddress": "sourceIPAddress",
     # SPL variants → Sigma canonical names
     "username": "User",
+    "user": "User",
     "user.email": "User",
     "actor": "User",
     "User_Name": "User",
     "UserId": "User",
+    "uid": "User",
     "src_ip": "SourceIp",
     "computer.external_ip": "SourceIp",
     "dst_ip": "DestinationIp",
@@ -69,6 +71,18 @@ SPL_TO_SIGMA_FIELD: dict[str, str] = {
     "src_port": "SourcePort",
     "Command_Line": "CommandLine",
     "processName": "Image",
+    # File fields
+    "file_name": "TargetFilename",   # Fireamp / DocExchange → CIM2: file_name
+    "fileName": "TargetFilename",    # DG / PLM variant → CIM2: file_name
+    "filePath": "filePath",          # DG / PLM → pass-through; CIM2 verified below
+    "file_path": "filePath",         # generic variant
+    "destPath": "filePath",          # DG destination path
+    # Process (DG)
+    "srcProcess": "Image",           # DG source process → CIM2: process_name
+    # User variants
+    "destUser": "TargetUserName",    # DG destination user → CIM2: dest_user
+    "src_user": "SubjectUserName",   # → CIM2: src_user
+    "dest_user": "TargetUserName",   # → CIM2: dest_user
     # Web / URL
     "tabUrl": "c-uri",
     "tab-url": "c-uri",
@@ -76,7 +90,9 @@ SPL_TO_SIGMA_FIELD: dict[str, str] = {
     "URL": "c-uri",
     # Cloud / O365
     "Operation": "eventName",
+    "ClientIP": "SourceIp",          # O365 / generic → CIM2: src_ip
     "Application": "Product",
+    "Workload": "eventSource",       # O365 workload (Exchange, SharePoint…) → CIM2: service_name
 }
 
 # ---------------------------------------------------------------------------
