@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>exa-tools Pipeline</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1280px; height: 720px; overflow: hidden;
+  background: radial-gradient(ellipse at 25% 50%, #0a0f22 0%, #05060f 70%);
+  font-family: 'Segoe UI', Arial, sans-serif; color: white;
+}
+
+/* ── Ball panel (always on left) ── */
+#ball-panel {
+  position: absolute; left: 0; top: 0;
+  width: 290px; height: 720px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 20;
+}
+#ball-svg { width: 240px; height: 240px; }
+.oracle-label {
+  font-size: 17px; font-weight: bold; color: #00aaff;
+  letter-spacing: 2.5px; margin-top: 10px;
+  text-shadow: 0 0 14px rgba(0,170,255,0.55);
+}
+.oracle-sub {
+  font-size: 10.5px; color: #294f66; letter-spacing: 1px; margin-top: 4px;
+}
+
+/* ── Star twinkle ── */
+@keyframes twinkle-a {
+  0%,100%{opacity:.2;transform:scale(1)}  50%{opacity:1;transform:scale(1.5)}
+}
+@keyframes twinkle-b {
+  0%,100%{opacity:.6}  35%{opacity:.08}  70%{opacity:.85}
+}
+@keyframes twinkle-c {
+  0%{opacity:.35} 40%{opacity:1} 65%{opacity:.1} 100%{opacity:.5}
+}
+.star { transform-box: fill-box; transform-origin: center; }
+.star.a { animation: twinkle-a 3.2s ease-in-out infinite; }
+.star.b { animation: twinkle-b 2.6s ease-in-out infinite; animation-delay: -1.1s; }
+.star.c { animation: twinkle-c 4.3s ease-in-out infinite; animation-delay: -2.6s; }
+.star.d { animation: twinkle-a 5.1s ease-in-out infinite; animation-delay: -3.8s; }
+
+/* ── Eye blink ── */
+@keyframes blink {
+  0%,90%,100%{transform:scaleY(1)} 93%{transform:scaleY(.04)} 96%{transform:scaleY(1)}
+}
+@keyframes ball-breathe {
+  0%,100%{filter:drop-shadow(0 0 8px #0055cc77)}
+  50%    {filter:drop-shadow(0 0 22px #00aaff99) drop-shadow(0 0 44px #0055ff44)}
+}
+#ball-svg { animation: ball-breathe 3.5s ease-in-out infinite; }
+#eye-blink-group {
+  transform-box: fill-box; transform-origin: 105px 108px;
+  animation: blink 6s ease-in-out infinite;
+}
+
+/* ── Scenes (right panel) ── */
+.scene {
+  position: absolute; top: 0; left: 290px;
+  width: 990px; height: 720px;
+  display: flex; flex-direction: column;
+  padding: 38px 30px 28px 24px;
+  opacity: 0; transition: opacity 0.9s ease;
+}
+.scene.active { opacity: 1; }
+.scene-title {
+  font-size: 19px; font-weight: bold; color: #00ccff; letter-spacing: 2.5px;
+  margin-bottom: 20px; text-shadow: 0 0 18px rgba(0,200,255,0.4);
+}
+
+/* ── Pipeline rows ── */
+.pipeline { display: flex; flex-direction: column; gap: 8px; width: 800px; }
+.row {
+  height: 64px; border-radius: 5px; display: flex; align-items: center;
+  opacity: 0; transform: translateX(-22px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  position: relative; overflow: visible;
+}
+.row.in { opacity: 1; transform: translateX(0); }
+
+@keyframes oracle-glow {
+  0%,100%{box-shadow:0 0 4px rgba(0,170,255,.25);border-color:#00aaff44}
+  50%    {box-shadow:0 0 26px rgba(0,210,255,.5),0 0 52px rgba(0,140,255,.25);border-color:#00aaff}
+}
+.row-spl-search { background: #1a5faa; }
+.row-spl-parser { background: #164e90; }
+.row-sigma-in   { background: #1a7080; }
+.row-converter  { background: #0a3f52; border: 1.5px solid #00aaff44;
+                  animation: oracle-glow 2.2s ease-in-out infinite; }
+.row-eql        { background: #1a5e38; }
+
+.row-label {
+  width: 148px; padding: 0 14px; font-size: 14px; font-weight: bold; color: white;
+  border-right: 1px solid rgba(255,255,255,.11);
+  height: 100%; display: flex; align-items: center; flex-shrink: 0;
+}
+.row-content {
+  padding: 0 14px; flex: 1;
+  display: flex; flex-direction: column; justify-content: center; gap: 3px;
+}
+.l1 { font-family: monospace; font-size: 12px; color: #b0d8ee; }
+.l2 { font-family: monospace; font-size: 10px; color: #4d8099; }
+.row-badge { padding-right: 14px; font-family: monospace; font-size: 11px; color: #3d8899; flex-shrink: 0; }
+.badges { display: flex; gap: 5px; margin-top: 3px; }
+.badge { padding: 1px 8px; border-radius: 3px; font-size: 9px; color: white; }
+.bo { background:#166838; } .bs { background:#7a6010; } .bp { background:#7a2010; }
+.mini-cb { width: 26px; height: 26px; margin: 0 6px 0 10px; flex-shrink: 0; }
+
+.conn { height: 14px; padding-left: 74px; display:flex; align-items:center; opacity:0; transition:opacity .3s; }
+.conn.in { opacity: 1; }
+
+.exa-bubble {
+  position: absolute; right: -20px; top: 50%; transform: translateY(-50%);
+  background: #08182e; border: 1.5px solid #0088ff; border-radius: 20px;
+  padding: 8px 18px; font-family: monospace; font-size: 13px; color: #00aaff;
+  opacity: 0; transition: opacity .5s; white-space: nowrap;
+  box-shadow: 0 0 12px rgba(0,100,255,.22); text-shadow: 0 0 8px rgba(0,170,255,.4);
+}
+.exa-bubble.in { opacity: 1; }
+
+.legend {
+  margin-top: 14px; display:flex; align-items:center; gap:22px;
+  font-size: 10.5px; color: #3d5566; opacity:0; transition:opacity .4s;
+}
+.legend.in { opacity: 1; }
+.ln  { width:32px; height:1.5px; background:#3a6a8a; display:inline-block; vertical-align:middle; margin-right:5px; }
+.ld  { width:32px; height:1.5px; display:inline-block; vertical-align:middle; margin-right:5px;
+       background:repeating-linear-gradient(to right,#0066bb 0,#0066bb 4px,transparent 4px,transparent 7px); }
+.ldots { display:inline-flex; gap:3px; align-items:center; vertical-align:middle; margin-right:5px; }
+.doto{width:7px;height:7px;border-radius:50%;background:#166838;}
+.dots{width:7px;height:7px;border-radius:50%;background:#7a6010;}
+.dotp{width:7px;height:7px;border-radius:50%;background:#7a2010;}
+
+/* ── Title scene ── */
+#sc-title {
+  align-items: center; justify-content: center; padding: 0; left: 0; width: 1280px;
+}
+@keyframes title-glow {
+  0%,100%{text-shadow:0 0 25px rgba(0,170,255,.5),0 0 55px rgba(0,100,255,.25)}
+  50%    {text-shadow:0 0 45px rgba(0,210,255,.8),0 0 90px rgba(0,150,255,.45)}
+}
+.big-t { font-size: 60px; font-weight: bold; color: #00aaff; letter-spacing: 7px;
+         animation: title-glow 2.8s ease-in-out infinite; }
+.big-s { font-family: monospace; font-size: 15px; color: #2d5a6a; letter-spacing: 3px; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ CRYSTAL BALL (always-on left panel) ══════════ -->
+<div id="ball-panel">
+  <svg id="ball-svg" viewBox="0 0 210 240" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bg" cx="50%" cy="46%" r="55%">
+        <stop offset="0%"   stop-color="#0d2a6a"/>
+        <stop offset="50%"  stop-color="#040d22"/>
+        <stop offset="100%" stop-color="#010408"/>
+      </radialGradient>
+      <radialGradient id="eg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#00e8ff"/>
+        <stop offset="35%"  stop-color="#0088ee" stop-opacity=".9"/>
+        <stop offset="100%" stop-color="#001844" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="aura" cx="50%" cy="50%" r="50%">
+        <stop offset="50%" stop-color="#0044cc" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#0077ff" stop-opacity=".4"/>
+      </radialGradient>
+      <filter id="fg"><feGaussianBlur stdDeviation="6" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="fm"><feGaussianBlur stdDeviation="3" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="fs"><feGaussianBlur stdDeviation="1.5" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <clipPath id="clip"><circle cx="105" cy="108" r="76"/></clipPath>
+    </defs>
+
+    <!-- Stand -->
+    <ellipse cx="105" cy="194" rx="38" ry="9" fill="#020608" stroke="#091828" stroke-width="1"/>
+    <path d="M71 187 L67 194 A38 9 0 0 0 143 194 L139 187Z" fill="#04080e"/>
+    <ellipse cx="105" cy="200" rx="46" ry="8" fill="#030712" stroke="#071222" stroke-width="1"/>
+    <path d="M63 198 Q105 192 147 198" stroke="#1a3050" stroke-width=".8" fill="none" opacity=".5"/>
+
+    <!-- Outer aura -->
+    <circle cx="105" cy="108" r="84" fill="url(#aura)" filter="url(#fg)"/>
+    <!-- Ball base -->
+    <circle cx="105" cy="108" r="76" fill="url(#bg)"/>
+
+    <!-- Clipped content -->
+    <g clip-path="url(#clip)">
+      <!-- Hex grid (JS-generated, inserted here by id) -->
+      <g id="hex-layer" fill="none" stroke="#0a2870" stroke-width=".65" opacity=".55"/>
+
+      <!-- Circuit traces left -->
+      <g stroke="#1a4888" stroke-width=".8" fill="#1a4888" opacity=".6">
+        <line x1="34" y1="100" x2="60" y2="100"/>
+        <line x1="34" y1="108" x2="60" y2="108"/>
+        <line x1="34" y1="116" x2="60" y2="116"/>
+        <line x1="44" y1="94"  x2="44" y2="122" stroke-width=".7"/>
+        <line x1="54" y1="94"  x2="54" y2="122" stroke-width=".7"/>
+        <circle cx="44" cy="100" r="2"/><circle cx="44" cy="108" r="2"/>
+        <circle cx="44" cy="116" r="2"/><circle cx="54" cy="100" r="1.5"/>
+        <circle cx="54" cy="116" r="1.5"/>
+      </g>
+      <!-- Circuit traces right -->
+      <g stroke="#1a4888" stroke-width=".8" fill="#1a4888" opacity=".45">
+        <line x1="150" y1="100" x2="176" y2="100"/>
+        <line x1="150" y1="108" x2="176" y2="108"/>
+        <line x1="150" y1="116" x2="176" y2="116"/>
+        <line x1="156" y1="94"  x2="156" y2="122" stroke-width=".7"/>
+        <line x1="166" y1="94"  x2="166" y2="122" stroke-width=".7"/>
+        <circle cx="166" cy="100" r="2"/><circle cx="166" cy="108" r="2"/>
+        <circle cx="166" cy="116" r="2"/><circle cx="156" cy="100" r="1.5"/>
+        <circle cx="156" cy="116" r="1.5"/>
+      </g>
+
+      <!-- Stars -->
+      <g fill="white">
+        <circle class="star a"  cx="76"  cy="60"  r="1.3"/>
+        <circle class="star b"  cx="131" cy="57"  r="1.0"/>
+        <circle class="star c"  cx="151" cy="76"  r="1.5"/>
+        <circle class="star d"  cx="60"  cy="88"  r="1.1"/>
+        <circle class="star b"  cx="52"  cy="120" r="1.2"/>
+        <circle class="star a"  cx="57"  cy="148" r="1.3"/>
+        <circle class="star c"  cx="88"  cy="53"  r="1.4"/>
+        <circle class="star d"  cx="122" cy="59"  r="1.0"/>
+        <circle class="star a"  cx="160" cy="100" r="0.9"/>
+        <circle class="star b"  cx="159" cy="130" r="1.2"/>
+        <circle class="star c"  cx="140" cy="156" r="1.4"/>
+        <circle class="star d"  cx="111" cy="165" r="1.0"/>
+        <circle class="star a"  cx="77"  cy="160" r="1.2"/>
+        <circle class="star b"  cx="50"  cy="140" r="1.0"/>
+        <circle class="star c"  cx="95"  cy="48"  r="1.1"/>
+        <circle class="star d"  cx="116" cy="50"  r="0.9"/>
+        <circle class="star a"  cx="143" cy="138" r="1.4"/>
+        <circle class="star b"  cx="68"  cy="133" r="1.1"/>
+        <circle class="star c"  cx="38"  cy="102" r="0.8"/>
+        <circle class="star d"  cx="172" cy="95"  r="0.8"/>
+        <circle class="star a"  cx="100" cy="160" r="0.9"/>
+        <circle class="star b"  cx="130" cy="148" r="1.0"/>
+      </g>
+
+      <!-- Eye glow radial -->
+      <ellipse cx="105" cy="108" rx="58" ry="42"
+               fill="url(#eg)" filter="url(#fg)" opacity=".45"/>
+
+      <!-- ── EYE (blink group) ── -->
+      <g id="eye-blink-group">
+        <!-- Outer eye outline glow -->
+        <path d="M46,108 Q74,74 105,72 Q136,74 164,108 Q136,142 105,144 Q74,142 46,108Z"
+              fill="none" stroke="#0099dd" stroke-width="1.2"
+              filter="url(#fm)" opacity=".85"/>
+        <!-- Eye dark fill -->
+        <path d="M50,108 Q76,78 105,76 Q134,78 160,108 Q134,138 105,140 Q76,138 50,108Z"
+              fill="#000a18"/>
+        <!-- Iris outer -->
+        <circle cx="105" cy="108" r="30" fill="#000e1e"/>
+        <circle cx="105" cy="108" r="30" fill="url(#eg)" opacity=".85"/>
+        <!-- Iris ring -->
+        <circle cx="105" cy="108" r="30" fill="none" stroke="#0077cc"
+                stroke-width="1.2" filter="url(#fs)"/>
+        <!-- Iris spokes -->
+        <g stroke="#003880" stroke-width=".6" opacity=".4">
+          <line x1="75" y1="108" x2="84" y2="108"/>
+          <line x1="126" y1="108" x2="135" y2="108"/>
+          <line x1="105" y1="78"  x2="105" y2="87"/>
+          <line x1="105" y1="129" x2="105" y2="138"/>
+          <line x1="84"  y1="87"  x2="90"  y2="93"/>
+          <line x1="120" y1="123" x2="126" y2="129"/>
+          <line x1="120" y1="87"  x2="126" y2="93"/>
+          <line x1="84"  y1="123" x2="90"  y2="129"/>
+        </g>
+        <!-- Pupil -->
+        <circle cx="105" cy="108" r="16" fill="#000810"/>
+        <circle cx="105" cy="108" r="10" fill="#0033bb" opacity=".55" filter="url(#fm)"/>
+        <circle cx="105" cy="108" r="6"  fill="#0077ff" opacity=".7"  filter="url(#fm)"/>
+        <circle cx="105" cy="108" r="3.5" fill="#00ccff" opacity=".95"/>
+        <circle cx="105" cy="108" r="1.8" fill="#99eeff"/>
+        <!-- Catchlight -->
+        <ellipse cx="94" cy="98" rx="5" ry="3.5" fill="white" opacity=".25"
+                 transform="rotate(-25,94,98)"/>
+      </g>
+
+      <!-- Ball inner depth rim -->
+      <circle cx="105" cy="108" r="74" fill="none" stroke="#06162e" stroke-width="3"/>
+    </g>
+
+    <!-- Ball border -->
+    <circle cx="105" cy="108" r="76" fill="none" stroke="#1a4a90" stroke-width="1.6"/>
+    <circle cx="105" cy="108" r="76" fill="none" stroke="#3a80cc" stroke-width=".5" opacity=".35"/>
+  </svg>
+  <div class="oracle-label">FIELD ORACLE</div>
+  <div class="oracle-sub">4,258 raw → CIM2 mappings</div>
+</div>
+
+<!-- ══════════ TITLE ══════════ -->
+<div id="sc-title" class="scene">
+  <div class="big-t">exa-tools</div>
+  <div class="big-s">FIELD ORACLE · 4,258 RAW → CIM2 MAPPINGS</div>
+</div>
+
+<!-- ══════════ SPLUNK ══════════ -->
+<div id="sc-splunk" class="scene">
+  <div class="scene-title">EXA SPLUNK CONVERT PIPELINE</div>
+  <div class="pipeline">
+    <div id="sp1" class="row row-spl-search">
+      <div class="row-label">SPL Search</div>
+      <div class="row-content"><div class="l1">index=C42, severity=High | statts…</div></div>
+    </div>
+    <div id="sc1" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#3a6a8a"/></svg></div>
+
+    <div id="sp2" class="row row-spl-parser">
+      <div class="row-label">SPL Parser</div>
+      <div class="row-content"><div class="l1">index / sourcetype / field conditions</div></div>
+    </div>
+    <div id="sc2" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#3a6a8a"/></svg></div>
+
+    <div id="sp3" class="row row-sigma-in">
+      <div class="row-label">Sigma Rule</div>
+      <div class="row-content"><div class="l1">logsource info</div></div>
+    </div>
+    <div id="sc3" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#3a6a8a"/></svg></div>
+
+    <div id="sp4" class="row row-converter">
+      <svg class="mini-cb" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="13" fill="#001525" stroke="#0066cc" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="6"  fill="#003080" opacity=".6"/>
+        <circle cx="20" cy="20" r="3"  fill="#00d4ff" opacity=".9"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="2" fill="white" opacity=".18" transform="rotate(-20,16,16)"/>
+      </svg>
+      <div class="row-label" style="width:130px;">Sigma → EQL</div>
+      <div class="row-content">
+        <div class="l1">CIM2 Mapping + Oracle</div>
+        <div class="l2">logsource → activity_type · Sigma fields → CIM2</div>
+      </div>
+      <div class="row-badge">4,258…</div>
+      <div id="sp-bubble" class="exa-bubble">exa update</div>
+    </div>
+    <div id="sc4" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#2a8a50"/></svg></div>
+
+    <div id="sp5" class="row row-eql">
+      <div class="row-label">Correlation Rule</div>
+      <div class="row-content">
+        <div class="l1">key/value pairs</div>
+        <div class="badges">
+          <span class="badge bo">Oracle</span>
+          <span class="badge bs">Schema</span>
+          <span class="badge bp">Passthrough</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="sp-legend" class="legend">
+    <span><span class="ln"></span>conversion pipeline</span>
+    <span><span class="ld"></span>oracle build (exa update)</span>
+    <span><span class="ldots"><span class="doto"></span><span class="dots"></span><span class="dotp"></span></span>confidence</span>
+  </div>
+</div>
+
+<!-- ══════════ SIGMA ══════════ -->
+<div id="sc-sigma" class="scene">
+  <div class="scene-title">EXA SIGMA CONVERT PIPELINE</div>
+  <div class="pipeline">
+    <div id="sg1" class="row row-sigma-in" style="height:78px;">
+      <div class="row-label">Sigma Rule</div>
+      <div class="row-content">
+        <div class="l1">logsource: product / category / service</div>
+        <div class="l2">detection: selection + condition · level: high</div>
+      </div>
+    </div>
+    <div id="sgc1" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#3a6a8a"/></svg></div>
+
+    <div id="sg2" class="row row-converter" style="height:78px;">
+      <svg class="mini-cb" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="13" fill="#001525" stroke="#0066cc" stroke-width="1.2"/>
+        <circle cx="20" cy="20" r="6"  fill="#003080" opacity=".6"/>
+        <circle cx="20" cy="20" r="3"  fill="#00d4ff" opacity=".9"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="2" fill="white" opacity=".18" transform="rotate(-20,16,16)"/>
+      </svg>
+      <div class="row-label" style="width:130px;">Sigma → EQL</div>
+      <div class="row-content">
+        <div class="l1">CIM2 field mapping + Oracle</div>
+        <div class="l2">Sigma fields → CIM2 · oracle confidence · 4,258 mappings</div>
+      </div>
+      <div id="sg-bubble" class="exa-bubble">exa update</div>
+    </div>
+    <div id="sgc2" class="conn"><svg width="14" height="14"><polygon points="3,0 11,0 7,14" fill="#2a8a50"/></svg></div>
+
+    <div id="sg3" class="row row-eql" style="height:78px;">
+      <div class="row-label">Correlation Rule</div>
+      <div class="row-content">
+        <div class="l1">activity_type:"process-create" AND command:WLDi("*mimikatz*")</div>
+        <div class="badges">
+          <span class="badge bo">Oracle</span>
+          <span class="badge bs">Schema</span>
+          <span class="badge bp">Passthrough</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="sg-legend" class="legend">
+    <span><span class="ln"></span>conversion pipeline</span>
+    <span><span class="ld"></span>oracle build (exa update)</span>
+    <span><span class="ldots"><span class="doto"></span><span class="dots"></span><span class="dotp"></span></span>confidence</span>
+  </div>
+</div>
+
+<script>
+// ── Build hex grid inside ball SVG ───────────────────────────────
+(function buildHex() {
+  const layer = document.getElementById('hex-layer');
+  const cx = 105, cy = 108, R_ball = 74, R_hex = 10;
+  const sin60 = Math.sqrt(3) / 2;
+  const hexW  = R_hex * 2 * sin60;   // horizontal spacing (same row)
+  const rowH  = R_hex * 1.5;          // vertical spacing
+
+  let d = '';
+  for (let row = -7; row <= 7; row++) {
+    for (let col = -7; col <= 7; col++) {
+      const x = cx + col * hexW + (Math.abs(row) % 2 === 1 ? hexW / 2 : 0);
+      const y = cy + row * rowH;
+      if (Math.hypot(x - cx, y - cy) > R_ball) continue;
+      let pts = '';
+      for (let i = 0; i < 6; i++) {
+        const a = (i * 60 - 90) * Math.PI / 180;
+        const px = (x + R_hex * Math.cos(a)).toFixed(2);
+        const py = (y + R_hex * Math.sin(a)).toFixed(2);
+        pts += (i === 0 ? 'M' : 'L') + px + ',' + py;
+      }
+      d += pts + 'Z';
+    }
+  }
+  layer.setAttribute('d', d);
+  // layer is a <g> — replace with a <path> child
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', d);
+  layer.appendChild(path);
+})();
+
+// ── Sequencer ────────────────────────────────────────────────────
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function revealRow(rowId, connId) {
+  if (connId) { document.getElementById(connId).classList.add('in'); await wait(130); }
+  document.getElementById(rowId).classList.add('in');
+  await wait(520);
+}
+
+function resetRows(...ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('in');
+  });
+}
+
+async function runSplunk() {
+  resetRows('sp1','sp2','sp3','sp4','sp5','sc1','sc2','sc3','sc4','sp-bubble','sp-legend');
+  showScene('sc-splunk');
+  await wait(600);
+  await revealRow('sp1');
+  await revealRow('sp2','sc1');
+  await revealRow('sp3','sc2');
+  await revealRow('sp4','sc3');
+  document.getElementById('sp-bubble').classList.add('in');
+  await wait(700);
+  await revealRow('sp5','sc4');
+  document.getElementById('sp-legend').classList.add('in');
+  await wait(3800);
+}
+
+async function runSigma() {
+  resetRows('sg1','sg2','sg3','sgc1','sgc2','sg-bubble','sg-legend');
+  showScene('sc-sigma');
+  await wait(600);
+  await revealRow('sg1');
+  await revealRow('sg2','sgc1');
+  document.getElementById('sg-bubble').classList.add('in');
+  await wait(700);
+  await revealRow('sg3','sgc2');
+  document.getElementById('sg-legend').classList.add('in');
+  await wait(3800);
+}
+
+async function main() {
+  while (true) {
+    showScene('sc-title');
+    await wait(3000);
+    await runSplunk();
+    await runSigma();
+  }
+}
+main();
+</script>
+</body>
+</html>
