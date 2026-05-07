@@ -288,7 +288,7 @@
             "queries": [
                 {
                     "name": "Access permission and entitlement modification events",
-                    "filter": "activity_type:\"account-modification\" OR activity_type:\"group-modification\" OR action:\"modified\" OR action:\"added\" OR action:\"removed\"",
+                    "filter": "activity_type:\"group-modify\" OR activity_type:\"file-permission-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"user-modify\" OR activity_type:\"audit_policy-modify\"",
                     "fields": ["user", "host", "src_ip", "activity_type", "action", "result"],
                     "evidenceDescription": "Demonstrates access permissions and entitlements are managed, enforced, and reviewed with least privilege"
                 }
@@ -299,6 +299,7 @@
         },
         "PR.AA-06": {
             "name": "Physical Access Management",
+            "_note": "physical_location-access is the correct Exabeam activity_type; 0 results indicate a missing log source (DNA Fusion physical access system), not a query error",
             "queries": [
                 {
                     "name": "Physical access control events",
@@ -495,6 +496,7 @@
         },
         "DE.CM-02": {
             "name": "Physical Environment Monitoring",
+            "_note": "physical_location-access is the correct Exabeam activity_type; 0 results indicate a missing log source (DNA Fusion physical access system), not a query error",
             "queries": [
                 {
                     "name": "Physical environment monitoring events",
