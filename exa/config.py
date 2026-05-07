@@ -20,33 +20,59 @@ _CONFIG_DIR = Path.home() / ".exa"
 _CONFIG_FILE = _CONFIG_DIR / "config.json"
 
 # FQDN region code → API server mapping
+# Includes both full codes (use1, sae1) and short codes (use, sa)
+# as Exabeam uses both formats in tenant FQDNs.
 FQDN_REGION_MAP: dict[str, str] = {
-    "use1": "https://api.us-east.exabeam.cloud",
-    "usw1": "https://api.us-west.exabeam.cloud",
-    "euw1": "https://api.eu.exabeam.cloud",
-    "ukw1": "https://api.uk.exabeam.cloud",
-    "aue1": "https://api.au.exabeam.cloud",
-    "cac1": "https://api.ca.exabeam.cloud",
+    # Full codes
+    "use1":  "https://api.us-east.exabeam.cloud",
+    "usw1":  "https://api.us-west.exabeam.cloud",
+    "euw1":  "https://api.eu.exabeam.cloud",
+    "ukw1":  "https://api.uk.exabeam.cloud",
+    "aue1":  "https://api.au.exabeam.cloud",
+    "cac1":  "https://api.ca.exabeam.cloud",
     "apse1": "https://api.sg.exabeam.cloud",
     "apne1": "https://api.jp.exabeam.cloud",
-    "che1": "https://api.ch.exabeam.cloud",
-    "sae1": "https://api.sa.exabeam.cloud",
+    "che1":  "https://api.ch.exabeam.cloud",
+    "sae1":  "https://api.sa.exabeam.cloud",
+    # Short codes used in actual tenant FQDNs
+    "use":   "https://api.us-east.exabeam.cloud",
+    "usw":   "https://api.us-west.exabeam.cloud",
+    "eu":    "https://api.eu.exabeam.cloud",
+    "uk":    "https://api.uk.exabeam.cloud",
+    "au":    "https://api.au.exabeam.cloud",
+    "ca":    "https://api.ca.exabeam.cloud",
+    "sg":    "https://api.sg.exabeam.cloud",
+    "jp":    "https://api.jp.exabeam.cloud",
+    "ch":    "https://api.ch.exabeam.cloud",
+    "sa":    "https://api.sa.exabeam.cloud",
 }
 
 DEFAULT_API_SERVER = "https://api.us-west.exabeam.cloud"
 DEFAULT_REGION_LABEL = "US West"
 
 REGION_LABELS: dict[str, str] = {
-    "use1": "US East",
-    "usw1": "US West",
-    "euw1": "EU",
-    "ukw1": "UK",
-    "aue1": "AU",
-    "cac1": "CA",
+    # Full codes
+    "use1":  "US East",
+    "usw1":  "US West",
+    "euw1":  "EU",
+    "ukw1":  "UK",
+    "aue1":  "AU",
+    "cac1":  "CA",
     "apse1": "SG",
     "apne1": "JP",
-    "che1": "CH",
-    "sae1": "SA",
+    "che1":  "CH",
+    "sae1":  "SA",
+    # Short codes
+    "use":   "US East",
+    "usw":   "US West",
+    "eu":    "EU",
+    "uk":    "UK",
+    "au":    "AU",
+    "ca":    "CA",
+    "sg":    "SG",
+    "jp":    "JP",
+    "ch":    "CH",
+    "sa":    "SA",
 }
 
 _EXA_DOMAIN = ".exabeam.cloud"
