@@ -73,14 +73,51 @@ def _git_clone(repo_url: str, target_dir: Path) -> str:
 
 
 def _git_pull(repo_dir: Path) -> str:
-    """Pull latest in an existing repo. Returns stdout."""
-    result = subprocess.run(
-        ["git", "-C", str(repo_dir), "pull", "--ff-only"],
+    """Fetch and hard-reset to origin HEAD.
+
+    Uses fetch + reset --hard instead of pull to handle:
+    - Local modifications (content-hub has edited files)
+    - Windows-invalid filenames (CIM2 has a file with a literal quote
+      in its name — core.protectNTFS=false lets git skip it cleanly)
+    These repos are read-only caches so force-resetting is correct.
+    """
+    # Fetch latest from origin
+    fetch = subprocess.run(
+        ["git", "-c", "core.protectNTFS=false", "-C", str(repo_dir),
+         "fetch", "origin"],
         capture_output=True, text=True, timeout=300,
     )
-    if result.returncode != 0:
-        raise RuntimeError(f"git pull failed: {result.stderr.strip()}")
-    return result.stdout
+    if fetch.returncode != 0:
+        raise RuntimeError(f"git fetch failed: {fetch.stderr.strip()}")
+
+    # Resolve default branch (main or master)
+    branch_result = subprocess.run(
+        ["git", "-C", str(repo_dir), "symbolic-ref",
+         "refs/remotes/origin/HEAD"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if branch_result.returncode == 0:
+        # e.g. refs/remotes/origin/main → main
+        branch = branch_result.stdout.strip().split("/")[-1]
+    else:
+        branch = "main"
+
+    # Hard reset to remote branch, discard local changes and untracked files
+    reset = subprocess.run(
+        ["git", "-c", "core.protectNTFS=false", "-C", str(repo_dir),
+         "reset", "--hard", f"origin/{branch}"],
+        capture_output=True, text=True, timeout=300,
+    )
+    if reset.returncode != 0:
+        raise RuntimeError(f"git reset failed: {reset.stderr.strip()}")
+
+    # Clean untracked files and directories that would block merge
+    subprocess.run(
+        ["git", "-C", str(repo_dir), "clean", "-fd"],
+        capture_output=True, text=True, timeout=60,
+    )
+
+    return reset.stdout
 
 
 def _git_head_sha(repo_dir: Path) -> str:
