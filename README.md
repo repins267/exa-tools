@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-326%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-401%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -12,7 +12,7 @@ Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built fo
 
 **One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
 
-**Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF, CMMC L2, PCI DSS, HIPAA, and more — and produces HTML reports with executive summaries and gap analysis.
+**Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF v2.0, CMMC L2/L3, PCI DSS, HIPAA, FedRAMP Moderate, CIS Controls v8, ISO 27001, CJIS, GDPR, and SOX — and produces HTML and PDF reports with executive summaries and gap analysis. Queries are dynamically built per-tenant using **Field Oracle concept resolution**, ensuring controls match the actual `activity_type` values present in each environment.
 
 **Context table management** handles bulk CRUD operations with 20k-record batch support, including pre-built sync for AI/LLM threat detection reference tables.
 
@@ -59,16 +59,28 @@ Every field the converter resolves is assigned a confidence level:
 
 The oracle refreshes automatically every time you run `exa update`. When Exabeam adds new parser fields, the converter picks them up on the next update — no code changes needed.
 
+### Field Oracle Concept Resolution (Compliance)
+
+The Field Oracle also powers **tenant-aware compliance auditing**. Each compliance control is annotated with one or more semantic **concepts** (e.g. `GROUP_MANAGEMENT`, `PERMISSION_CHANGE`) that map to specific `activity_type` values. At audit time, the **ConceptResolver** queries the tenant for all activity types seen in the lookback window, then dynamically builds EQL filters using only the types confirmed present in that environment.
+
+```
+Control concepts  →  ConceptResolver (filters to tenant-active types)
+                  →  ComplianceQueryBuilder (builds EQL filter string)
+                  →  search_events (live query against tenant)
+```
+
+This means compliance queries automatically adapt to each customer's log sources without manual tuning per tenant. If a log source isn't connected (e.g. physical access control), the control fails with a clear gap — not a false negative from a wrong query.
+
 ## Features
 
 - **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
 - **Splunk SPL conversion** — SPL→Sigma→EQL pipeline; batch from Excel or inline one-off via `exa splunk one`
 - **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
-- **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution
+- **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution for rules and compliance
 - **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
 - **Context table management** — CRUD operations with 20k batch support and pagination
 - <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
-- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks (NIST CSF, CMMC L2, etc.)
+- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks with tenant-aware query resolution, HTML + PDF report output
 - **Event search** — EQL query interface with time range and result limiting
 - **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
 
@@ -206,12 +218,62 @@ All rules are created **disabled** by default. Validate the EQL in the Exabeam U
 
 ### `exa compliance audit`
 
+Run a gap-analysis compliance audit against your Exabeam tenant. Queries each SIEM-testable control using live event data and produces pass/fail results with evidence counts.
+
 ```bash
+# Basic audit (tenant-aware mode enabled by default)
 exa compliance audit --framework "NIST CSF v2.0" --lookback 30
-exa compliance audit --framework "NIST CSF v2.0" --output-html report.html
+
+# Specify tenant
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --lookback 30
+
+# Save HTML report (auto-named reports/<tenant>-<framework>-<date>.html)
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-html
+
+# Save HTML to explicit path
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-html C:\reports\audit.html
+
+# Save PDF report (auto-named, rendered via Microsoft Edge headless)
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-pdf
+
+# Save PDF to explicit path
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --pdf-path C:\reports\audit.pdf
+
+# Tenant-aware mode (default) — discovers active activity_types via Field Oracle
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --tenant-aware
+
+# Static mode — uses hardcoded filters from JSON only, skips tenant discovery
+exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --no-tenant-aware
 ```
 
-HTML reports saved to `reports/` include an executive summary, family coverage breakdown, and gap analysis.
+**Output flags:**
+
+| Flag | Behavior |
+|---|---|
+| `--output-html` | Auto-save HTML to `reports/` |
+| `--output-html <path>` | Save HTML to explicit path |
+| `--output-pdf` | Auto-save PDF to `reports/` via Edge headless |
+| `--pdf-path <path>` | Save PDF to explicit path |
+| `--tenant-aware` | Dynamic EQL via Field Oracle concept resolution (default: on) |
+| `--no-tenant-aware` | Static filters from ControlQueries JSON |
+
+HTML reports are saved to `reports/` and include an executive summary, family coverage breakdown, and gap analysis. PDF reports are rendered from HTML via Microsoft Edge headless (`msedge.exe --headless --print-to-pdf`) — no additional software required on Windows.
+
+**Supported frameworks:**
+
+| Framework | SIEM-Testable Controls | Status |
+|---|---|---|
+| NIST CSF v2.0 | 60 | Full queries + concept annotations |
+| CIS Controls v8 | ~110 | Full queries + concept annotations |
+| HIPAA | ~67 | Full queries + concept annotations |
+| PCI DSS | ~153 | Full queries + concept annotations |
+| FedRAMP Moderate | ~145 | Full queries + concept annotations |
+| ISO 27001:2022 | ~58 | Full queries + concept annotations |
+| CJIS | ~55 | Full queries + concept annotations |
+| CMMC Level 2 | ~55 | Stub (queries pending) |
+| CMMC Level 3 | ~20 | Stub (queries pending) |
+| GDPR | ~30 | Stub (queries pending) |
+| SOX | ~15 | Stub (queries pending) |
 
 ### `exa search`
 
@@ -219,6 +281,8 @@ HTML reports saved to `reports/` include an executive summary, family coverage b
 exa search 'activity_type:"authentication"' --lookback 7 --limit 500
 exa search 'user:"admin"' --tenant sademodev22
 ```
+
+> Exabeam New-Scale uses SQL-style EQL (SELECT / WHERE / GROUP-BY / ORDER-BY). Pipe-based syntax is not supported.
 
 ### `exa tables`
 
@@ -270,7 +334,7 @@ Additional features are available for Exabeam employees.
 
 ```bash
 uv sync                    # install deps
-uv run pytest -v           # run tests (326 passing)
+uv run pytest -v           # run tests (401 passing)
 uv run pytest tests/test_sigma.py::TestProxyFieldMappings  # single test class
 uv run ruff check exa/     # lint
 ```
