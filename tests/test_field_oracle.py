@@ -219,7 +219,7 @@ class TestBuildFieldOracle:
         build_field_oracle(data_dir=tmp_path, _ds_dir=DS_DIR)
         oracle = json.loads((tmp_path / "cache" / "field_oracle.json").read_text())
         assert "Microsoft" in oracle["by_vendor"]
-        assert "Code42" in oracle["by_vendor"]
+        assert "CrowdStrike" in oracle["by_vendor"]
 
     def test_raw_to_cim2_populated(self, tmp_path):
         build_field_oracle(data_dir=tmp_path, _ds_dir=DS_DIR)

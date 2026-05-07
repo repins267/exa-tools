@@ -93,6 +93,12 @@ def _run_update() -> None:
             f"[green]{result.sigma_action}[/green]",
             result.sigma_sha,
         )
+    if result.aillm_domains_action:
+        repo_table.add_row(
+            "repins267/ai-llm-domains",
+            f"[green]{result.aillm_domains_action}[/green]",
+            result.aillm_domains_sha,
+        )
     for err in result.errors:
         repo_table.add_row("", f"[red]{err}[/red]", "")
 
