@@ -6,7 +6,17 @@
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
 ![Tests](https://img.shields.io/badge/tests-326%20passing-brightgreen)
 
-Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Converts Splunk SPL searches and SigmaHQ detection rules to Exabeam EQL correlation rules, deploys them to your tenant, and manages context tables — all from the command line.
+Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
+
+**Detection rule conversion** routes Splunk SPL searches and SigmaHQ community rules through a shared `SPL → Sigma → EQL` pipeline backed by the **Field Oracle** — a local index of 4,258 raw→CIM2 field mappings extracted from Exabeam's own parser definitions. Every converted field gets a confidence rating (Oracle / Schema / Passthrough) so you know exactly what's verified before you deploy.
+
+**One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
+
+**Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF, CMMC L2, PCI DSS, HIPAA, and more — and produces HTML reports with executive summaries and gap analysis.
+
+**Context table management** handles bulk CRUD operations with 20k-record batch support, including pre-built sync for AI/LLM threat detection reference tables.
+
+All from the command line.
 
 ![Pipeline Animation](docs/pipeline-animation.svg)
 
@@ -57,8 +67,8 @@ The oracle refreshes automatically every time you run `exa update`. When Exabeam
 - **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution
 - **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
 - **Context table management** — CRUD operations with 20k batch support and pagination
-- **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
-- **Compliance auditing** — automated evidence collection across 11 frameworks (NIST CSF, CMMC L2, etc.)
+- <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
+- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks (NIST CSF, CMMC L2, etc.)
 - **Event search** — EQL query interface with time range and result limiting
 - **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
 
@@ -95,6 +105,14 @@ exa splunk one 'index=ad CommandLine="*mimikatz*"' --title "Mimikatz Detection"
 ```
 
 ## Commands
+
+Every command supports `--help` for full usage and flag descriptions:
+
+```bash
+exa --help                    # list all commands
+exa sigma convert --help      # flags for a specific command
+exa splunk deploy --help
+```
 
 ### `exa configure`
 
@@ -217,18 +235,10 @@ exa frameworks    # list all available compliance frameworks with testable contr
 
 ## Splunk Converter
 
-### Why SPL→Sigma→EQL?
+The SPL→Sigma→EQL pipeline is covered in [How It Works](#how-it-works) above. Two operational notes specific to Splunk conversion:
 
-SPL is a pipeline language (filter, aggregate, join, transform). EQL is a pure filter language. A direct translation is inherently lossy.
-
-Routing through Sigma means:
-- Field mapping reuses pySigma's community-maintained CIM field vocabulary
-- Wildcard values become proper Sigma modifiers (`|contains`, `|endswith`, `|startswith`)
-- Negation (`field!=value`) becomes a proper Sigma `filter` block with `condition: selection and not filter`
-- The intermediate Sigma YAML is preserved in output for audit and review
-- All converted rules land as `deploy_ready: Needs review` — SPL→EQL is lossy by design
-
-Pipeline stages that cannot be represented in EQL (`stats`, `eval`, `lookup`, `rex`, `spath`, `join`, etc.) are inventoried as warnings. The converted rule captures the detection filter logic — aggregation and enrichment must be handled separately in Exabeam.
+- The intermediate Sigma YAML is preserved in the output file for audit and review
+- All converted rules land as `deploy_ready: Needs review` — SPL→EQL is lossy by design and requires human sign-off before enabling
 
 ### Supported Indexes
 

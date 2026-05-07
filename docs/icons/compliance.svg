@@ -1,0 +1,28 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sg" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#0d2a6a"/>
+      <stop offset="100%" stop-color="#010408"/>
+    </radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <!-- Background -->
+  <circle cx="12" cy="12" r="11.5" fill="#030d1e" stroke="#0a2860" stroke-width=".8"/>
+  <!-- Shield body -->
+  <path d="M12 3.5 L19.5 6.5 L19.5 13 Q19.5 18 12 20.5 Q4.5 18 4.5 13 L4.5 6.5 Z"
+        fill="url(#sg)" stroke="#0055aa" stroke-width=".9"/>
+  <!-- Shield inner rim -->
+  <path d="M12 5 L18 7.5 L18 13 Q18 17 12 19 Q6 17 6 13 L6 7.5 Z"
+        fill="none" stroke="#0044aa" stroke-width=".5" opacity=".6"/>
+  <!-- Checkmark -->
+  <g filter="url(#glow)">
+    <polyline points="8.5,12.5 11,15 15.5,9.5"
+              fill="none" stroke="#00aaff" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Check glow -->
+    <polyline points="8.5,12.5 11,15 15.5,9.5"
+              fill="none" stroke="#00e8ff" stroke-width=".6"
+              stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+  </g>
+</svg>

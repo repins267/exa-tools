@@ -1,0 +1,39 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ng" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e8ff" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#0044aa" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="1" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <!-- Background -->
+  <circle cx="12" cy="12" r="11.5" fill="#030d1e" stroke="#0a2860" stroke-width=".8"/>
+  <!-- Connection lines -->
+  <g stroke="#0a3070" stroke-width=".7" opacity=".8">
+    <line x1="5" y1="8"  x2="12" y2="5"/>
+    <line x1="5" y1="8"  x2="12" y2="12"/>
+    <line x1="5" y1="16" x2="12" y2="12"/>
+    <line x1="5" y1="16" x2="12" y2="19"/>
+    <line x1="12" y1="5"  x2="19" y2="8"/>
+    <line x1="12" y1="12" x2="19" y2="8"/>
+    <line x1="12" y1="12" x2="19" y2="16"/>
+    <line x1="12" y1="19" x2="19" y2="16"/>
+    <line x1="12" y1="5"  x2="12" y2="12"/>
+    <line x1="12" y1="12" x2="12" y2="19"/>
+  </g>
+  <!-- Glow at center -->
+  <circle cx="12" cy="12" r="5" fill="url(#ng)" opacity=".35"/>
+  <!-- Nodes -->
+  <g filter="url(#glow)">
+    <circle cx="5"  cy="8"  r="2"   fill="#001830" stroke="#0066cc" stroke-width=".8"/>
+    <circle cx="5"  cy="16" r="2"   fill="#001830" stroke="#0066cc" stroke-width=".8"/>
+    <circle cx="19" cy="8"  r="2"   fill="#001830" stroke="#0066cc" stroke-width=".8"/>
+    <circle cx="19" cy="16" r="2"   fill="#001830" stroke="#0066cc" stroke-width=".8"/>
+    <circle cx="12" cy="5"  r="1.8" fill="#001830" stroke="#0088dd" stroke-width=".8"/>
+    <circle cx="12" cy="19" r="1.8" fill="#001830" stroke="#0088dd" stroke-width=".8"/>
+    <!-- Center node — brighter -->
+    <circle cx="12" cy="12" r="2.8" fill="#001e40" stroke="#00aaff" stroke-width="1"/>
+    <circle cx="12" cy="12" r="1.2" fill="#00ccff" opacity=".9"/>
+  </g>
+</svg>
