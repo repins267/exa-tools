@@ -66,9 +66,9 @@ class TestProxyFieldMappings:
     def test_c_uri_maps_to_url(self):
         assert CIM2_FIELD_MAP["c-uri"] == "url"
 
-    def test_cs_uri_stem_maps_to_url(self):
-        # url_path not in CIMLibrary; cs-uri-stem → url (CIMLibrary verified)
-        assert CIM2_FIELD_MAP["cs-uri-stem"] == "url"
+    def test_cs_uri_stem_maps_to_uri_path(self):
+        # uri_path verified in new-scale-content-hub correlation rules
+        assert CIM2_FIELD_MAP["cs-uri-stem"] == "uri_path"
 
     def test_r_dns_maps_to_web_domain(self):
         assert CIM2_FIELD_MAP["r-dns"] == "web_domain"

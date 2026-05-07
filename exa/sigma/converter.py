@@ -43,12 +43,17 @@ CIM2_FIELD_MAP: dict[str, str] = {
     "file_ext": "file_ext",
     "file_path": "file_path",
     "file_hash": "file_hash",
+    "md5": "hash_md5",               # CIM2: hash_md5 ✓
+    "sha1": "hash_sha1",             # CIM2: hash_sha1 ✓
+    "sha256": "hash_sha256",         # CIM2: hash_sha256 ✓
+    "Imphash": "file_hash",          # Sigma imphash → closest CIM2 is file_hash
     # Registry — verified
     "TargetObject": "registry_path",
     "Details": "registry_value",
     # Web proxy
     "c-uri": "url",                                  # CIM2: url ✓
-    "cs-uri-stem": "url",                            # CIM2: url ✓ (url_path not in CIMLibrary)
+    "cs-uri-stem": "uri_path",                       # CIM2: uri_path ✓ (verified in new-scale-content-hub rules)
+    "cs-uri-query": "uri_query",                     # CIM2: uri_query ✓ (verified in new-scale-content-hub rules)
     "r-dns": "web_domain",                           # CIM2: web_domain ✓
     # DNS
     "QueryName": "query",                            # CIM2: query ✓
