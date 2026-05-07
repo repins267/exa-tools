@@ -1,0 +1,1656 @@
+{
+  "queries": {
+    "164.308(a)(1)": {
+      "name": "Security Management Process - implement policies and procedures to prevent, dete",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Security Management Process - implement policies and procedures to prevent, dete",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.308(a)(1)(ii)(D)": {
+      "name": "Information System Activity Review - implement procedures to regularly review re",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Information System Activity Review - implement procedures to regularly review re",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.308(a)(3)": {
+      "name": "Workforce Security - implement policies and procedures to ensure that all member",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Workforce Security - implement policies and procedures to ensure that all member",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(3)(ii)(A)": {
+      "name": "Authorization and/or Supervision - implement procedures for the authorization an",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Authorization and/or Supervision - implement procedures for the authorization an",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(3)(ii)(B)": {
+      "name": "Workforce Clearance Procedure - implement procedures to determine that the acces",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Workforce Clearance Procedure - implement procedures to determine that the acces",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(3)(ii)(C)": {
+      "name": "Termination Procedures - implement procedures for terminating access to ePHI whe",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Termination Procedures - implement procedures for terminating access to ePHI whe",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(4)": {
+      "name": "Information Access Management - implement policies and procedures for authorizin",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Information Access Management - implement policies and procedures for authorizin",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(4)(ii)(B)": {
+      "name": "Access Authorization - implement policies and procedures for granting access to ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Access Authorization - implement policies and procedures for granting access to ",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(4)(ii)(C)": {
+      "name": "Access Establishment and Modification - implement policies and procedures that, ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Access Establishment and Modification - implement policies and procedures that, ",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(5)(ii)(B)": {
+      "name": "Protection from Malicious Software - implement procedures for guarding against, ",
+      "concepts": [
+        "INCIDENT_RESPONSE"
+      ],
+      "queries": [
+        {
+          "name": "Protection from Malicious Software - implement procedures for guarding against, ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "incident_response"
+    },
+    "164.308(a)(5)(ii)(C)": {
+      "name": "Log-in Monitoring - implement procedures for monitoring log-in attempts and repo",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Log-in Monitoring - implement procedures for monitoring log-in attempts and repo",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.308(a)(5)(ii)(D)": {
+      "name": "Password Management - implement procedures for creating, changing, and safeguard",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Password Management - implement procedures for creating, changing, and safeguard",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.308(a)(6)": {
+      "name": "Security Incident Procedures - implement policies and procedures to address secu",
+      "concepts": [
+        "INCIDENT_RESPONSE"
+      ],
+      "queries": [
+        {
+          "name": "Security Incident Procedures - implement policies and procedures to address secu",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "incident_response"
+    },
+    "164.308(a)(6)(ii)": {
+      "name": "Response and Reporting - identify and respond to suspected or known security inc",
+      "concepts": [
+        "INCIDENT_RESPONSE"
+      ],
+      "queries": [
+        {
+          "name": "Response and Reporting - identify and respond to suspected or known security inc",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "incident_response"
+    },
+    "164.310(a)(1)": {
+      "name": "Facility Access Controls - implement policies and procedures to limit physical a",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Facility Access Controls - implement policies and procedures to limit physical a",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.310(a)(2)(ii)": {
+      "name": "Facility Security Plan - implement policies and procedures to safeguard the faci",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Facility Security Plan - implement policies and procedures to safeguard the faci",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.310(a)(2)(iii)": {
+      "name": "Access Control and Validation Procedures - implement procedures to control and v",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Access Control and Validation Procedures - implement procedures to control and v",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.310(c)(1)": {
+      "name": "Workstation Security - implement physical safeguards for all workstations that a",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Workstation Security - implement physical safeguards for all workstations that a",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.310(d)(1)": {
+      "name": "Device and Media Controls - implement policies and procedures that govern the re",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Device and Media Controls - implement policies and procedures that govern the re",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.310(d)(2)(iii)": {
+      "name": "Accountability - maintain a record of the movements of hardware and electronic m",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Accountability - maintain a record of the movements of hardware and electronic m",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.312(a)(1)": {
+      "name": "Access Control - implement technical policies and procedures for electronic info",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Access Control - implement technical policies and procedures for electronic info",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.312(a)(2)(i)": {
+      "name": "Unique User Identification - assign a unique name and/or number for identifying ",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Unique User Identification - assign a unique name and/or number for identifying ",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management"
+    },
+    "164.312(a)(2)(iii)": {
+      "name": "Automatic Logoff - implement electronic procedures that terminate an electronic ",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Automatic Logoff - implement electronic procedures that terminate an electronic ",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.312(a)(2)(iv)": {
+      "name": "Encryption and Decryption - implement a mechanism to encrypt and decrypt ePHI",
+      "concepts": [
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Encryption and Decryption - implement a mechanism to encrypt and decrypt ePHI",
+          "filter": "activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "network_traffic"
+    },
+    "164.312(b)(1)": {
+      "name": "Audit Controls - implement hardware, software, and/or procedural mechanisms that",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Audit Controls - implement hardware, software, and/or procedural mechanisms that",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.312(c)(1)": {
+      "name": "Integrity - implement policies and procedures to protect ePHI from improper alte",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Integrity - implement policies and procedures to protect ePHI from improper alte",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.312(c)(2)": {
+      "name": "Mechanism to Authenticate Electronic PHI - implement electronic mechanisms to co",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Mechanism to Authenticate Electronic PHI - implement electronic mechanisms to co",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.312(d)(1)": {
+      "name": "Person or Entity Authentication - implement procedures to verify that a person o",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Person or Entity Authentication - implement procedures to verify that a person o",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.312(e)(1)": {
+      "name": "Transmission Security - implement technical security measures to guard against u",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Transmission Security - implement technical security measures to guard against u",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.312(e)(2)(i)": {
+      "name": "Integrity Controls - implement security measures to ensure that electronically t",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Integrity Controls - implement security measures to ensure that electronically t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.312(e)(2)(ii)": {
+      "name": "Encryption - implement a mechanism to encrypt ePHI whenever deemed appropriate",
+      "concepts": [
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Encryption - implement a mechanism to encrypt ePHI whenever deemed appropriate",
+          "filter": "activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "network_traffic"
+    },
+    "164.314(a)(2)(i)": {
+      "name": "Business Associate Contracts (Implementation) - the contract must provide that t",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Business Associate Contracts (Implementation) - the contract must provide that t",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_audit_log"
+    },
+    "164.314(a)(2)(ii)": {
+      "name": "Business Associate Reporting - the contract must provide that the business assoc",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Business Associate Reporting - the contract must provide that the business assoc",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_audit_log"
+    },
+    "164.314(b)(2)(ii)": {
+      "name": "Adequate Separation - ensure that adequate separation between the group health p",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Adequate Separation - ensure that adequate separation between the group health p",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_audit_log"
+    },
+    "164.314(b)(2)(iv)": {
+      "name": "Report Security Incidents - report to the group health plan any security inciden",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Report Security Incidents - report to the group health plan any security inciden",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_audit_log"
+    },
+    "164.316(b)(2)(i)": {
+      "name": "Time Limit - retain the documentation required for 6 years from the date of its ",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Time Limit - retain the documentation required for 6 years from the date of its ",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.316(b)(2)(iii)": {
+      "name": "Updates - review documentation periodically and update as needed in response to ",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Updates - review documentation periodically and update as needed in response to ",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "164.502(a)": {
+      "name": "Uses and Disclosures of PHI - a covered entity or business associate may not use",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Uses and Disclosures of PHI - a covered entity or business associate may not use",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.502(b)": {
+      "name": "Minimum Necessary - when using or disclosing PHI or when requesting PHI from ano",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Minimum Necessary - when using or disclosing PHI or when requesting PHI from ano",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.502(e)": {
+      "name": "Limited Data Set - a covered entity may use or disclose a limited data set if th",
+      "concepts": [
+        "FILE_ACTIVITY"
+      ],
+      "queries": [
+        {
+          "name": "Limited Data Set - a covered entity may use or disclose a limited data set if th",
+          "filter": "activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "file_activity"
+    },
+    "164.508(a)": {
+      "name": "Authorizations for Uses and Disclosures - a covered entity may not use or disclo",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Authorizations for Uses and Disclosures - a covered entity may not use or disclo",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.512(a)": {
+      "name": "Uses and Disclosures Required by Law - a covered entity may use or disclose PHI ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Uses and Disclosures Required by Law - a covered entity may use or disclose PHI ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.512(b)": {
+      "name": "Uses and Disclosures for Public Health Activities - a covered entity may disclos",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Uses and Disclosures for Public Health Activities - a covered entity may disclos",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.512(d)": {
+      "name": "Disclosures for Health Oversight Activities - a covered entity may disclose PHI ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Disclosures for Health Oversight Activities - a covered entity may disclose PHI ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.512(e)": {
+      "name": "Disclosures for Judicial and Administrative Proceedings - a covered entity may d",
+      "concepts": [
+        "PRIVILEGED_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Disclosures for Judicial and Administrative Proceedings - a covered entity may d",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "privileged_access"
+    },
+    "164.512(f)": {
+      "name": "Disclosures for Law Enforcement Purposes - a covered entity may disclose PHI for",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Disclosures for Law Enforcement Purposes - a covered entity may disclose PHI for",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.512(i)": {
+      "name": "Uses and Disclosures for Research - a covered entity may use or disclose PHI for",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Uses and Disclosures for Research - a covered entity may use or disclose PHI for",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.514(d)(1)": {
+      "name": "Minimum Necessary Requirement - for any type of disclosure that it makes on a ro",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Minimum Necessary Requirement - for any type of disclosure that it makes on a ro",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.514(d)(2)": {
+      "name": "Minimum Necessary Uses - a covered entity must identify those persons or classes",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Minimum Necessary Uses - a covered entity must identify those persons or classes",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.514(d)(3)": {
+      "name": "Minimum Necessary Disclosures - for non-routine disclosures the covered entity m",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Minimum Necessary Disclosures - for non-routine disclosures the covered entity m",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.524(a)": {
+      "name": "Access of Individuals to PHI - an individual has a right of access to inspect an",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Access of Individuals to PHI - an individual has a right of access to inspect an",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "164.526(a)": {
+      "name": "Amendment of PHI - an individual has the right to have a covered entity amend PH",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Amendment of PHI - an individual has the right to have a covered entity amend PH",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.528(a)": {
+      "name": "Accounting of Disclosures - an individual has a right to receive an accounting o",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Accounting of Disclosures - an individual has a right to receive an accounting o",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management"
+    },
+    "164.530(d)": {
+      "name": "Safeguards - a covered entity must have in place appropriate administrative, tec",
+      "concepts": [
+        "PHYSICAL_ACCESS"
+      ],
+      "queries": [
+        {
+          "name": "Safeguards - a covered entity must have in place appropriate administrative, tec",
+          "filter": "activity_type:\"physical_location-access\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "physical_access"
+    },
+    "164.530(f)": {
+      "name": "Sanctions - a covered entity must have and apply appropriate sanctions against m",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Sanctions - a covered entity must have and apply appropriate sanctions against m",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management"
+    },
+    "164.530(i)": {
+      "name": "Documentation - a covered entity must maintain the policies and procedures requi",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Documentation - a covered entity must maintain the policies and procedures requi",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_auth_success"
+    },
+    "164.400": {
+      "name": "Breach Notification Applicability - a covered entity that accesses, maintains, r",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Breach Notification Applicability - a covered entity that accesses, maintains, r",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.402(1)": {
+      "name": "Breach Definition - the acquisition, access, use, or disclosure of PHI in a mann",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Breach Definition - the acquisition, access, use, or disclosure of PHI in a mann",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.402(2)": {
+      "name": "Breach Exclusions - unintentional acquisition, access, or use of PHI by a workfo",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Breach Exclusions - unintentional acquisition, access, or use of PHI by a workfo",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.404(a)(1)": {
+      "name": "Individual Notification - a covered entity shall notify each individual whose un",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Individual Notification - a covered entity shall notify each individual whose un",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.404(a)(2)": {
+      "name": "Timeliness of Notification - notifications shall be provided without unreasonabl",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Timeliness of Notification - notifications shall be provided without unreasonabl",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.404(b)": {
+      "name": "Content of Notification - the notification shall include a brief description of ",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Content of Notification - the notification shall include a brief description of ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.408(a)": {
+      "name": "HHS Notification - a covered entity shall notify the Secretary of breaches of un",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "HHS Notification - a covered entity shall notify the Secretary of breaches of un",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.408(b)": {
+      "name": "Breach Log - a covered entity shall maintain a log or other documentation of bre",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Breach Log - a covered entity shall maintain a log or other documentation of bre",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.410(a)": {
+      "name": "Business Associate Notification - a business associate shall notify the covered ",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Business Associate Notification - a business associate shall notify the covered ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.410(b)": {
+      "name": "BA Notification Timeliness - the notification shall be provided without unreason",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "BA Notification Timeliness - the notification shall be provided without unreason",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "164.414(a)": {
+      "name": "Administrative Requirements - a covered entity is responsible for complying with",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Administrative Requirements - a covered entity is responsible for complying with",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    }
+  }
+}

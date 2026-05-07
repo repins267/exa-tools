@@ -5,7 +5,7 @@ API endpoint: POST /search/v2/events
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -46,12 +46,12 @@ def search_events(
         req_fields.append("approxLogTime")
 
     # Resolve time range
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if start_time:
-        resolved_start = start_time if start_time.tzinfo else start_time.replace(tzinfo=timezone.utc)
+        resolved_start = start_time if start_time.tzinfo else start_time.replace(tzinfo=UTC)
         resolved_end = (end_time or now)
         if resolved_end.tzinfo is None:
-            resolved_end = resolved_end.replace(tzinfo=timezone.utc)
+            resolved_end = resolved_end.replace(tzinfo=UTC)
     elif lookback_days:
         resolved_start = now - timedelta(days=lookback_days)
         resolved_end = now
@@ -89,7 +89,7 @@ def search_events(
             try:
                 epoch_seconds = int(approx) // 1_000_000
                 row["timestamp"] = datetime.fromtimestamp(
-                    epoch_seconds, tz=timezone.utc
+                    epoch_seconds, tz=UTC
                 ).isoformat()
             except (ValueError, OSError):
                 pass

@@ -8,7 +8,7 @@ lastUpdated is a Unix timestamp (milliseconds).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from exa.aillm.sync import TABLE_MAP
@@ -76,7 +76,7 @@ def get_aillm_table_status(client: ExaClient) -> list[TableStatus]:
                 ts = int(last_updated_raw)
                 if ts > 1_000_000_000_000:  # milliseconds
                     ts = ts // 1000
-                dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                dt = datetime.fromtimestamp(ts, tz=UTC)
                 last_updated = dt.strftime("%Y-%m-%d %H:%M UTC")
             except (ValueError, OSError):
                 last_updated = "Unknown"

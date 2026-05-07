@@ -9,15 +9,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
 from exa.compliance.frameworks import (
-    ControlQueryGroup,
-    Framework,
     load_control_queries,
     load_framework,
 )
@@ -58,6 +56,9 @@ class AuditReport:
     unique_queries: int
     control_results: list[ControlResult] = field(default_factory=list)
     manual_controls: list[dict[str, str]] = field(default_factory=list)
+    active_activity_types: list[str] = field(default_factory=list)
+    oracle_version: str = ""
+    query_mode: str = "static"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -75,6 +76,7 @@ def run_compliance_audit(
     lookback_days: int = 30,
     minimum_evidence: int = 10,
     output_report: str | Path | None = None,
+    tenant_aware: bool = True,
 ) -> AuditReport:
     """Run a full compliance framework audit.
 
@@ -84,7 +86,13 @@ def run_compliance_audit(
         lookback_days: Days to search back for evidence.
         minimum_evidence: Min events to pass a control.
         output_report: Path to save JSON report.
+        tenant_aware: Discover active activity_types and build dynamic EQL
+            queries via Field Oracle. Disable with --no-tenant-aware to use
+            static fallback filters from ControlQueries JSON.
     """
+    from exa.compliance.query_builder import ComplianceQueryBuilder
+    from exa.compliance.resolver import ConceptResolver
+
     # Load framework and queries
     fw = load_framework(framework_id)
     queries = load_control_queries(framework_id)
@@ -101,6 +109,28 @@ def run_compliance_audit(
         f"  SIEM-Testable: {len(testable)}  |  Manual: {len(manual)}"
     )
     console.print(f"  Min Evidence Threshold: {minimum_evidence}")
+
+    # Tenant-aware setup: discover active activity_types via Field Oracle
+    resolver = ConceptResolver()
+    builder = ComplianceQueryBuilder(resolver)
+    active_types: set[str] | None = None
+    oracle_ver = resolver.oracle_version()
+    query_mode = "static"
+
+    if tenant_aware:
+        active_types = resolver.active_activity_types(client, lookback_days=lookback_days)
+        if active_types:
+            query_mode = "tenant-aware"
+            console.print(
+                f"  Tenant: {len(active_types)} active activity types | "
+                f"Oracle: {oracle_ver[:24]}"
+            )
+        else:
+            query_mode = "static-fallback"
+            console.print(
+                "  Tenant discovery returned no types — using static filters",
+                style="yellow",
+            )
 
     # Run per-control evidence queries
     console.print(
@@ -128,10 +158,20 @@ def run_compliance_audit(
             control_min = qg.minimum_evidence or minimum_evidence
 
             for q in qg.queries:
+                # Build dynamic EQL from concepts when available; else use static filter
+                if qg.concepts and tenant_aware:
+                    effective_filter = builder.build(
+                        qg.concepts,
+                        fallback_filter=q.filter,
+                        active_types=active_types,
+                    ) or q.filter
+                else:
+                    effective_filter = q.filter
+
                 cache_key = (
-                    f"{qg.shared_query_group}|{q.filter}"
+                    f"{qg.shared_query_group}|{effective_filter}"
                     if qg.shared_query_group
-                    else f"{cid}|{q.filter}"
+                    else f"{cid}|{effective_filter}"
                 )
 
                 if cache_key in query_group_cache:
@@ -143,7 +183,7 @@ def run_compliance_audit(
                     try:
                         events = search_events(
                             client,
-                            q.filter,
+                            effective_filter,
                             fields=q.fields,
                             lookback_days=lookback_days,
                             limit=100,
@@ -204,7 +244,7 @@ def run_compliance_audit(
     ]
 
     report = AuditReport(
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
         framework=framework_id,
         framework_name=fw.name,
         lookback_days=lookback_days,
@@ -219,6 +259,9 @@ def run_compliance_audit(
         unique_queries=queries_executed,
         control_results=control_results,
         manual_controls=manual_entries,
+        active_activity_types=sorted(active_types) if active_types else [],
+        oracle_version=oracle_ver,
+        query_mode=query_mode,
     )
 
     if output_report:

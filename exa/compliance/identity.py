@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any
 from rich.console import Console
 
 from exa.compliance.mapping import (
-    ClassificationResult,
     classify_records,
     extract_keys,
 )

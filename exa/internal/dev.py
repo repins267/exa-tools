@@ -59,8 +59,8 @@ def get_dev_client_from_env(
     For internal development and testing only.
     """
     from exa.client import ExaClient as _ExaClient
-    from exa.internal import detect_internal_mode
     from exa.exceptions import ExaInternalFeatureError
+    from exa.internal import detect_internal_mode
 
     client_id = os.environ.get("EXA_CLIENT_ID")
     client_secret = os.environ.get("EXA_CLIENT_SECRET")

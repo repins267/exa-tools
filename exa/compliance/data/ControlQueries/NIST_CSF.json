@@ -9,13 +9,23 @@
                 {
                     "name": "Governance audit and policy events",
                     "filter": "activity_type:\"audit_policy-modify\" OR action:\"modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates organizational review of cybersecurity risk management performance through audit and policy modification events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 5,
-            "sharedQueryGroup": "governance_policy"
+            "sharedQueryGroup": "governance_policy",
+            "concepts": [
+                "AUDIT_LOG",
+                "CONFIG_CHANGE"
+            ]
         },
         "ID.AM-01": {
             "name": "Hardware Asset Inventory",
@@ -23,13 +33,21 @@
                 {
                     "name": "Hardware authentication and endpoint discovery",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates maintained hardware inventory through authentication events from managed endpoints"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.AM-02": {
             "name": "Software Asset Inventory",
@@ -37,13 +55,21 @@
                 {
                     "name": "Software and service authentication events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates maintained software and service inventory through authentication and endpoint events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.AM-03": {
             "name": "Network Communication Flows",
@@ -51,13 +77,21 @@
                 {
                     "name": "Network communication and data flow events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates maintained network communication representations through authentication and flow data"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.AM-05": {
             "name": "Asset Prioritization",
@@ -65,13 +99,21 @@
                 {
                     "name": "Asset classification and criticality events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates asset prioritization based on classification and criticality through endpoint activity"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.AM-07": {
             "name": "Data Inventory and Metadata",
@@ -79,13 +121,21 @@
                 {
                     "name": "Data and metadata inventory events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates maintained data inventories through authentication and endpoint discovery events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.AM-08": {
             "name": "Asset Lifecycle Management",
@@ -93,13 +143,21 @@
                 {
                     "name": "Asset lifecycle management events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type"
+                    ],
                     "evidenceDescription": "Demonstrates systems and data managed throughout their life cycles via authentication and endpoint events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "asset_discovery"
+            "sharedQueryGroup": "asset_discovery",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "ID.RA-01": {
             "name": "Vulnerability Identification",
@@ -107,13 +165,23 @@
                 {
                     "name": "Vulnerability and risk rule triggers",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates vulnerabilities are identified and validated through rule and alert triggers"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT",
+                "INCIDENT_RESPONSE"
+            ]
         },
         "ID.RA-02": {
             "name": "Cyber Threat Intelligence",
@@ -121,13 +189,23 @@
                 {
                     "name": "Threat intelligence rule and alert events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates cyber threat intelligence is received and processed through rule triggers"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT",
+                "INCIDENT_RESPONSE"
+            ]
         },
         "ID.RA-03": {
             "name": "Threat Identification",
@@ -135,13 +213,23 @@
                 {
                     "name": "Internal and external threat detection events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates internal and external threats are identified and recorded through detection rules"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT",
+                "INCIDENT_RESPONSE"
+            ]
         },
         "ID.RA-04": {
             "name": "Impact and Likelihood Assessment",
@@ -149,13 +237,23 @@
                 {
                     "name": "Threat impact and likelihood assessment events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates potential impacts and likelihoods of threats are identified through risk assessment rules"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT",
+                "INCIDENT_RESPONSE"
+            ]
         },
         "ID.RA-05": {
             "name": "Risk Prioritization",
@@ -163,13 +261,23 @@
                 {
                     "name": "Risk prioritization and response events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates inherent risk understanding and prioritized risk response through triggered rules"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT",
+                "INCIDENT_RESPONSE"
+            ]
         },
         "ID.RA-07": {
             "name": "Change and Exception Management",
@@ -177,13 +285,22 @@
                 {
                     "name": "Change management and exception tracking events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates changes and exceptions are managed and assessed for risk impact through rule triggers"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT"
+            ]
         },
         "ID.RA-08": {
             "name": "Vulnerability Disclosure Processing",
@@ -191,13 +308,22 @@
                 {
                     "name": "Vulnerability disclosure analysis events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates vulnerability disclosures are received and analyzed through detection rules"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "risk_assessment"
+            "sharedQueryGroup": "risk_assessment",
+            "concepts": [
+                "VULNERABILITY_EVENT"
+            ]
         },
         "ID.IM-02": {
             "name": "Security Test Improvements",
@@ -205,13 +331,22 @@
                 {
                     "name": "Security test and exercise audit events",
                     "filter": "activity_type:\"audit_policy-modify\" OR action:\"modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates improvements identified from security tests and exercises through audit modification events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "improvement"
+            "sharedQueryGroup": "improvement",
+            "concepts": [
+                "AUDIT_LOG"
+            ]
         },
         "ID.IM-03": {
             "name": "Operational Process Improvements",
@@ -219,13 +354,22 @@
                 {
                     "name": "Operational process improvement events",
                     "filter": "activity_type:\"audit_policy-modify\" OR action:\"modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates improvements identified from operational process execution through audit events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "improvement"
+            "sharedQueryGroup": "improvement",
+            "concepts": [
+                "AUDIT_LOG"
+            ]
         },
         "PR.AA-01": {
             "name": "Identity and Credential Management",
@@ -233,13 +377,25 @@
                 {
                     "name": "Identity lifecycle management events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"account-creation\" OR activity_type:\"account-modification\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates identities and credentials for authorized users, services, and hardware are managed"
                 }
             ],
-            "contextTables": ["privileged_users"],
+            "contextTables": [
+                "privileged_users"
+            ],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "identity_management"
+            "sharedQueryGroup": "identity_management",
+            "concepts": [
+                "AUTH_SUCCESS",
+                "ACCOUNT_MANAGEMENT"
+            ]
         },
         "PR.AA-02": {
             "name": "Identity Proofing",
@@ -247,13 +403,25 @@
                 {
                     "name": "Identity proofing and credential binding events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"account-creation\" OR activity_type:\"account-modification\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates identities are proofed and bound to credentials based on interaction context"
                 }
             ],
-            "contextTables": ["privileged_users"],
+            "contextTables": [
+                "privileged_users"
+            ],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "identity_management"
+            "sharedQueryGroup": "identity_management",
+            "concepts": [
+                "AUTH_SUCCESS",
+                "ACCOUNT_MANAGEMENT"
+            ]
         },
         "PR.AA-03": {
             "name": "Authentication",
@@ -261,13 +429,22 @@
                 {
                     "name": "Successful authentication events",
                     "filter": "activity_type:\"authentication\" AND outcome:\"success\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "outcome"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "outcome"
+                    ],
                     "evidenceDescription": "Demonstrates users, services, and hardware are authenticated through successful authentication events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "authentication_success"
+            "sharedQueryGroup": "authentication_success",
+            "concepts": [
+                "AUTH_SUCCESS"
+            ]
         },
         "PR.AA-04": {
             "name": "Identity Assertion Protection",
@@ -275,13 +452,24 @@
                 {
                     "name": "Privileged identity assertion events",
                     "filter": "activity_type:\"authentication\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates identity assertions are protected, conveyed, and verified through authentication monitoring"
                 }
             ],
-            "contextTables": ["privileged_users"],
+            "contextTables": [
+                "privileged_users"
+            ],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "privileged_access"
+            "sharedQueryGroup": "privileged_access",
+            "concepts": [
+                "PRIVILEGED_ACCESS"
+            ]
         },
         "PR.AA-05": {
             "name": "Access Permission Management",
@@ -289,13 +477,25 @@
                 {
                     "name": "Access permission and entitlement modification events",
                     "filter": "activity_type:\"group-modify\" OR activity_type:\"file-permission-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"user-modify\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates access permissions and entitlements are managed, enforced, and reviewed with least privilege"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 2,
-            "sharedQueryGroup": "access_management"
+            "sharedQueryGroup": "access_management",
+            "concepts": [
+                "GROUP_MANAGEMENT",
+                "PERMISSION_CHANGE",
+                "ACCOUNT_MANAGEMENT"
+            ]
         },
         "PR.AA-06": {
             "name": "Physical Access Management",
@@ -304,13 +504,22 @@
                 {
                     "name": "Physical access control events",
                     "filter": "activity_type:\"physical_location-access\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates physical access to assets is managed, monitored, and enforced through access control logs"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 5,
-            "sharedQueryGroup": "physical_access"
+            "sharedQueryGroup": "physical_access",
+            "concepts": [
+                "PHYSICAL_ACCESS"
+            ]
         },
         "PR.DS-01": {
             "name": "Data-at-Rest Protection",
@@ -318,13 +527,23 @@
                 {
                     "name": "Data-at-rest access and protection events",
                     "filter": "activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"database-query\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "object_name", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "object_name",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates confidentiality, integrity, and availability of data-at-rest are protected through file and database access monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "data_security"
+            "sharedQueryGroup": "data_security",
+            "concepts": [
+                "FILE_ACTIVITY"
+            ]
         },
         "PR.DS-02": {
             "name": "Data-in-Transit Protection",
@@ -332,13 +551,23 @@
                 {
                     "name": "Data-in-transit network protection events",
                     "filter": "activity_type:\"network-traffic\" OR activity_type:\"network-session\"",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates confidentiality, integrity, and availability of data-in-transit are protected through network monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "network_security"
+            "sharedQueryGroup": "network_security",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "PR.DS-10": {
             "name": "Data-in-Use Protection",
@@ -346,13 +575,24 @@
                 {
                     "name": "Data integrity and write monitoring events",
                     "filter": "activity_type:\"file-write\" OR activity_type:\"file-delete\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "object_name", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "object_name",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates data-in-use confidentiality, integrity, and availability through file modification monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 5,
-            "sharedQueryGroup": "data_integrity"
+            "sharedQueryGroup": "data_integrity",
+            "concepts": [
+                "FILE_ACTIVITY",
+                "DATA_EXFILTRATION"
+            ]
         },
         "PR.DS-11": {
             "name": "Backup Management",
@@ -360,13 +600,24 @@
                 {
                     "name": "Backup creation and integrity events",
                     "filter": "activity_type:\"file-write\" OR activity_type:\"file-delete\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "object_name", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "object_name",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates backups of data are created, protected, maintained, and tested through file operation monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 5,
-            "sharedQueryGroup": "data_integrity"
+            "sharedQueryGroup": "data_integrity",
+            "concepts": [
+                "FILE_ACTIVITY",
+                "AUDIT_LOG"
+            ]
         },
         "PR.PS-01": {
             "name": "Configuration Management",
@@ -374,13 +625,23 @@
                 {
                     "name": "Configuration and policy enforcement events",
                     "filter": "activity_type:\"process-create\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates configuration settings are established and maintained in accordance with security policies"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "platform_security"
+            "sharedQueryGroup": "platform_security",
+            "concepts": [
+                "PROCESS_EXECUTION",
+                "CONFIG_CHANGE"
+            ]
         },
         "PR.PS-02": {
             "name": "Software Maintenance",
@@ -388,13 +649,23 @@
                 {
                     "name": "Software maintenance and lifecycle events",
                     "filter": "activity_type:\"process-create\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates software is maintained, replaced, and removed commensurate with risk"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "platform_security"
+            "sharedQueryGroup": "platform_security",
+            "concepts": [
+                "PROCESS_EXECUTION",
+                "CONFIG_CHANGE"
+            ]
         },
         "PR.PS-03": {
             "name": "Hardware Maintenance",
@@ -402,13 +673,24 @@
                 {
                     "name": "Hardware maintenance and lifecycle events",
                     "filter": "activity_type:\"process-create\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates hardware is maintained, replaced, and removed commensurate with risk"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "platform_security"
+            "sharedQueryGroup": "platform_security",
+            "concepts": [
+                "PROCESS_EXECUTION",
+                "CONFIG_CHANGE",
+                "ENDPOINT_ACTIVITY"
+            ]
         },
         "PR.PS-04": {
             "name": "Log Record Generation",
@@ -416,13 +698,23 @@
                 {
                     "name": "Log generation and continuous monitoring events",
                     "filter": "activity_type:\"process-create\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates log records are generated and made available for continuous monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "platform_security"
+            "sharedQueryGroup": "platform_security",
+            "concepts": [
+                "AUDIT_LOG",
+                "PROCESS_EXECUTION"
+            ]
         },
         "PR.PS-05": {
             "name": "Unauthorized Software Prevention",
@@ -430,13 +722,23 @@
                 {
                     "name": "Unauthorized software execution prevention events",
                     "filter": "activity_type:\"process-create\" OR activity_type:\"audit_policy-modify\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates installation and execution of unauthorized software are prevented through process and policy monitoring"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "platform_security"
+            "sharedQueryGroup": "platform_security",
+            "concepts": [
+                "PROCESS_EXECUTION",
+                "CONFIG_CHANGE"
+            ]
         },
         "PR.IR-01": {
             "name": "Network Access Protection",
@@ -444,13 +746,23 @@
                 {
                     "name": "Network access control and protection events",
                     "filter": "activity_type:\"network-traffic\" OR activity_type:\"network-session\"",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates networks and environments are protected from unauthorized logical access and usage"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "infrastructure_resilience"
+            "sharedQueryGroup": "infrastructure_resilience",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "PR.IR-03": {
             "name": "Resilience Mechanisms",
@@ -458,13 +770,23 @@
                 {
                     "name": "Infrastructure resilience and availability events",
                     "filter": "activity_type:\"network-traffic\" OR activity_type:\"network-session\"",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates resilience mechanisms are implemented for normal and adverse situations"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "infrastructure_resilience"
+            "sharedQueryGroup": "infrastructure_resilience",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "PR.IR-04": {
             "name": "Resource Capacity Management",
@@ -472,13 +794,23 @@
                 {
                     "name": "Resource capacity and availability events",
                     "filter": "activity_type:\"network-traffic\" OR activity_type:\"network-session\"",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates adequate resource capacity to ensure availability is maintained"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "infrastructure_resilience"
+            "sharedQueryGroup": "infrastructure_resilience",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "DE.CM-01": {
             "name": "Network Monitoring",
@@ -486,13 +818,23 @@
                 {
                     "name": "Network traffic and session monitoring events",
                     "filter": "activity_type:\"network-traffic\" OR activity_type:\"network-session\"",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates networks and network services are monitored to find potentially adverse events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "continuous_monitoring_network"
+            "sharedQueryGroup": "continuous_monitoring_network",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "DE.CM-02": {
             "name": "Physical Environment Monitoring",
@@ -501,13 +843,22 @@
                 {
                     "name": "Physical environment monitoring events",
                     "filter": "activity_type:\"physical_location-access\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates the physical environment is monitored to find potentially adverse events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 5,
-            "sharedQueryGroup": "physical_monitoring"
+            "sharedQueryGroup": "physical_monitoring",
+            "concepts": [
+                "PHYSICAL_ACCESS"
+            ]
         },
         "DE.CM-03": {
             "name": "Personnel and Technology Monitoring",
@@ -515,13 +866,24 @@
                 {
                     "name": "Personnel activity and technology usage events",
                     "filter": "activity_type:\"authentication\" OR activity_type:\"process-create\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates personnel activity and technology usage are monitored for adverse events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "endpoint_monitoring"
+            "sharedQueryGroup": "endpoint_monitoring",
+            "concepts": [
+                "AUTH_SUCCESS",
+                "PROCESS_EXECUTION",
+                "ENDPOINT_ACTIVITY"
+            ]
         },
         "DE.CM-06": {
             "name": "External Service Monitoring",
@@ -529,13 +891,23 @@
                 {
                     "name": "External service provider network events",
                     "filter": "activity_type:\"network-traffic\" AND NOT dest_ip:[10.0.0.0/8]",
-                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "activity_type", "result"],
+                    "fields": [
+                        "src_ip",
+                        "dest_ip",
+                        "src_port",
+                        "dest_port",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates external service provider activities and services are monitored for adverse events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "external_monitoring"
+            "sharedQueryGroup": "external_monitoring",
+            "concepts": [
+                "NETWORK_TRAFFIC"
+            ]
         },
         "DE.CM-09": {
             "name": "Malware and Runtime Monitoring",
@@ -543,13 +915,23 @@
                 {
                     "name": "Malware and runtime adverse event detection",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates computing hardware, software, and runtime environments are monitored for adverse events"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "malware_monitoring"
+            "sharedQueryGroup": "malware_monitoring",
+            "concepts": [
+                "INCIDENT_RESPONSE",
+                "VULNERABILITY_EVENT"
+            ]
         },
         "DE.AE-02": {
             "name": "Adverse Event Analysis",
@@ -557,13 +939,22 @@
                 {
                     "name": "Adverse event rule trigger analysis",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates potentially adverse events are analyzed to understand associated activities"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "adverse_event_analysis"
+            "sharedQueryGroup": "adverse_event_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "DE.AE-03": {
             "name": "Event Correlation",
@@ -571,13 +962,22 @@
                 {
                     "name": "Multi-source event correlation",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates information is correlated from multiple sources through rule triggers"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "adverse_event_analysis"
+            "sharedQueryGroup": "adverse_event_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "DE.AE-04": {
             "name": "Impact Estimation",
@@ -585,13 +985,22 @@
                 {
                     "name": "Adverse event impact and scope assessment",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates estimated impact and scope of adverse events are understood through triggered rules"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "adverse_event_analysis"
+            "sharedQueryGroup": "adverse_event_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "DE.AE-06": {
             "name": "Adverse Event Notification",
@@ -599,13 +1008,22 @@
                 {
                     "name": "Adverse event notification and alert events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates adverse event information is provided to authorized staff and tools"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_detection"
+            "sharedQueryGroup": "incident_detection",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "DE.AE-07": {
             "name": "Threat Intelligence Integration",
@@ -613,13 +1031,23 @@
                 {
                     "name": "Threat intelligence contextual analysis events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates cyber threat intelligence and contextual information are integrated into analysis"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_detection"
+            "sharedQueryGroup": "incident_detection",
+            "concepts": [
+                "INCIDENT_RESPONSE",
+                "VULNERABILITY_EVENT"
+            ]
         },
         "DE.AE-08": {
             "name": "Incident Declaration",
@@ -627,13 +1055,22 @@
                 {
                     "name": "Incident declaration trigger events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incidents are declared when adverse events meet defined incident criteria"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_detection"
+            "sharedQueryGroup": "incident_detection",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MA-01": {
             "name": "Incident Response Execution",
@@ -641,13 +1078,22 @@
                 {
                     "name": "Incident response plan execution events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incident response plan is executed in coordination with relevant third parties"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MA-02": {
             "name": "Incident Triage and Validation",
@@ -655,13 +1101,22 @@
                 {
                     "name": "Incident report triage and validation events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incident reports are triaged and validated through alert and rule processing"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MA-03": {
             "name": "Incident Categorization",
@@ -669,13 +1124,22 @@
                 {
                     "name": "Incident categorization and prioritization events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incidents are categorized and prioritized through rule and alert processing"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MA-04": {
             "name": "Incident Escalation",
@@ -683,13 +1147,22 @@
                 {
                     "name": "Incident escalation and elevation events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incidents are escalated or elevated as needed through alert processing"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MA-05": {
             "name": "Recovery Initiation Criteria",
@@ -697,13 +1170,22 @@
                 {
                     "name": "Recovery initiation criteria application events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates criteria for initiating incident recovery are applied through alert and rule triggers"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.AN-03": {
             "name": "Root Cause Analysis",
@@ -711,13 +1193,22 @@
                 {
                     "name": "Incident root cause analysis events",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates analysis is performed to establish incident timeline and root cause"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_analysis"
+            "sharedQueryGroup": "incident_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.AN-06": {
             "name": "Investigation Recording",
@@ -725,13 +1216,22 @@
                 {
                     "name": "Investigation action recording and integrity events",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates investigation actions are recorded with integrity and provenance preserved"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_analysis"
+            "sharedQueryGroup": "incident_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.AN-07": {
             "name": "Incident Data Collection",
@@ -739,13 +1239,22 @@
                 {
                     "name": "Incident data and metadata collection events",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incident data and metadata are collected with integrity preserved"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_analysis"
+            "sharedQueryGroup": "incident_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.AN-08": {
             "name": "Incident Magnitude Estimation",
@@ -753,13 +1262,22 @@
                 {
                     "name": "Incident magnitude estimation and validation events",
                     "filter": "activity_type:\"rule-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incident magnitude is estimated and validated through rule analysis"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_analysis"
+            "sharedQueryGroup": "incident_analysis",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.CO-02": {
             "name": "Incident Notification",
@@ -767,13 +1285,22 @@
                 {
                     "name": "Stakeholder incident notification events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates internal and external stakeholders are notified of incidents"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.CO-03": {
             "name": "Incident Information Sharing",
@@ -781,13 +1308,22 @@
                 {
                     "name": "Incident information sharing events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates information is shared with designated internal and external stakeholders"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_response"
+            "sharedQueryGroup": "incident_response",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MI-01": {
             "name": "Incident Containment",
@@ -795,13 +1331,22 @@
                 {
                     "name": "Incident containment action events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incidents are contained through triggered rules and alert-driven response actions"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_mitigation"
+            "sharedQueryGroup": "incident_mitigation",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RS.MI-02": {
             "name": "Incident Eradication",
@@ -809,13 +1354,22 @@
                 {
                     "name": "Incident eradication action events",
                     "filter": "activity_type:\"rule-trigger\" OR activity_type:\"alert-trigger\"",
-                    "fields": ["user", "host", "src_ip", "activity_type", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "src_ip",
+                        "activity_type",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates incidents are eradicated through triggered rules and response actions"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 10,
-            "sharedQueryGroup": "incident_mitigation"
+            "sharedQueryGroup": "incident_mitigation",
+            "concepts": [
+                "INCIDENT_RESPONSE"
+            ]
         },
         "RC.RP-03": {
             "name": "Backup Integrity Verification",
@@ -823,13 +1377,23 @@
                 {
                     "name": "Backup and restoration asset integrity events",
                     "filter": "activity_type:\"audit\" OR action:\"restore\" OR action:\"recover\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates integrity of backups and restoration assets is verified before use"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 3,
-            "sharedQueryGroup": "recovery_execution"
+            "sharedQueryGroup": "recovery_execution",
+            "concepts": [
+                "INCIDENT_RESPONSE",
+                "AUDIT_LOG"
+            ]
         },
         "RC.RP-05": {
             "name": "Restored Asset Verification",
@@ -837,13 +1401,23 @@
                 {
                     "name": "Restoration integrity and service confirmation events",
                     "filter": "activity_type:\"audit\" OR action:\"restore\" OR action:\"recover\"",
-                    "fields": ["user", "host", "activity_type", "action", "result"],
+                    "fields": [
+                        "user",
+                        "host",
+                        "activity_type",
+                        "action",
+                        "result"
+                    ],
                     "evidenceDescription": "Demonstrates integrity of restored assets is verified and normal operating status is confirmed"
                 }
             ],
             "contextTables": [],
             "minimumEvidence": 3,
-            "sharedQueryGroup": "recovery_execution"
+            "sharedQueryGroup": "recovery_execution",
+            "concepts": [
+                "INCIDENT_RESPONSE",
+                "AUDIT_LOG"
+            ]
         }
     }
 }

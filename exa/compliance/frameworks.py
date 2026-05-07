@@ -6,7 +6,6 @@ import importlib.resources
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any
 
 AVAILABLE_FRAMEWORKS = [
     "CMMC_L2", "CMMC_L3", "FedRAMP_Moderate", "HIPAA",
@@ -43,6 +42,7 @@ class ControlQueryGroup:
     context_tables: list[str] = field(default_factory=list)
     minimum_evidence: int = 10
     shared_query_group: str | None = None
+    concepts: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -138,6 +138,7 @@ def load_control_queries(framework_id: str) -> dict[str, ControlQueryGroup]:
             context_tables=group_data.get("contextTables", []),
             minimum_evidence=group_data.get("minimumEvidence", 10),
             shared_query_group=group_data.get("sharedQueryGroup"),
+            concepts=group_data.get("concepts", []),
         )
 
     return result

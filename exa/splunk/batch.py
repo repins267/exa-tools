@@ -33,7 +33,6 @@ from typing import Any
 
 from exa.splunk.converter import convert_spl_to_exa_rule, to_api_payload
 
-
 # ── Format detection ---------------------------------------------------------
 
 

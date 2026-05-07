@@ -1,0 +1,1383 @@
+{
+  "queries": {
+    "5.3": {
+      "name": "Incident Response",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Incident Response",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "5.3.1": {
+      "name": "Reporting Information Security Events",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Reporting Information Security Events",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "5.3.2": {
+      "name": "Management of Information Security Incidents",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Management of Information Security Incidents",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "5.3.3": {
+      "name": "Collection of Evidence",
+      "concepts": [
+        "INCIDENT_RESPONSE",
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Collection of Evidence",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"audit_policy-modify\" OR activity_type:\"rule-trigger\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_incident_response"
+    },
+    "5.4": {
+      "name": "Auditing and Accountability",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Auditing and Accountability",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.1": {
+      "name": "Auditable Events and Content (Information Systems)",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Auditable Events and Content (Information Systems)",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.1.1": {
+      "name": "Events",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Events",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.1.1.1": {
+      "name": "Content - User ID, Date/Time, Event Type, Success/Failure, Origin, Objects Affec",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Content - User ID, Date/Time, Event Type, Success/Failure, Origin, Objects Affec",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.2": {
+      "name": "Response to Audit Processing Failures",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Response to Audit Processing Failures",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.3": {
+      "name": "Audit Monitoring, Analysis, and Reporting",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Audit Monitoring, Analysis, and Reporting",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.4": {
+      "name": "Time Stamps",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Time Stamps",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.5": {
+      "name": "Protection of Audit Information",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Protection of Audit Information",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.6": {
+      "name": "Audit Record Retention",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Audit Record Retention",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.4.7": {
+      "name": "Logging NCIC and III Transactions",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Logging NCIC and III Transactions",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.5": {
+      "name": "Access Control",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access Control",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.1": {
+      "name": "Account Management",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Account Management",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.2": {
+      "name": "Access Enforcement",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access Enforcement",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.2.1": {
+      "name": "Least Privilege",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Least Privilege",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.2.2": {
+      "name": "System Access Control",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "System Access Control",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.2.3": {
+      "name": "Access Control Criteria",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access Control Criteria",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.2.4": {
+      "name": "Access Control Mechanisms",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access Control Mechanisms",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.3": {
+      "name": "Unsuccessful Login Attempts",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Unsuccessful Login Attempts",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.5": {
+      "name": "Session Lock",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Session Lock",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.6": {
+      "name": "Remote Access",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Remote Access",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.7": {
+      "name": "Wireless Access Restrictions",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Wireless Access Restrictions",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.5.7.1": {
+      "name": "All Wireless Access",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "All Wireless Access",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "5.6": {
+      "name": "Identification and Authentication",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Identification and Authentication",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.1": {
+      "name": "Identification Policy and Procedures",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Identification Policy and Procedures",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.2": {
+      "name": "Authentication Policy and Procedures",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Authentication Policy and Procedures",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.2.1": {
+      "name": "Standard Authentication (Single Factor)",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Standard Authentication (Single Factor)",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.2.1.1": {
+      "name": "Password",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Password",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.2.1.2": {
+      "name": "Personal Identification Number (PIN)",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Personal Identification Number (PIN)",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.2.2": {
+      "name": "Advanced Authentication (Multi-Factor)",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Advanced Authentication (Multi-Factor)",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.3": {
+      "name": "Identifier Management",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Identifier Management",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.6.4": {
+      "name": "Authenticator Management",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE"
+      ],
+      "queries": [
+        {
+          "name": "Authenticator Management",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_failure_auth_success"
+    },
+    "5.7": {
+      "name": "Configuration Management",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Configuration Management",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "5.7.1": {
+      "name": "Access Restrictions for Changes",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Access Restrictions for Changes",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "5.7.1.1": {
+      "name": "Least Functionality",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Least Functionality",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "5.10": {
+      "name": "Systems and Communications Protection and Information Integrity",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Systems and Communications Protection and Information Integrity",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1": {
+      "name": "Information Flow Enforcement",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Information Flow Enforcement",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1.1": {
+      "name": "Boundary Protection",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Boundary Protection",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1.2": {
+      "name": "Encryption",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Encryption",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1.3": {
+      "name": "Intrusion Detection Tools and Techniques",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Intrusion Detection Tools and Techniques",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1.4": {
+      "name": "Voice over Internet Protocol (VoIP)",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Voice over Internet Protocol (VoIP)",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.1.5": {
+      "name": "Cloud Computing",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Cloud Computing",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.3": {
+      "name": "Partitioning",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Partitioning",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.10.4": {
+      "name": "System and Information Integrity",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "System and Information Integrity",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"driver-load\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_network_traffic_vulnerability_event"
+    },
+    "5.11": {
+      "name": "Formal Audits",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Formal Audits",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.11.1": {
+      "name": "Audit Compliance",
+      "concepts": [
+        "AUDIT_LOG"
+      ],
+      "queries": [
+        {
+          "name": "Audit Compliance",
+          "filter": "activity_type:\"audit_policy-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log"
+    },
+    "5.12.2": {
+      "name": "Personnel Termination",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Personnel Termination",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management"
+    },
+    "5.12.3": {
+      "name": "Personnel Transfer",
+      "concepts": [
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Personnel Transfer",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management"
+    },
+    "5.13": {
+      "name": "Mobile Devices",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "AUTH_SUCCESS"
+      ],
+      "queries": [
+        {
+          "name": "Mobile Devices",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_success_endpoint_activity"
+    },
+    "5.13.1": {
+      "name": "Mobile Device Access Control",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "AUTH_SUCCESS"
+      ],
+      "queries": [
+        {
+          "name": "Mobile Device Access Control",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_success_endpoint_activity"
+    },
+    "5.13.3": {
+      "name": "Mobile Device Management (MDM)",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "AUTH_SUCCESS"
+      ],
+      "queries": [
+        {
+          "name": "Mobile Device Management (MDM)",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_success_endpoint_activity"
+    },
+    "5.13.4": {
+      "name": "Compensation Controls for Lost or Stolen Devices",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "AUTH_SUCCESS"
+      ],
+      "queries": [
+        {
+          "name": "Compensation Controls for Lost or Stolen Devices",
+          "filter": "activity_type:\"authentication\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "auth_success_endpoint_activity"
+    }
+  }
+}

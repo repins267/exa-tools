@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Annotated
@@ -332,12 +333,27 @@ def audit(
         ),
     ] = None,
     output_pdf: Annotated[
-        str | None,
+        bool,
         typer.Option(
             "--output-pdf",
-            help="Render HTML report to PDF (requires: weasyprint)",
+            is_flag=True,
+            help="Render HTML report to PDF (auto-path: reports/<tenant>-<fw>-<date>.pdf)",
+        ),
+    ] = False,
+    pdf_path: Annotated[
+        str | None,
+        typer.Option(
+            "--pdf-path",
+            help="Explicit PDF output path (implies --output-pdf)",
         ),
     ] = None,
+    tenant_aware: Annotated[
+        bool,
+        typer.Option(
+            "--tenant-aware/--no-tenant-aware",
+            help="Discover active activity types and resolve queries via Field Oracle",
+        ),
+    ] = True,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t",
@@ -359,6 +375,7 @@ def audit(
             lookback_days=lookback_days,
             minimum_evidence=min_evidence,
             output_report=output_json,
+            tenant_aware=tenant_aware,
         )
 
         from exa.compliance.report import (
@@ -367,11 +384,13 @@ def audit(
             save_html_report,
         )
 
-        # Determine HTML path. When --output-pdf is given without
-        # --output-html, skip saving HTML (tempfile used for PDF only).
+        want_pdf = output_pdf or pdf_path is not None
+
+        # Determine HTML path.  When PDF is requested without --output-html,
+        # skip saving HTML (a tempfile is used as PDF source instead).
         if output_html is not None:
             html_path: Path | None = Path(output_html)
-        elif output_pdf is None:
+        elif not want_pdf:
             t_name = tenant or "default"
             date_str = report.timestamp[:10]
             html_path = default_report_path(t_name, report.framework_name, date_str)
@@ -382,9 +401,17 @@ def audit(
             save_html_report(report, html_path)
             console.print(f"\n  HTML report saved: {html_path}", style="green")
 
-        if output_pdf is not None:
-            pdf_path = Path(output_pdf) if output_pdf else html_path.with_suffix(".pdf")
-            pdf_path.parent.mkdir(parents=True, exist_ok=True)
+        if want_pdf:
+            if pdf_path:
+                resolved_pdf = Path(pdf_path)
+            else:
+                t_name = tenant or "default"
+                date_str = report.timestamp[:10]
+                resolved_pdf = default_report_path(
+                    t_name, report.framework_name, date_str
+                ).with_suffix(".pdf")
+            resolved_pdf.parent.mkdir(parents=True, exist_ok=True)
+
             if html_path is None:
                 tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
                 tmp_path = Path(tmp.name)
@@ -394,16 +421,45 @@ def audit(
             else:
                 src_path = html_path
                 tmp_path = None
+
             try:
-                from weasyprint import HTML
-                HTML(filename=str(src_path)).write_pdf(str(pdf_path))
-                console.print(f"\n  PDF report saved: {pdf_path}", style="green")
-            except ImportError:
-                console.print(
-                    "  weasyprint not installed. Run: uv add weasyprint", style="yellow"
-                )
-            except Exception as exc:
-                console.print(f"  PDF generation failed: {exc}", style="red")
+                edge_candidates = [
+                    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                ]
+                edge = next((p for p in edge_candidates if Path(p).exists()), None)
+
+                if edge:
+                    try:
+                        subprocess.run(
+                            [
+                                edge,
+                                "--headless",
+                                "--disable-gpu",
+                                f"--print-to-pdf={resolved_pdf.resolve()}",
+                                str(src_path.resolve()),
+                            ],
+                            capture_output=True,
+                            timeout=60,
+                            check=True,
+                        )
+                        if resolved_pdf.exists() and resolved_pdf.stat().st_size > 0:
+                            console.print(f"[green]PDF report saved:[/green] {resolved_pdf}")
+                        else:
+                            console.print(
+                                "[red]PDF generation failed:[/red] "
+                                "Edge ran but no PDF was written"
+                            )
+                    except subprocess.CalledProcessError as exc:
+                        console.print(f"[red]PDF generation failed:[/red] {exc}")
+                    except subprocess.TimeoutExpired:
+                        console.print("[red]PDF generation timed out[/red]")
+                else:
+                    console.print(
+                        "[yellow]PDF skipped:[/yellow] Microsoft Edge not found. "
+                        "Install Edge or open the HTML report and use "
+                        "File → Print → Save as PDF."
+                    )
             finally:
                 if tmp_path is not None:
                     tmp_path.unlink(missing_ok=True)

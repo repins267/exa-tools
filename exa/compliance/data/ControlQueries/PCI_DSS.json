@@ -1,0 +1,3831 @@
+{
+  "queries": {
+    "1": {
+      "name": "Install and maintain network security controls",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Install and maintain network security controls",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2": {
+      "name": "Network security controls (NSCs) are configured and maintained",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Network security controls (NSCs) are configured and maintained",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2.1": {
+      "name": "Configuration standards for NSC rulesets are defined, implemented, and maintaine",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Configuration standards for NSC rulesets are defined, implemented, and maintaine",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2.2": {
+      "name": "All changes to network connections and to configurations of NSCs are approved an",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "All changes to network connections and to configurations of NSCs are approved an",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2.5": {
+      "name": "All services, protocols, and ports allowed are identified, approved, and have a ",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "All services, protocols, and ports allowed are identified, approved, and have a ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2.6": {
+      "name": "Security features are defined and implemented for all services, protocols, and p",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Security features are defined and implemented for all services, protocols, and p",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.2.8": {
+      "name": "Configuration files for NSCs are secured from unauthorized access and kept consi",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Configuration files for NSCs are secured from unauthorized access and kept consi",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.3": {
+      "name": "Network access to and from the cardholder data environment is restricted",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Network access to and from the cardholder data environment is restricted",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.3.1": {
+      "name": "Inbound traffic to the CDE is restricted to only necessary traffic, and all othe",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Inbound traffic to the CDE is restricted to only necessary traffic, and all othe",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.3.2": {
+      "name": "Outbound traffic from the CDE is restricted to only necessary traffic, and all o",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Outbound traffic from the CDE is restricted to only necessary traffic, and all o",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.3.3": {
+      "name": "NSCs are installed between all wireless networks and the CDE, regardless of whet",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "NSCs are installed between all wireless networks and the CDE, regardless of whet",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4": {
+      "name": "Network connections between trusted and untrusted networks are controlled",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Network connections between trusted and untrusted networks are controlled",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4.1": {
+      "name": "NSCs are implemented between trusted and untrusted networks",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "NSCs are implemented between trusted and untrusted networks",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4.2": {
+      "name": "Inbound traffic from untrusted networks to trusted networks is restricted to com",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Inbound traffic from untrusted networks to trusted networks is restricted to com",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4.3": {
+      "name": "Anti-spoofing measures are implemented to detect and block forged source IP addr",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Anti-spoofing measures are implemented to detect and block forged source IP addr",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4.4": {
+      "name": "System components that store cardholder data are not directly accessible from un",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "System components that store cardholder data are not directly accessible from un",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.4.5": {
+      "name": "The disclosure of internal IP addresses and routing information is limited to on",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "The disclosure of internal IP addresses and routing information is limited to on",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.5": {
+      "name": "Risks to the CDE from computing devices that are able to connect to both untrust",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Risks to the CDE from computing devices that are able to connect to both untrust",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "1.5.1": {
+      "name": "Security controls are implemented on any computing devices that connect to both ",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Security controls are implemented on any computing devices that connect to both ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"ds_object-modify\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change_network_traffic"
+    },
+    "2": {
+      "name": "Apply secure configurations to all system components",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Apply secure configurations to all system components",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2": {
+      "name": "System components are configured and managed securely",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "System components are configured and managed securely",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.1": {
+      "name": "Configuration standards are developed, implemented, and maintained for all syste",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Configuration standards are developed, implemented, and maintained for all syste",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.2": {
+      "name": "Vendor default accounts are managed: removed if not needed or changed before ins",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Vendor default accounts are managed: removed if not needed or changed before ins",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.3": {
+      "name": "Primary functions requiring different security levels are managed: only one prim",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Primary functions requiring different security levels are managed: only one prim",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.4": {
+      "name": "Only necessary services, protocols, daemons, and functions are enabled, and all ",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Only necessary services, protocols, daemons, and functions are enabled, and all ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.5": {
+      "name": "If any insecure services, protocols, or daemons are present, business justificat",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "If any insecure services, protocols, or daemons are present, business justificat",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.6": {
+      "name": "System security parameters are configured to prevent misuse",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "System security parameters are configured to prevent misuse",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.2.7": {
+      "name": "All non-console administrative access is encrypted using strong cryptography",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "All non-console administrative access is encrypted using strong cryptography",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.3": {
+      "name": "Wireless environments are configured and managed securely",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "Wireless environments are configured and managed securely",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "2.3.1": {
+      "name": "For wireless environments connected to the CDE or transmitting account data, all",
+      "concepts": [
+        "CONFIG_CHANGE"
+      ],
+      "queries": [
+        {
+          "name": "For wireless environments connected to the CDE or transmitting account data, all",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"ds_object-modify\" OR activity_type:\"registry-create\" OR activity_type:\"registry-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "config_change"
+    },
+    "3.4": {
+      "name": "Access to displays of full PAN and ability to copy cardholder data are restricte",
+      "concepts": [
+        "FILE_ACTIVITY",
+        "DATA_EXFILTRATION"
+      ],
+      "queries": [
+        {
+          "name": "Access to displays of full PAN and ability to copy cardholder data are restricte",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "data_exfiltration_file_activity"
+    },
+    "3.4.2": {
+      "name": "When using remote-access technologies, technical controls prevent copy and/or re",
+      "concepts": [
+        "FILE_ACTIVITY",
+        "DATA_EXFILTRATION"
+      ],
+      "queries": [
+        {
+          "name": "When using remote-access technologies, technical controls prevent copy and/or re",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "data_exfiltration_file_activity"
+    },
+    "3.6.1.3": {
+      "name": "Access to cleartext cryptographic key components is restricted to the fewest num",
+      "concepts": [
+        "FILE_ACTIVITY",
+        "DATA_EXFILTRATION"
+      ],
+      "queries": [
+        {
+          "name": "Access to cleartext cryptographic key components is restricted to the fewest num",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "data_exfiltration_file_activity"
+    },
+    "3.7.5": {
+      "name": "Key-management policies and procedures are implemented to include the retirement",
+      "concepts": [
+        "FILE_ACTIVITY",
+        "DATA_EXFILTRATION"
+      ],
+      "queries": [
+        {
+          "name": "Key-management policies and procedures are implemented to include the retirement",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "data_exfiltration_file_activity"
+    },
+    "4.2.1": {
+      "name": "Strong cryptography and security protocols are implemented to safeguard PAN duri",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "FILE_ACTIVITY"
+      ],
+      "queries": [
+        {
+          "name": "Strong cryptography and security protocols are implemented to safeguard PAN duri",
+          "filter": "activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "file_activity_network_traffic"
+    },
+    "4.2.1.2": {
+      "name": "Wireless networks transmitting PAN or connected to the CDE use industry best pra",
+      "concepts": [
+        "NETWORK_TRAFFIC",
+        "FILE_ACTIVITY"
+      ],
+      "queries": [
+        {
+          "name": "Wireless networks transmitting PAN or connected to the CDE use industry best pra",
+          "filter": "activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"file-create\" OR activity_type:\"file-delete\" OR activity_type:\"file-read\" OR activity_type:\"file-write\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "file_activity_network_traffic"
+    },
+    "5": {
+      "name": "Protect all systems and networks from malicious software",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Protect all systems and networks from malicious software",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.2": {
+      "name": "Malicious software (malware) is prevented, or detected and addressed",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Malicious software (malware) is prevented, or detected and addressed",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.2.1": {
+      "name": "An anti-malware solution is deployed on all system components, except for those ",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "An anti-malware solution is deployed on all system components, except for those ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.2.3": {
+      "name": "Any system components that are not protected by anti-malware are evaluated perio",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Any system components that are not protected by anti-malware are evaluated perio",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3": {
+      "name": "Anti-malware mechanisms and processes are active, maintained, and monitored",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Anti-malware mechanisms and processes are active, maintained, and monitored",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3.1": {
+      "name": "The anti-malware solution is kept current via automatic updates",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "The anti-malware solution is kept current via automatic updates",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3.2": {
+      "name": "The anti-malware solution performs periodic scans and active or real-time scans,",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "The anti-malware solution performs periodic scans and active or real-time scans,",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3.3": {
+      "name": "For removable electronic media, the anti-malware solution performs automatic sca",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "For removable electronic media, the anti-malware solution performs automatic sca",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3.4": {
+      "name": "Audit logs for the anti-malware solution are enabled and retained in accordance ",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs for the anti-malware solution are enabled and retained in accordance ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.3.5": {
+      "name": "Anti-malware mechanisms cannot be disabled or altered by users, unless specifica",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Anti-malware mechanisms cannot be disabled or altered by users, unless specifica",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.4": {
+      "name": "Anti-phishing mechanisms protect users against phishing attacks",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Anti-phishing mechanisms protect users against phishing attacks",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "5.4.1": {
+      "name": "Processes and automated mechanisms are in place to detect and protect personnel ",
+      "concepts": [
+        "ENDPOINT_ACTIVITY",
+        "VULNERABILITY_EVENT"
+      ],
+      "queries": [
+        {
+          "name": "Processes and automated mechanisms are in place to detect and protect personnel ",
+          "filter": "activity_type:\"alert-trigger\" OR activity_type:\"dll-load\" OR activity_type:\"driver-load\" OR activity_type:\"process-create\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "endpoint_activity_vulnerability_event"
+    },
+    "6.3": {
+      "name": "Security vulnerabilities are identified and addressed",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Security vulnerabilities are identified and addressed",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.3.1": {
+      "name": "Security vulnerabilities are identified and managed through a vulnerability mana",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Security vulnerabilities are identified and managed through a vulnerability mana",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.3.3": {
+      "name": "All system components are protected from known vulnerabilities by installing app",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "All system components are protected from known vulnerabilities by installing app",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.4": {
+      "name": "Public-facing web applications are protected against attacks",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Public-facing web applications are protected against attacks",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.4.1": {
+      "name": "For public-facing web applications, new threats and vulnerabilities are addresse",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "For public-facing web applications, new threats and vulnerabilities are addresse",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.4.2": {
+      "name": "For public-facing web applications, an automated technical solution is deployed ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "For public-facing web applications, an automated technical solution is deployed ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.4.3": {
+      "name": "All payment page scripts that are loaded and executed in the consumer's browser ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "All payment page scripts that are loaded and executed in the consumer's browser ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.5": {
+      "name": "Changes to all system components are managed securely",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Changes to all system components are managed securely",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.5.1": {
+      "name": "Changes to all system components in the production environment are made accordin",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Changes to all system components in the production environment are made accordin",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.5.3": {
+      "name": "Pre-production environments are separated from production environments and the s",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Pre-production environments are separated from production environments and the s",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "6.5.4": {
+      "name": "Roles and functions are separated between production and pre-production environm",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Roles and functions are separated between production and pre-production environm",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "7": {
+      "name": "Restrict access to system components and cardholder data by business need to kno",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Restrict access to system components and cardholder data by business need to kno",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2": {
+      "name": "Access to system components and data is appropriately defined and assigned",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access to system components and data is appropriately defined and assigned",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.1": {
+      "name": "An access control model is defined and includes granting access based on busines",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "An access control model is defined and includes granting access based on busines",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.2": {
+      "name": "Access is assigned to users, including privileged users, based on job classifica",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access is assigned to users, including privileged users, based on job classifica",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.3": {
+      "name": "Required privileges are approved by authorized personnel",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Required privileges are approved by authorized personnel",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.4": {
+      "name": "All user accounts and related access privileges, including third-party/vendor ac",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "All user accounts and related access privileges, including third-party/vendor ac",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.5": {
+      "name": "All application and system accounts and related access privileges are assigned a",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "All application and system accounts and related access privileges are assigned a",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.5.1": {
+      "name": "All access by application and system accounts and related access privileges are ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "All access by application and system accounts and related access privileges are ",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.2.6": {
+      "name": "All user access to query repositories of stored cardholder data is restricted to",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "All user access to query repositories of stored cardholder data is restricted to",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.3": {
+      "name": "Access to system components and data is managed via an access control system(s)",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "Access to system components and data is managed via an access control system(s)",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.3.1": {
+      "name": "An access control system(s) is in place that restricts access based on a user's ",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "An access control system(s) is in place that restricts access based on a user's ",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.3.2": {
+      "name": "The access control system(s) is configured to enforce permissions assigned to in",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "The access control system(s) is configured to enforce permissions assigned to in",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "7.3.3": {
+      "name": "The access control system(s) is set to deny all by default",
+      "concepts": [
+        "AUTH_SUCCESS",
+        "AUTH_FAILURE",
+        "ACCOUNT_MANAGEMENT"
+      ],
+      "queries": [
+        {
+          "name": "The access control system(s) is set to deny all by default",
+          "filter": "activity_type:\"account-creation\" OR activity_type:\"account-modification\" OR activity_type:\"authentication\" OR activity_type:\"endpoint-authentication\" OR activity_type:\"user-modify\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "account_management_auth_failure_auth_success"
+    },
+    "8": {
+      "name": "Identify users and authenticate access to system components",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Identify users and authenticate access to system components",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2": {
+      "name": "User identification and related accounts for users and administrators are strict",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "User identification and related accounts for users and administrators are strict",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.1": {
+      "name": "All users are assigned a unique ID before access to system components or cardhol",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "All users are assigned a unique ID before access to system components or cardhol",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.2": {
+      "name": "Group, shared, or generic accounts, or other shared authentication credentials a",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Group, shared, or generic accounts, or other shared authentication credentials a",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.3": {
+      "name": "Additional requirement for service providers only: service providers with remote",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Additional requirement for service providers only: service providers with remote",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.4": {
+      "name": "Addition, deletion, and modification of user IDs, authentication factors, and ot",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Addition, deletion, and modification of user IDs, authentication factors, and ot",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.5": {
+      "name": "Access for terminated users is immediately revoked",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Access for terminated users is immediately revoked",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.6": {
+      "name": "Inactive user accounts are removed or disabled within 90 days of inactivity",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Inactive user accounts are removed or disabled within 90 days of inactivity",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.7": {
+      "name": "Accounts used by third parties to access, support, or maintain system components",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Accounts used by third parties to access, support, or maintain system components",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.2.8": {
+      "name": "If a user session has been idle for more than 15 minutes, the user is required t",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "If a user session has been idle for more than 15 minutes, the user is required t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3": {
+      "name": "Strong authentication for users and administrators is established and managed",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Strong authentication for users and administrators is established and managed",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.1": {
+      "name": "All user access to system components for users and administrators is authenticat",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "All user access to system components for users and administrators is authenticat",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.3": {
+      "name": "User identity is verified before modifying any authentication factor",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "User identity is verified before modifying any authentication factor",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.4": {
+      "name": "Invalid authentication attempts are limited by locking out the user ID after not",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Invalid authentication attempts are limited by locking out the user ID after not",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.5": {
+      "name": "If passwords/passphrases are used as authentication factors, they are set and re",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "If passwords/passphrases are used as authentication factors, they are set and re",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.9": {
+      "name": "If passwords/passphrases are used as the only authentication factor for user acc",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "If passwords/passphrases are used as the only authentication factor for user acc",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.10.1": {
+      "name": "Additional requirement for service providers only: if passwords/passphrases are ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Additional requirement for service providers only: if passwords/passphrases are ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.3.11": {
+      "name": "Where authentication factors such as physical or logical security tokens, smart ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Where authentication factors such as physical or logical security tokens, smart ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.4": {
+      "name": "Multi-factor authentication (MFA) is implemented to secure access into the CDE",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Multi-factor authentication (MFA) is implemented to secure access into the CDE",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.4.1": {
+      "name": "MFA is implemented for all non-console access into the CDE for personnel with ad",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "MFA is implemented for all non-console access into the CDE for personnel with ad",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.4.2": {
+      "name": "MFA is implemented for all access into the CDE",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "MFA is implemented for all access into the CDE",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.4.3": {
+      "name": "MFA is implemented for all remote network access originating from outside the en",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "MFA is implemented for all remote network access originating from outside the en",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.5.1": {
+      "name": "MFA systems are implemented such that: the MFA system is not susceptible to repl",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "MFA systems are implemented such that: the MFA system is not susceptible to repl",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.6": {
+      "name": "Use of application and system accounts and associated authentication factors is ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Use of application and system accounts and associated authentication factors is ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.6.1": {
+      "name": "If accounts used by systems or applications can be used for interactive login, t",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "If accounts used by systems or applications can be used for interactive login, t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "8.6.3": {
+      "name": "Passwords/passphrases for any application and system accounts are protected agai",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Passwords/passphrases for any application and system accounts are protected agai",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "9.2.1.1": {
+      "name": "Individual physical access to sensitive areas within the CDE is monitored with e",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Individual physical access to sensitive areas within the CDE is monitored with e",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "9.3.1.1": {
+      "name": "Physical access to sensitive areas within the CDE for personnel is controlled",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Physical access to sensitive areas within the CDE for personnel is controlled",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "9.3.4": {
+      "name": "A visitor log is used to maintain a physical record of visitor activity includin",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "A visitor log is used to maintain a physical record of visitor activity includin",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10": {
+      "name": "Log and monitor all access to system components and cardholder data",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Log and monitor all access to system components and cardholder data",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.1": {
+      "name": "Processes and mechanisms for logging and monitoring all access to system compone",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Processes and mechanisms for logging and monitoring all access to system compone",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2": {
+      "name": "Audit logs are implemented to support the detection of anomalies and suspicious ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs are implemented to support the detection of anomalies and suspicious ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1": {
+      "name": "Audit logs are enabled and active for all system components and cardholder data",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs are enabled and active for all system components and cardholder data",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.1": {
+      "name": "Audit logs capture all individual user accesses to cardholder data",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all individual user accesses to cardholder data",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.2": {
+      "name": "Audit logs capture all actions taken by any individual with administrative acces",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all actions taken by any individual with administrative acces",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.3": {
+      "name": "Audit logs capture all access to audit logs",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all access to audit logs",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.4": {
+      "name": "Audit logs capture all invalid logical access attempts",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all invalid logical access attempts",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.5": {
+      "name": "Audit logs capture all changes to identification and authentication credentials ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all changes to identification and authentication credentials ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.6": {
+      "name": "Audit logs capture all initialization of new audit logs, and all starting, stopp",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all initialization of new audit logs, and all starting, stopp",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.1.7": {
+      "name": "Audit logs capture all creation and deletion of system-level objects",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs capture all creation and deletion of system-level objects",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.2.2": {
+      "name": "Audit logs record the following details for each auditable event: user identific",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs record the following details for each auditable event: user identific",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.3": {
+      "name": "Audit logs are protected from destruction and unauthorized modifications",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs are protected from destruction and unauthorized modifications",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.3.1": {
+      "name": "Read access to audit logs files is limited to those with a job-related need",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Read access to audit logs files is limited to those with a job-related need",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.3.2": {
+      "name": "Audit log files are protected to prevent modifications by individuals",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit log files are protected to prevent modifications by individuals",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.3.3": {
+      "name": "Audit log files, including those for external-facing technologies, are promptly ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit log files, including those for external-facing technologies, are promptly ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.3.4": {
+      "name": "File integrity monitoring or change-detection mechanisms is used on audit logs t",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "File integrity monitoring or change-detection mechanisms is used on audit logs t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.4": {
+      "name": "Audit logs are reviewed to identify anomalies or suspicious activity",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit logs are reviewed to identify anomalies or suspicious activity",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.4.1": {
+      "name": "Automated mechanisms are used to perform audit log reviews",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Automated mechanisms are used to perform audit log reviews",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.4.1.1": {
+      "name": "Automated mechanisms are used to perform reviews of audit logs, and automated, t",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Automated mechanisms are used to perform reviews of audit logs, and automated, t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.4.2": {
+      "name": "Logs of all other system components (not defined in 10.4.1) are reviewed periodi",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Logs of all other system components (not defined in 10.4.1) are reviewed periodi",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.4.3": {
+      "name": "Exceptions and anomalies identified during the review process are addressed",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Exceptions and anomalies identified during the review process are addressed",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.5": {
+      "name": "Audit log history is retained and available for analysis",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Audit log history is retained and available for analysis",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.5.1": {
+      "name": "Retain audit log history for at least 12 months, with at least the most recent t",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Retain audit log history for at least 12 months, with at least the most recent t",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.6": {
+      "name": "Time-synchronization mechanisms support consistent time settings across all syst",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Time-synchronization mechanisms support consistent time settings across all syst",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.6.1": {
+      "name": "System clocks and time are synchronized using time-synchronization technology, a",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "System clocks and time are synchronized using time-synchronization technology, a",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.6.2": {
+      "name": "Systems are configured to the correct and consistent time: one or more designate",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Systems are configured to the correct and consistent time: one or more designate",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.6.3": {
+      "name": "Time synchronization settings and data are protected: access to time data is res",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Time synchronization settings and data are protected: access to time data is res",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.7": {
+      "name": "Failures of critical security control systems are detected, reported, and respon",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Failures of critical security control systems are detected, reported, and respon",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.7.1": {
+      "name": "Additional requirement for service providers only: failures of critical security",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Additional requirement for service providers only: failures of critical security",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.7.2": {
+      "name": "Failures of critical security control systems are detected, alerted, and address",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Failures of critical security control systems are detected, alerted, and address",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "10.7.3": {
+      "name": "Failures of any critical security controls systems are responded to promptly, in",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Failures of any critical security controls systems are responded to promptly, in",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11": {
+      "name": "Test security of systems and networks regularly",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Test security of systems and networks regularly",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.2": {
+      "name": "Wireless access points are identified and monitored, and unauthorized wireless a",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Wireless access points are identified and monitored, and unauthorized wireless a",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.2.1": {
+      "name": "Authorized and unauthorized wireless access points are managed: the presence of ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Authorized and unauthorized wireless access points are managed: the presence of ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3": {
+      "name": "External and internal vulnerabilities are regularly identified, prioritized, and",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "External and internal vulnerabilities are regularly identified, prioritized, and",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.1": {
+      "name": "Internal vulnerability scans are performed at least once every three months",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Internal vulnerability scans are performed at least once every three months",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.1.1": {
+      "name": "All other applicable vulnerabilities (those not ranked as high-risk or critical)",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "All other applicable vulnerabilities (those not ranked as high-risk or critical)",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.1.2": {
+      "name": "Internal scans are performed via authenticated scanning: systems that are unable",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Internal scans are performed via authenticated scanning: systems that are unable",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.1.3": {
+      "name": "Internal scans are performed after any significant change: high-risk and critica",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Internal scans are performed after any significant change: high-risk and critica",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.2": {
+      "name": "External vulnerability scans are performed at least once every three months",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "External vulnerability scans are performed at least once every three months",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.3.2.1": {
+      "name": "External scans are performed after any significant change",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "External scans are performed after any significant change",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.5": {
+      "name": "Network intrusions and unexpected file changes are detected and responded to",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Network intrusions and unexpected file changes are detected and responded to",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.5.1": {
+      "name": "Intrusion-detection and/or intrusion-prevention techniques are used to detect an",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Intrusion-detection and/or intrusion-prevention techniques are used to detect an",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.5.1.1": {
+      "name": "Intrusion-detection and/or intrusion-prevention techniques detect, alert on/prev",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Intrusion-detection and/or intrusion-prevention techniques detect, alert on/prev",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.5.2": {
+      "name": "A change-detection mechanism (for example, file integrity monitoring tools) is d",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "A change-detection mechanism (for example, file integrity monitoring tools) is d",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.6": {
+      "name": "Unauthorized changes on payment pages are detected and responded to",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Unauthorized changes on payment pages are detected and responded to",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "11.6.1": {
+      "name": "A change- and tamper-detection mechanism is deployed to alert personnel to unaut",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "A change- and tamper-detection mechanism is deployed to alert personnel to unaut",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "12.10": {
+      "name": "Suspected and confirmed security incidents that could impact the CDE are respond",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Suspected and confirmed security incidents that could impact the CDE are respond",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "12.10.1": {
+      "name": "An incident response plan exists and is ready to be activated in the event of a ",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "An incident response plan exists and is ready to be activated in the event of a ",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "12.10.5": {
+      "name": "The security incident response plan includes monitoring and responding to alerts",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "The security incident response plan includes monitoring and responding to alerts",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    },
+    "12.10.7": {
+      "name": "Incident response procedures are in place, to be initiated upon the detection of",
+      "concepts": [
+        "AUDIT_LOG",
+        "NETWORK_TRAFFIC"
+      ],
+      "queries": [
+        {
+          "name": "Incident response procedures are in place, to be initiated upon the detection of",
+          "filter": "activity_type:\"audit_policy-modify\" OR activity_type:\"dns-query\" OR activity_type:\"dns-response\" OR activity_type:\"http-session\" OR activity_type:\"http-traffic\" OR activity_type:\"network-session\"",
+          "fields": [
+            "user",
+            "host",
+            "src_ip",
+            "activity_type",
+            "action",
+            "result"
+          ],
+          "evidenceDescription": ""
+        }
+      ],
+      "contextTables": [],
+      "minimumEvidence": 10,
+      "sharedQueryGroup": "audit_log_network_traffic"
+    }
+  }
+}
