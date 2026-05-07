@@ -74,9 +74,11 @@ SPL_TO_SIGMA_FIELD: dict[str, str] = {
     # File fields
     "file_name": "TargetFilename",   # Fireamp / DocExchange → CIM2: file_name
     "fileName": "TargetFilename",    # DG / PLM variant → CIM2: file_name
-    "filePath": "filePath",          # DG / PLM → pass-through; CIM2 verified below
+    "filePath": "filePath",          # DG / PLM → CIM2: file_path (CIMLibrary verified)
     "file_path": "filePath",         # generic variant
     "destPath": "filePath",          # DG destination path
+    "file_category": "file_category", # Code42 → CIM2: file_category (CIMLibrary verified)
+    "file_ext": "file_ext",          # → CIM2: file_ext (CIMLibrary verified)
     # Process (DG)
     "srcProcess": "Image",           # DG source process → CIM2: process_name
     # User variants

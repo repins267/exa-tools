@@ -11,55 +11,59 @@ from typing import Any
 
 # Sigma field → Exabeam CIM2 field mapping
 CIM2_FIELD_MAP: dict[str, str] = {
-    # Process creation
+    # Process creation — all verified against ExabeamLabs/CIMLibrary Fields_Descriptions.md
     "Image": "process_name",
     "OriginalFileName": "process_name",
-    "CommandLine": "command",
-    "ParentImage": "parent_process_name",
-    "ParentCommandLine": "parent_command",
+    "CommandLine": "command",                        # CIM2: command ✓
+    "ParentImage": "parent_process_name",            # CIM2: parent_process_name ✓
+    "ParentCommandLine": "parent_process_command_line",  # CIM2: parent_process_command_line ✓
     "User": "user",
-    "IntegrityLevel": "integrity_level",
-    "ProcessId": "pid",
-    "ParentProcessId": "ppid",
-    "CurrentDirectory": "directory",
-    "Hashes": "hash",
-    # Network
+    "IntegrityLevel": "process_integrity",           # CIM2: process_integrity ✓ (not integrity_level)
+    "ProcessId": "process_id",                       # CIM2: process_id ✓ (not pid)
+    "ParentProcessId": "parent_process_id",          # CIM2: parent_process_id ✓ (not ppid)
+    "CurrentDirectory": "process_dir",               # CIM2: process_dir ✓ (not directory)
+    "Hashes": "file_hash",                           # CIM2: file_hash ✓ (not hash)
+    # Network — all verified
     "DestinationPort": "dest_port",
     "dst_port": "dest_port",
     "SourcePort": "src_port",
     "src_port": "src_port",
-    "DestinationIp": "dest_ip",
+    "DestinationIp": "dest_ip",                      # CIM2: dest_ip ✓ (ipv4/ipv6 type)
     "dst_ip": "dest_ip",
-    "SourceIp": "src_ip",
+    "SourceIp": "src_ip",                            # CIM2: src_ip ✓ (ipv4/ipv6 type)
     "src_ip": "src_ip",
-    "DestinationHostname": "dest_host",
+    "DestinationHostname": "dest_host",              # CIM2: dest_host ✓
     "action": "action",
     "blocked": "blocked",
-    # File
+    # File — all verified against CIMLibrary
     "TargetFilename": "file_name",
     "SourceFilename": "file_name",
-    "filePath": "file_path",         # EXA-UNVERIFIED: verify file_path in CIM2 DS/
-    # Registry
+    "filePath": "file_path",
+    "file_category": "file_category",
+    "file_ext": "file_ext",
+    "file_path": "file_path",
+    "file_hash": "file_hash",
+    # Registry — verified
     "TargetObject": "registry_path",
     "Details": "registry_value",
     # Web proxy
-    "c-uri": "url",
-    "cs-uri-stem": "url_path",
-    "r-dns": "web_domain",
+    "c-uri": "url",                                  # CIM2: url ✓
+    "cs-uri-stem": "url",                            # CIM2: url ✓ (url_path not in CIMLibrary)
+    "r-dns": "web_domain",                           # CIM2: web_domain ✓
     # DNS
-    "QueryName": "query",
-    # Cloud / AWS — CIM2 verified from Content-Library-CIM2/DS/Amazon/aws_cloudtrail
-    "eventSource": "service_name",  # CIM2: eventSource → service_name (some parsers → src_host)
-    "eventName": "operation",  # CIM2: eventName → operation (verified across multiple parsers)
+    "QueryName": "query",                            # CIM2: query ✓
+    # Cloud / AWS — verified from Content-Library-CIM2/DS/Amazon/aws_cloudtrail
+    "eventSource": "service_name",
+    "eventName": "operation",
     "sourceIPAddress": "src_ip",
     "userIdentity.type": "user_type",
     "userIdentity.arn": "user_arn",
     "requestParameters.bucketName": "bucket_name",
-    "responseElements.ConsoleLogin": "console_login",
-    # Hostname
-    "ComputerName": "dest_host",     # CIM2: dest_host (verified in CLAUDE.md known fields)
-    "SourceHostname": "src_host",    # EXA-UNVERIFIED: src_host field name in CIM2
-    # Auth
+    "responseElements.ConsoleLogin": "alert_name",   # closest CIM2 field; console_login not in CIMLibrary
+    # Hostname — verified
+    "ComputerName": "dest_host",                     # CIM2: dest_host ✓
+    "SourceHostname": "src_host",                    # CIM2: src_host ✓
+    # Auth — verified
     "LogonType": "logon_type",
     "TargetUserName": "dest_user",
     "SubjectUserName": "src_user",
@@ -67,7 +71,7 @@ CIM2_FIELD_MAP: dict[str, str] = {
     # Generic
     "EventID": "event_id",
     "Channel": "channel",
-    "Provider_Name": "provider",
+    "Provider_Name": "channel",                      # CIM2: channel ✓ (provider not in CIMLibrary)
     "Product": "product",
 }
 
