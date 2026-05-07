@@ -25,6 +25,7 @@ from exa.aillm.reference import load_reference_data
 from exa.context.tables import (
     add_records,
     create_table,
+    get_all_records,
     get_attributes,
     get_table,
     get_tables,
@@ -52,6 +53,7 @@ class SyncResult:
     reference_entries: int = 0
     merged_total: int = 0
     upserted: int = 0
+    skipped: int = 0
     errors: int = 0
     error_detail: str = ""
 
@@ -88,6 +90,18 @@ def _resolve_tables(
             client.batch_write_sleep()
 
     return table_ids
+
+
+def _fetch_existing_keys(client: ExaClient, table_id: str) -> set[str]:
+    """Return lowercase key set of all records currently in a context table.
+
+    Returns an empty set on any error so callers can proceed safely.
+    """
+    try:
+        records = get_all_records(client, table_id)
+        return {r.get("key", "").lower() for r in records if r.get("key")}
+    except Exception:
+        return set()
 
 
 def _resolve_risk_attr_id(client: ExaClient, table_id: str) -> str | None:
@@ -222,6 +236,33 @@ def sync_aillm_context_tables(
             continue
 
         table_id = table_ids[bucket]
+        merged_total = len(records)
+
+        # Dedup: filter out keys already present on the tenant (append mode only).
+        # force/replace rewrites the whole table so the check is unnecessary.
+        skipped = 0
+        if operation == "append":
+            existing_keys = _fetch_existing_keys(client, table_id)
+            if existing_keys:
+                records = [r for r in records if r.get("key", "").lower() not in existing_keys]
+                skipped = merged_total - len(records)
+                if skipped:
+                    console.print(
+                        f"    {skipped} already present, {len(records)} new to add",
+                        style="dim",
+                    )
+
+        if not records:
+            console.print("    SKIP: All records already present", style="dim")
+            results.append(SyncResult(
+                table_name=exa_name,
+                reference_entries=ref_count,
+                merged_total=merged_total,
+                skipped=skipped,
+            ))
+            client.batch_write_sleep()
+            continue
+
         console.print(f"    Uploading {len(records)} records ({operation})...", end="")
 
         try:
@@ -230,15 +271,17 @@ def sync_aillm_context_tables(
             results.append(SyncResult(
                 table_name=exa_name,
                 reference_entries=ref_count,
-                merged_total=len(records),
+                merged_total=merged_total,
                 upserted=len(records),
+                skipped=skipped,
             ))
         except Exception as e:
             console.print(f" FAILED: {e}", style="red")
             results.append(SyncResult(
                 table_name=exa_name,
                 reference_entries=ref_count,
-                merged_total=len(records),
+                merged_total=merged_total,
+                skipped=skipped,
                 errors=1,
                 error_detail=str(e),
             ))

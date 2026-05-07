@@ -124,6 +124,12 @@ class TestSyncIntegration:
             method="GET",
             json={"attributes": []},
         )
+        # Mock existing records fetch (empty — no duplicates)
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/apps-123/records?limit=100000&offset=0",
+            method="GET",
+            json={"records": []},
+        )
         # Mock add records
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables/apps-123/addRecords",
@@ -137,6 +143,64 @@ class TestSyncIntegration:
         assert len(results) == 1
         assert results[0].upserted > 0
         assert results[0].errors == 0
+
+    def test_sync_skips_existing_keys(self, exa, mock_auth):
+        """Records whose key already exists on the tenant are not re-uploaded."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=[{"name": "AI/LLM Applications", "id": "apps-123"}],
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/attributes/Other",
+            method="GET",
+            json={"attributes": []},
+        )
+        # Pretend ChatGPT is already in the tenant table
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/apps-123/records?limit=100000&offset=0",
+            method="GET",
+            json={"records": [{"key": "ChatGPT"}]},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/apps-123/addRecords",
+            method="POST",
+            json={"status": "ok"},
+        )
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["applications"])
+        assert results[0].skipped == 1
+        assert results[0].upserted == results[0].merged_total - 1
+
+    def test_sync_all_present_skips_upload(self, exa, mock_auth):
+        """If every record already exists, no addRecords call is made."""
+        from exa.aillm.reference import load_reference_data
+        ref = load_reference_data()
+        existing = [{"key": a["key"]} for a in ref.applications]
+
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=[{"name": "AI/LLM Applications", "id": "apps-123"}],
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/attributes/Other",
+            method="GET",
+            json={"attributes": []},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/apps-123/records?limit=100000&offset=0",
+            method="GET",
+            json={"records": existing},
+        )
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["applications"])
+        assert results[0].upserted == 0
+        assert results[0].skipped == len(existing)
 
     @pytest.mark.skip(reason="requires live tenant / reference data")
     def test_dry_run_returns_empty_no_api_writes(self, exa, mock_auth):
