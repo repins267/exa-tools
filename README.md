@@ -11,7 +11,8 @@ Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM.
 
 - **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
 - **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
-- **One-step deployment** — convert and deploy Sigma rules to your tenant in a single command
+- **Splunk SPL conversion** — convert Splunk searches to Exabeam EQL via a SPL→Sigma→EQL pipeline; batch from Excel or inline one-off
+- **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
 - **CIM2 reference data** — sync ExabeamLabs Content-Library-CIM2 and new-scale-content-hub repos locally for field validation
 - **Context table management** — CRUD operations with 20k batch support and pagination
 - **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
@@ -140,6 +141,92 @@ exa tables --tenant sademodev22
 ```bash
 exa frameworks    # list all available compliance frameworks with testable control counts
 ```
+
+## Splunk Converter
+
+The Splunk converter translates Splunk SPL searches into Exabeam EQL correlation rules using a **SPL → Sigma → EQL** pipeline.
+
+### Why SPL→Sigma→EQL?
+
+Splunk SPL and Exabeam EQL are fundamentally different languages — SPL is a pipeline language (filter, aggregate, join, transform) while EQL is a pure filter language. A direct SPL→EQL translation is inherently lossy and requires maintaining a hand-built field map.
+
+The SPL→Sigma→EQL approach routes through Sigma as a structured intermediate format, which means:
+- Field mapping reuses the pySigma Splunk backend's community-maintained CIM mappings (4+ years, actively maintained by the Sigma project creators)
+- Wildcard values become proper Sigma modifiers (`|contains`, `|endswith`, `|startswith`) which the Sigma→EQL pipeline handles correctly
+- Negation (`field!=value`) becomes a proper Sigma `filter` block
+- The intermediate Sigma YAML is preserved in the output for audit and debugging
+- All converted rules land as `deploy_ready: Needs review` — SPL→EQL is lossy by design and requires human sign-off
+
+Pipeline stages that cannot be represented in EQL (`stats`, `eval`, `lookup`, `rex`, `spath`, `join`, etc.) are inventoried and listed as warnings. The converted rule captures the *detection filter* logic — the aggregation and enrichment steps must be handled separately in Exabeam through risk scoring or rule sequences.
+
+### `exa splunk convert`
+
+```powershell
+# Batch convert an Excel file with 'title' and 'search' columns
+exa splunk convert searches.xlsx
+
+# Show all per-rule warnings
+exa splunk convert searches.xlsx --verbose
+
+# Custom output file
+exa splunk convert searches.xlsx --output rules.json
+```
+
+Outputs a rich table showing each rule's index, activity type, EQL preview, warning count, and deploy status. Saves an API-ready JSON file of all payloads.
+
+### `exa splunk one`
+
+Convert a single SPL search inline — no Excel file needed. Useful for testing, one-off conversions, or exploring how a specific search converts.
+
+```powershell
+# Basic conversion
+exa splunk one 'index=c42 severity="High" | stats count by username'
+
+# With a custom title
+exa splunk one 'index=o365 Operation=Send' --title "O365 Outbound Email"
+
+# Save payload to JSON for deployment
+exa splunk one 'index=fireamp_stream severity="High"' --title "AMP Alert" -o rule.json
+
+# Print raw JSON payload
+exa splunk one 'index=ad CommandLine="*mimikatz*"' --json
+```
+
+### `exa splunk deploy`
+
+```powershell
+# Dry run — preview without API calls
+exa splunk deploy rules.json --dry-run
+
+# Deploy (rules created disabled by default)
+exa splunk deploy rules.json
+
+# Deploy to a specific tenant
+exa splunk deploy rules.json --tenant sademodev22
+```
+
+All rules are created **disabled** by default. Validate the EQL in the Exabeam UI before enabling.
+
+### Supported Indexes
+
+| Splunk Index | Data Source | Default activity_type |
+|---|---|---|
+| `c42` | Code42 / Incydr DLP | `file-write` |
+| `c42` + `c42-alerts` | Code42 risk alerts | `rule-trigger` |
+| `c42` + `c42-file-exposure` | Code42 file exposure | `file-write` |
+| `ips` | Cisco Firepower IPS | `rule-trigger` |
+| `o365` | Microsoft O365 | `app-activity` |
+| `fireamp_stream` | Cisco Secure Endpoint | `rule-trigger` |
+| `dg` | Digital Guardian DLP | `file-write` |
+| `ad` | Active Directory / Sysmon | `process-create` |
+| `docexchange` | Document Exchange | `file-write` |
+| `plminfoexchangelogs` | Agile PLM Info Exchange | `app-activity` |
+
+### All Converted Rules
+
+- Named `[Splunk] <title>` — enables bulk management via `get_correlation_rules(name="[Splunk]*")`
+- Severity defaults to `medium` — adjust before deploying
+- `deploy_ready: Needs review` — always; SPL→EQL translation is lossy and requires human sign-off
 
 ## Sigma Converter
 
