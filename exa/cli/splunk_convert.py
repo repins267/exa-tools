@@ -40,7 +40,7 @@ def _make_client(tenant: str | None = None):
 def convert_cmd(
     excel_file: Annotated[
         Path,
-        typer.Argument(help="Excel file with 'title' and 'search' columns"),
+        typer.Argument(help="Input file (.xlsx, .csv, or savedsearches.conf)"),
     ],
     output: Annotated[
         Path | None,
@@ -48,19 +48,18 @@ def convert_cmd(
     ] = None,
     sheet: Annotated[
         str,
-        typer.Option("--sheet", help="Sheet name in the Excel file"),
+        typer.Option("--sheet", help="Sheet name (Excel only, default: in)"),
     ] = "in",
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v", help="Show full warnings for each rule"),
     ] = False,
 ) -> None:
-    """Convert Splunk SPL searches from an Excel file to Exabeam correlation rules.
+    """Convert Splunk SPL searches to Exabeam correlation rules.
 
-    Reads an .xlsx file with 'title' and 'search' columns and converts
-    each search to an Exabeam EQL correlation rule.  Outputs a rich
-    table showing conversion status, and optionally writes an API-ready
-    JSON file.
+    Supports .xlsx, .csv, and savedsearches.conf input formats. Reads
+    'title' and 'search' columns (Excel/CSV) or stanza names (conf).
+    Outputs a rich table and an API-ready JSON file.
 
     All converted rules are deploy_ready="Needs review" — SPL→EQL is
     lossy (stats/lookups/eval are dropped) and require human sign-off
@@ -68,7 +67,7 @@ def convert_cmd(
 
     To deploy, use:  exa splunk deploy <output.json>
     """
-    from exa.splunk.batch import convert_excel, conversion_summary, export_api_payloads
+    from exa.splunk.batch import convert_file, conversion_summary, export_api_payloads
 
     if not excel_file.exists():
         console.print(f"[red]File not found: {excel_file}[/red]")
@@ -76,11 +75,15 @@ def convert_cmd(
 
     console.rule("[bold cyan]Splunk → Exabeam Rule Conversion[/bold cyan]")
     console.print(f"  Input: {excel_file}", style="dim")
-    console.print(f"  Sheet: {sheet}", style="dim")
+    suffix = excel_file.suffix.lower()
+    if suffix in (".xlsx", ".xls"):
+        console.print(f"  Sheet: {sheet}", style="dim")
+    else:
+        console.print(f"  Format: {suffix or 'auto-detect'}", style="dim")
     console.print()
 
     try:
-        results = convert_excel(excel_file, sheet=sheet)
+        results = convert_file(excel_file, sheet=sheet)
     except Exception as e:
         console.print(f"[red]Failed to read Excel file: {e}[/red]")
         raise typer.Exit(1)

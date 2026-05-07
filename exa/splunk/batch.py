@@ -1,24 +1,82 @@
-"""Batch-convert Splunk SPL searches from an Excel file.
+"""Batch-convert Splunk SPL searches from various input formats.
 
-Reads a spreadsheet with 'title' and 'search' columns and produces
+Reads searches from Excel, CSV, or savedsearches.conf files and produces
 converted Exabeam correlation rules, ready for API upload or export.
 
-Excel format (sheet 'in'):
-  Column A: title  — rule display name
-  Column B: search — Splunk SPL search string
+Supported formats:
+  .xlsx / .xls     — Excel spreadsheet with 'title' and 'search' columns
+  .csv             — CSV file with 'title' and 'search' columns
+  savedsearches.conf — Splunk INI-style saved searches config
+
+Excel/CSV column format:
+  Column: title  — rule display name
+  Column: search — Splunk SPL search string
+
+savedsearches.conf format:
+  [Rule Title]
+  search = index=main sourcetype=syslog | stats count by host
+  description = Optional description
 
 Usage:
-  from exa.splunk.batch import convert_excel
-  results = convert_excel("Master Enabled plays.xlsx")
+  from exa.splunk.batch import convert_file
+  results = convert_file("searches.csv")
+  results = convert_file("savedsearches.conf")
+  results = convert_file("Master Enabled plays.xlsx")
 """
 
 from __future__ import annotations
 
+import configparser
 import json
 from pathlib import Path
 from typing import Any
 
 from exa.splunk.converter import convert_spl_to_exa_rule, to_api_payload
+
+
+# ── Format detection ---------------------------------------------------------
+
+
+def convert_file(
+    path: str | Path,
+    *,
+    sheet: str = "in",
+    title_col: str = "title",
+    search_col: str = "search",
+) -> list[dict[str, Any]]:
+    """Auto-detect file format and convert SPL searches to Exabeam rules.
+
+    Dispatches to the appropriate converter based on file extension:
+      .xlsx / .xls  → convert_excel()
+      .csv          → convert_csv()
+      .conf         → convert_savedsearches_conf()
+
+    Args:
+        path: Path to the input file.
+        sheet: Sheet name for Excel files (default: "in"). Ignored for CSV/conf.
+        title_col: Column name for rule titles in Excel/CSV (default: "title").
+        search_col: Column name for SPL searches in Excel/CSV (default: "search").
+
+    Returns:
+        List of converted rule dicts.
+    """
+    path = Path(path)
+    suffix = path.suffix.lower()
+
+    if suffix in (".xlsx", ".xls"):
+        return convert_excel(path, sheet=sheet, title_col=title_col, search_col=search_col)
+    elif suffix == ".csv":
+        return convert_csv(path, title_col=title_col, search_col=search_col)
+    elif suffix == ".conf" or path.name == "savedsearches.conf":
+        return convert_savedsearches_conf(path)
+    else:
+        raise ValueError(
+            f"Unsupported file format: '{suffix}'. "
+            f"Supported: .xlsx, .xls, .csv, .conf (savedsearches.conf)"
+        )
+
+
+# ── Excel --------------------------------------------------------------------
 
 
 def convert_excel(
@@ -37,7 +95,7 @@ def convert_excel(
         search_col: Column name for SPL searches.
 
     Returns:
-        List of converted rule dicts (from convert_spl_to_exa_rule).
+        List of converted rule dicts.
         Rows where title or search is blank are skipped.
     """
     try:
@@ -50,6 +108,58 @@ def convert_excel(
 
     path = Path(path)
     df = pd.read_excel(path, sheet_name=sheet, dtype=str)
+    return _convert_dataframe(df, title_col=title_col, search_col=search_col)
+
+
+# ── CSV ----------------------------------------------------------------------
+
+
+def convert_csv(
+    path: str | Path,
+    *,
+    title_col: str = "title",
+    search_col: str = "search",
+    encoding: str = "utf-8-sig",
+) -> list[dict[str, Any]]:
+    """Read SPL searches from a CSV file and convert each to an Exabeam rule.
+
+    Expects columns named 'title' and 'search' (configurable). UTF-8 with
+    BOM is handled automatically (common Splunk CSV export format).
+
+    Args:
+        path: Path to the .csv file.
+        title_col: Column name for rule titles (default: "title").
+        search_col: Column name for SPL searches (default: "search").
+        encoding: File encoding (default: "utf-8-sig" handles BOM).
+
+    Returns:
+        List of converted rule dicts.
+        Rows where title or search is blank are skipped.
+    """
+    try:
+        import pandas as pd  # type: ignore[import]
+    except ImportError as exc:
+        raise ImportError(
+            "pandas is required for CSV conversion. "
+            "Install with: pip install pandas"
+        ) from exc
+
+    path = Path(path)
+    df = pd.read_csv(path, dtype=str, encoding=encoding)
+    return _convert_dataframe(df, title_col=title_col, search_col=search_col)
+
+
+def _convert_dataframe(
+    df: Any,
+    *,
+    title_col: str,
+    search_col: str,
+) -> list[dict[str, Any]]:
+    """Shared conversion logic for Excel and CSV dataframes."""
+    try:
+        import pandas as pd  # type: ignore[import]
+    except ImportError as exc:
+        raise ImportError("pandas required") from exc
 
     # Strip whitespace from column names
     df.columns = [c.strip() for c in df.columns]
@@ -79,6 +189,65 @@ def convert_excel(
     return results
 
 
+# ── savedsearches.conf -------------------------------------------------------
+
+
+def convert_savedsearches_conf(
+    path: str | Path,
+) -> list[dict[str, Any]]:
+    """Read SPL searches from a Splunk savedsearches.conf file.
+
+    Parses Splunk's INI-style saved searches config. Each [stanza] becomes
+    a rule, using the stanza name as the title and the 'search' key as the
+    SPL query. Stanzas without a 'search' key (dashboards, reports with
+    no direct search) are skipped.
+
+    Common savedsearches.conf locations:
+      $SPLUNK_HOME/etc/apps/<app>/local/savedsearches.conf
+      $SPLUNK_HOME/etc/users/<user>/search/local/savedsearches.conf
+
+    Args:
+        path: Path to savedsearches.conf (or any .conf file).
+
+    Returns:
+        List of converted rule dicts. Stanzas without 'search' are skipped.
+    """
+    path = Path(path)
+    text = path.read_text(encoding="utf-8", errors="replace")
+
+    # configparser requires a [DEFAULT] section or a section header first.
+    # savedsearches.conf may start directly with [stanza] — that's fine.
+    # We prepend a dummy section header only if needed.
+    parser = configparser.RawConfigParser()
+    parser.read_string(text)
+
+    results: list[dict[str, Any]] = []
+    for section in parser.sections():
+        # Skip the built-in DEFAULT and Splunk system stanzas
+        if section.lower() in ("default", "splunk_audit_logs", "splunk_search_history"):
+            continue
+
+        search = parser.get(section, "search", fallback="").strip()
+
+        # Strip leading '= ' that some Splunk exports include
+        if search.startswith("= "):
+            search = search[2:].strip()
+
+        if not search:
+            continue
+
+        # Use stanza name as title, strip common Splunk prefixes/suffixes
+        title = section.strip()
+
+        rule = convert_spl_to_exa_rule(title, search)
+        results.append(rule)
+
+    return results
+
+
+# ── Export / Summary ---------------------------------------------------------
+
+
 def export_api_payloads(
     results: list[dict[str, Any]],
     output_path: str | Path,
@@ -88,7 +257,7 @@ def export_api_payloads(
     """Write API-ready payloads to a JSON file.
 
     Args:
-        results: Output of convert_excel().
+        results: Output of any convert_* function.
         output_path: Destination .json file path.
         enabled: Whether rules should be enabled on upload (default: False).
 
