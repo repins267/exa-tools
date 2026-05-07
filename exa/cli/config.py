@@ -84,3 +84,45 @@ def config_show() -> None:
         "\n  Config file: ~/.exa/config.json",
         style="dim",
     )
+
+
+@config_app.command("tenants")
+def config_tenants() -> None:
+    """List all configured tenant profiles (no secrets shown)."""
+    from exa.config import _read_config_file
+
+    config = _read_config_file()
+    tenants = config.get("tenants", {})
+    default = config.get("default_tenant", "")
+
+    if not tenants:
+        console.print(
+            "  No tenants configured. Run 'exa configure' to add one.",
+            style="dim",
+        )
+        return
+
+    table = Table(title="Configured Tenants", show_header=True)
+    table.add_column("Nickname", style="cyan", no_wrap=True)
+    table.add_column("FQDN", style="white")
+    table.add_column("Region", style="white")
+    table.add_column("API Server", style="dim")
+    table.add_column("Default", justify="center")
+
+    for nickname, entry in sorted(tenants.items()):
+        is_default = "✓" if nickname == default else ""
+        table.add_row(
+            nickname,
+            entry.get("fqdn", f"{nickname}.exabeam.cloud"),
+            entry.get("region", "—"),
+            entry.get("api_server", "—"),
+            f"[green]{is_default}[/green]",
+        )
+
+    console.print(table)
+    console.print(
+        f"\n  {len(tenants)} tenant(s) | "
+        f"Default: [cyan]{default or '(none)'}[/cyan] | "
+        f"Secrets in Windows Credential Manager",
+        style="dim",
+    )
