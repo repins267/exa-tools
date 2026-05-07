@@ -20,6 +20,7 @@ _DATA_DIR = Path.home() / ".exa"
 _CIM2_DIR = _DATA_DIR / "cim2"
 _CONTENT_HUB_DIR = _DATA_DIR / "content-hub"
 _SIGMA_DIR = _DATA_DIR / "sigma"
+_AILLM_DOMAINS_DIR = _DATA_DIR / "aillm-domains"
 _CACHE_DIR = _DATA_DIR / "cache"
 
 _CIM2_REPO = "https://github.com/ExabeamLabs/Content-Library-CIM2.git"
@@ -27,6 +28,7 @@ _CONTENT_HUB_REPO = (
     "https://github.com/ExabeamLabs/new-scale-content-hub.git"
 )
 _SIGMA_REPO = "https://github.com/SigmaHQ/sigma.git"
+_AILLM_DOMAINS_REPO = "https://github.com/repins267/ai-llm-domains.git"
 
 # Markdown files to parse from CIM2 repo
 _CIM2_PARSE_TARGETS: dict[str, str] = {
@@ -559,6 +561,8 @@ class UpdateResult:
     content_hub_sha: str = ""
     sigma_action: str = ""
     sigma_sha: str = ""
+    aillm_domains_action: str = ""
+    aillm_domains_sha: str = ""
     cache_results: list[CacheResult] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
@@ -578,6 +582,7 @@ def update_reference_data(
     cim2_dir = base / "cim2"
     content_hub_dir = base / "content-hub"
     sigma_dir = base / "sigma"
+    aillm_domains_dir = base / "aillm-domains"
     cache_dir = base / "cache"
 
     result = UpdateResult()
@@ -606,6 +611,14 @@ def update_reference_data(
             result.sigma_sha = _git_head_sha(sigma_dir)
         except Exception as e:
             result.errors.append(f"SigmaHQ: {e}")
+
+    # Sync ai-llm-domains reference dataset
+    try:
+        action, _ = _sync_repo(_AILLM_DOMAINS_REPO, aillm_domains_dir)
+        result.aillm_domains_action = action
+        result.aillm_domains_sha = _git_head_sha(aillm_domains_dir)
+    except Exception as e:
+        result.errors.append(f"AI/LLM Domains: {e}")
 
     # Parse and cache CIM2
     if cim2_dir.exists():
@@ -650,6 +663,12 @@ def check_reference_data(
         status["sigma"] = _git_head_sha(sigma_dir)
     else:
         status["sigma"] = "not cloned"
+
+    aillm_dir = base / "aillm-domains"
+    if aillm_dir.exists() and (aillm_dir / ".git").is_dir():
+        status["aillm-domains"] = _git_head_sha(aillm_dir)
+    else:
+        status["aillm-domains"] = "not cloned"
 
     return status
 

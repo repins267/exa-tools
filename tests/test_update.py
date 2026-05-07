@@ -47,11 +47,12 @@ class TestUpdateClonesRepos:
         ):
             result = update_reference_data(data_dir=data_dir)
 
-        assert len(clone_calls) == 3  # CIM2 + content-hub + sigma
+        assert len(clone_calls) == 4  # CIM2 + content-hub + sigma + aillm-domains
         assert len(pull_calls) == 0
         assert result.cim2_action == "cloned"
         assert result.content_hub_action == "cloned"
         assert result.sigma_action == "cloned"
+        assert result.aillm_domains_action == "cloned"
 
 
 class TestUpdatePullsExisting:
@@ -70,6 +71,10 @@ class TestUpdatePullsExisting:
         sigma_dir.mkdir(parents=True)
         (sigma_dir / ".git").mkdir()
 
+        aillm_dir = data_dir / "aillm-domains"
+        aillm_dir.mkdir(parents=True)
+        (aillm_dir / ".git").mkdir()
+
         pull_calls: list[str] = []
 
         def mock_pull(repo_dir):
@@ -82,10 +87,11 @@ class TestUpdatePullsExisting:
         ):
             result = update_reference_data(data_dir=data_dir)
 
-        assert len(pull_calls) == 3  # CIM2 + content-hub + sigma
+        assert len(pull_calls) == 4  # CIM2 + content-hub + sigma + aillm-domains
         assert result.cim2_action == "pulled"
         assert result.content_hub_action == "pulled"
         assert result.sigma_action == "pulled"
+        assert result.aillm_domains_action == "pulled"
 
 
 class TestLoadCacheMissing:

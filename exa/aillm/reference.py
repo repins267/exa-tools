@@ -12,11 +12,16 @@ import importlib.resources
 import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 _IPV4_RE = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 _MALICIOUS_DOMAINS = frozenset({"zeroclaw.org", "zeroclaw.net"})
 _DLP_IOC_VENDOR_PATTERN = re.compile(r"IOC", re.IGNORECASE)
+
+# External repo data takes precedence over the bundled snapshot when present.
+# Populated by `exa update` → ~/.exa/aillm-domains/data/
+_EXTERNAL_DATA_DIR = Path.home() / ".exa" / "aillm-domains" / "data"
 
 
 @dataclass
@@ -34,7 +39,15 @@ class ReferenceData:
 
 
 def _load_json(filename: str) -> list[dict[str, Any]]:
-    """Load a JSON file from the bundled data directory (utf-8-sig for BOM)."""
+    """Load a JSON file, preferring the external repo over the bundled snapshot.
+
+    External path (~/.exa/aillm-domains/data/) is populated by `exa update`
+    and always contains the most current data. Falls back to the bundled
+    snapshot when the external repo has not been synced yet.
+    """
+    external = _EXTERNAL_DATA_DIR / filename
+    if external.exists():
+        return json.loads(external.read_text(encoding="utf-8"))
     data_dir = importlib.resources.files("exa.aillm.data")
     text = (data_dir / filename).read_text(encoding="utf-8-sig")
     return json.loads(text)
