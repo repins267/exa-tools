@@ -38,6 +38,25 @@ _CIM2_PARSE_TARGETS: dict[str, str] = {
     "correlation_rules": "Exabeam Correlation Rules.md",
 }
 
+# Known CIM2 activity_type values — ordered longest-first for unambiguous substring matching
+_ORACLE_ACTIVITY_TYPES: list[str] = [
+    "audit_policy-modify", "physical_location-access",
+    "web-activity-allowed", "web-activity-denied",
+    "network-session", "http-session", "http-traffic",
+    "alert-trigger", "rule-trigger", "dns-response", "dns-query",
+    "process-create", "process-close", "file-create", "file-write",
+    "file-delete", "file-read", "file-modify", "file-time-modify",
+    "file-stream-create", "authentication", "app-activity",
+    "email-send", "printer-activity", "registry-modify",
+    "registry-create", "driver-load", "dll-load", "network-connection",
+]
+
+_PARSER_NAME_RE = re.compile(r"\bName\s*=\s*(.+?)$", re.MULTILINE)
+_PARSER_VENDOR_RE = re.compile(r"\bVendor\s*=\s*(.+?)$", re.MULTILINE)
+_PARSER_PRODUCT_RE = re.compile(r"\bProduct\s*=\s*(.+?)$", re.MULTILINE)
+_CAPTURE_GROUP_RE = re.compile(r"\(\{(\w+)\}")
+_EXA_JSON_FIELD_RE = re.compile(r"exa_json_path=([^\s,]+)[^\n]*?exa_field_name=(\w+)")
+
 
 # -- Git operations -----------------------------------------------------------
 
@@ -242,6 +261,174 @@ def _cache_parsed_data(
     return results
 
 
+# -- Field oracle -------------------------------------------------------------
+
+
+def _strip_dsl_value(raw: str) -> str:
+    """Strip surrounding quotes and whitespace from a DSL field value."""
+    return raw.strip().strip('"')
+
+
+def _extract_activity_type(parser_name: str) -> str:
+    """Return the CIM2 activity_type encoded in a parser name, or '' if unrecognised."""
+    lname = parser_name.lower()
+    for at in _ORACLE_ACTIVITY_TYPES:
+        if at in lname:
+            return at
+    # Code42 has a typo: "file-succes" (missing 's') = file-create
+    if "file-succes" in lname and "file-success" not in lname:
+        return "file-create"
+    return ""
+
+
+def _parse_parser_file(content: str) -> dict[str, Any] | None:
+    """Extract metadata from a pC_*.md parser definition file.
+
+    Returns a dict with keys: name, vendor, product, activity_type,
+    cim2_fields (list), raw_to_cim2 (dict). Returns None if the file
+    does not look like a parser definition.
+    """
+    name_m = _PARSER_NAME_RE.search(content)
+    if not name_m:
+        return None
+    name = _strip_dsl_value(name_m.group(1))
+    if not name:
+        return None
+
+    vendor_m = _PARSER_VENDOR_RE.search(content)
+    vendor = _strip_dsl_value(vendor_m.group(1)) if vendor_m else ""
+
+    product_m = _PARSER_PRODUCT_RE.search(content)
+    product = _strip_dsl_value(product_m.group(1)) if product_m else ""
+
+    activity_type = _extract_activity_type(name)
+
+    # All CIM2 output fields captured in regex groups: ({field_name}...)
+    cim2_fields: set[str] = set(_CAPTURE_GROUP_RE.findall(content))
+
+    # Raw→CIM2 from explicit JSON path mappings:
+    #   exa_json_path=$.some.path,...,exa_field_name=cim2_field
+    raw_to_cim2: dict[str, str] = {}
+    for m in _EXA_JSON_FIELD_RE.finditer(content):
+        json_path = m.group(1).rstrip(",")
+        cim2_field = m.group(2)
+        path_key = json_path.lstrip("$").lstrip(".")
+        if path_key:
+            raw_to_cim2[path_key] = cim2_field
+        # Also index by leaf segment for simple field-name lookups
+        leaf = path_key.split(".")[-1] if "." in path_key else path_key
+        if leaf and leaf not in raw_to_cim2:
+            raw_to_cim2[leaf] = cim2_field
+
+    return {
+        "name": name,
+        "vendor": vendor,
+        "product": product,
+        "activity_type": activity_type,
+        "cim2_fields": sorted(cim2_fields),
+        "raw_to_cim2": raw_to_cim2,
+    }
+
+
+def build_field_oracle(
+    *,
+    data_dir: Path | None = None,
+    _ds_dir: Path | None = None,
+) -> CacheResult:
+    """Walk Content-Library-CIM2/DS/ and build field_oracle.json.
+
+    Parses every pC_*.md parser definition file to extract:
+      - CIM2 field names produced per activity_type and vendor/product
+      - Raw JSON path → CIM2 field mappings (from exa_json_path= entries)
+
+    Output: ~/.exa/cache/field_oracle.json
+    Schema:
+      by_activity_type: {activity_type → {cim2_field → [vendor/product, ...]}}
+      by_vendor:        {vendor → {activity_type → [cim2_field, ...]}}
+      raw_to_cim2:      {raw_path_or_leaf → cim2_field}
+      built_at:         ISO timestamp
+      stats:            {parsers_processed, parsers_failed}
+
+    Args:
+        data_dir: Override base directory (default ~/.exa/).
+        _ds_dir:  Override DS/ source directory (for testing).
+    """
+    base = data_dir or _DATA_DIR
+    ds_dir = _ds_dir or (base / "cim2" / "DS")
+    cache_dir = base / "cache"
+
+    if not ds_dir.is_dir():
+        return CacheResult(
+            name="field_oracle",
+            error=f"DS/ directory not found at {ds_dir} — run 'exa update' first",
+        )
+
+    by_activity_type: dict[str, dict[str, list[str]]] = {}
+    by_vendor: dict[str, dict[str, list[str]]] = {}
+    raw_to_cim2: dict[str, str] = {}
+    parser_count = 0
+    error_count = 0
+
+    for parser_file in ds_dir.rglob("pC_*.md"):
+        try:
+            content = parser_file.read_text(encoding="utf-8", errors="ignore")
+            parsed = _parse_parser_file(content)
+            if not parsed:
+                error_count += 1
+                continue
+
+            parser_count += 1
+            vendor = parsed["vendor"]
+            product = parsed["product"]
+            activity_type = parsed["activity_type"]
+            cim2_fields: list[str] = parsed["cim2_fields"]
+            vendor_product = f"{vendor}/{product}" if vendor and product else vendor
+
+            if activity_type:
+                at_entry = by_activity_type.setdefault(activity_type, {})
+                for fld in cim2_fields:
+                    sources = at_entry.setdefault(fld, [])
+                    if vendor_product and vendor_product not in sources:
+                        sources.append(vendor_product)
+
+            if vendor:
+                vendor_entry = by_vendor.setdefault(vendor, {})
+                if activity_type:
+                    at_fields = vendor_entry.setdefault(activity_type, [])
+                    for fld in cim2_fields:
+                        if fld not in at_fields:
+                            at_fields.append(fld)
+
+            # Merge raw→CIM2 (first-write wins on conflicts)
+            for raw_key, cim2_field in parsed["raw_to_cim2"].items():
+                raw_to_cim2.setdefault(raw_key, cim2_field)
+
+        except Exception:
+            error_count += 1
+            continue
+
+    oracle: dict[str, Any] = {
+        "by_activity_type": by_activity_type,
+        "by_vendor": by_vendor,
+        "raw_to_cim2": raw_to_cim2,
+        "built_at": datetime.now(UTC).isoformat(),
+        "stats": {
+            "parsers_processed": parser_count,
+            "parsers_failed": error_count,
+        },
+    }
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    oracle_file = cache_dir / "field_oracle.json"
+    oracle_file.write_text(json.dumps(oracle, indent=2), encoding="utf-8")
+
+    return CacheResult(
+        name="field_oracle",
+        records=parser_count,
+        updated=datetime.now(UTC).isoformat()[:19],
+    )
+
+
 # -- Public API ---------------------------------------------------------------
 
 
@@ -359,6 +546,9 @@ def update_reference_data(
     # Parse and cache CIM2
     if cim2_dir.exists():
         result.cache_results = _cache_parsed_data(cim2_dir, cache_dir)
+        # Build field oracle from DS/ parser definitions
+        oracle_result = build_field_oracle(data_dir=base)
+        result.cache_results.append(oracle_result)
 
     # Build sigma index
     if include_sigma and sigma_dir.exists():

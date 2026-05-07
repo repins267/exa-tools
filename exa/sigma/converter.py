@@ -6,7 +6,9 @@ and EQL query syntax.
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Any
 
 # Sigma field → Exabeam CIM2 field mapping
@@ -114,6 +116,95 @@ _BUNDLED_ACTIVITY_TYPES: frozenset[str] = frozenset({
     "app-activity", "network-connection", "registry-write",
     "dll-loaded", "driver-loaded",
 })
+
+
+_ORACLE_NOT_LOADED = object()  # sentinel for lazy cache
+_field_oracle_cache: object = _ORACLE_NOT_LOADED
+
+
+def _load_field_oracle() -> dict[str, Any] | None:
+    """Return the field oracle dict, loading it lazily from cache.
+
+    Returns None if ~/.exa/cache/field_oracle.json does not exist or
+    is unreadable. Never raises — always returns None on failure.
+    """
+    global _field_oracle_cache
+    if _field_oracle_cache is not _ORACLE_NOT_LOADED:
+        return _field_oracle_cache  # type: ignore[return-value]
+    try:
+        oracle_path = Path.home() / ".exa" / "cache" / "field_oracle.json"
+        if oracle_path.exists():
+            _field_oracle_cache = json.loads(oracle_path.read_text(encoding="utf-8"))
+        else:
+            _field_oracle_cache = None
+    except Exception:
+        _field_oracle_cache = None
+    return _field_oracle_cache  # type: ignore[return-value]
+
+
+def _check_oracle_confidence(
+    oracle: dict[str, Any],
+    cim2_field: str,
+    activity_type: str | None,
+    vendor: str | None,
+) -> str:
+    """Return 'oracle' if cim2_field is confirmed in the DS/ oracle, else 'schema'."""
+    by_at: dict[str, dict[str, list[str]]] = oracle.get("by_activity_type", {})
+
+    # Priority 1: exact activity_type match
+    if activity_type and cim2_field in by_at.get(activity_type, {}):
+        return "oracle"
+
+    # Priority 2: any activity_type match (field confirmed somewhere in DS/)
+    if any(cim2_field in fields for fields in by_at.values()):
+        return "oracle"
+
+    return "schema"
+
+
+def resolve_cim2_field(
+    sigma_field: str,
+    activity_type: str | None = None,
+    vendor: str | None = None,
+    *,
+    _oracle: dict[str, Any] | None | object = _ORACLE_NOT_LOADED,
+) -> tuple[str, str]:
+    """Resolve a Sigma field name to a CIM2 field name with confidence rating.
+
+    Returns (cim2_field, confidence) where confidence is one of:
+      "oracle"      — field confirmed in DS/ for this activity_type/vendor
+      "schema"      — in CIM2_FIELD_MAP but not confirmed in DS/
+      "passthrough" — no mapping found anywhere
+
+    Resolution order:
+      1. Check oracle raw_to_cim2 for direct raw field translation
+      2. Apply CIM2_FIELD_MAP (Sigma → CIM2 name)
+      3. Confirm translated name in oracle by_activity_type / by_vendor
+      4. If oracle absent, fall back to CIM2_FIELD_MAP silently
+    """
+    oracle = _load_field_oracle() if _oracle is _ORACLE_NOT_LOADED else _oracle  # type: ignore[assignment]
+    base_field = sigma_field.split("|")[0]
+
+    # Step 1: oracle raw_to_cim2 for direct raw → CIM2 match.
+    # A hit here is inherently oracle-confidence (extracted from a parser file).
+    if oracle is not None:
+        raw_cim2: dict[str, str] = oracle.get("raw_to_cim2", {})
+        if base_field in raw_cim2:
+            return raw_cim2[base_field], "oracle"
+
+    # Step 2: CIM2_FIELD_MAP lookup
+    cim2_field = CIM2_FIELD_MAP.get(base_field, base_field)
+    in_schema = base_field in CIM2_FIELD_MAP
+
+    # Step 3: oracle confirmation
+    if oracle is not None and in_schema:
+        confidence = _check_oracle_confidence(oracle, cim2_field, activity_type, vendor)
+        return cim2_field, confidence
+
+    if in_schema:
+        return cim2_field, "schema"  # oracle absent — schema-only confidence
+
+    return base_field, "passthrough"
 
 
 def _load_known_activity_types() -> set[str]:
@@ -463,19 +554,33 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
     # Build structured description (MITRE/tags packed in, 900 char cap)
     description = _build_description(sigma, mitre_tags)
 
-    # Check for unmapped fields
-    unmapped = [m for m in field_mappings if m["sigma"].split("|")[0] == m["cim2"]]
-    for um in unmapped:
-        if um["sigma"] not in CIM2_FIELD_MAP and "|" not in um["sigma"]:
-            warnings.append(f"Unmapped field: {um['sigma']} (passed through as-is)")
+    # Oracle-aware confidence check and warnings
+    oracle = _load_field_oracle()
+    for mapping in field_mappings:
+        sigma_f = mapping["sigma"].split("|")[0]
+        cim2_f = mapping["cim2"]
+        _, confidence = resolve_cim2_field(
+            sigma_f, activity_hint or None, product or None,
+            _oracle=oracle,
+        )
+        mapping["confidence"] = confidence
+        if confidence == "passthrough":
+            warnings.append(f"Unmapped field: {sigma_f} (not in CIM2 DS/)")
+        elif confidence == "schema" and oracle is not None:
+            ctx = f"{product or 'unknown'}/{activity_hint or 'unknown'}"
+            warnings.append(
+                f"Field '{cim2_f}' mapped by schema but not confirmed in DS/ "
+                f"for {ctx}"
+            )
 
     # Assess deploy readiness
+    has_passthrough = any(m.get("confidence") == "passthrough" for m in field_mappings)
     if not eql_query or eql_query.strip() == "":
         deploy_ready = "No"
         warnings.append("Empty EQL query")
     elif len(warnings) > 2:
         deploy_ready = "No"
-    elif unmapped:
+    elif has_passthrough:
         deploy_ready = "Needs review"
     else:
         deploy_ready = "Yes"
