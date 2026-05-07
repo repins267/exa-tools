@@ -11,15 +11,13 @@ if the client is not in internal mode.
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from exa.exceptions import ExaInternalFeatureError
 
 if TYPE_CHECKING:
     from exa.client import ExaClient
-
-P = ParamSpec("P")
-T = TypeVar("T")
 
 
 def detect_internal_mode(client: ExaClient) -> bool:
@@ -46,7 +44,7 @@ def detect_internal_mode(client: ExaClient) -> bool:
         return True
 
 
-def require_internal(func: Callable[P, T]) -> Callable[P, T]:
+def require_internal[**P, T](func: Callable[P, T]) -> Callable[P, T]:
     """Decorator that restricts a function to internal/employee tier access.
 
     The first argument must be an ExaClient instance. If the client does not

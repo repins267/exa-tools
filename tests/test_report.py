@@ -114,5 +114,5 @@ class TestHtmlContent:
 
     def test_exabeam_brand_colors(self):
         html = generate_html_report(_make_report())
-        assert "#00C389" in html
-        assert "#0078D4" in html
+        assert "#009D00" in html
+        assert "#006BFF" in html

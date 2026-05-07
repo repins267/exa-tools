@@ -190,7 +190,7 @@ def tables(
 
 # -- AI/LLM ------------------------------------------------------------------
 
-from exa.cli.aillm import aillm_app
+from exa.cli.aillm import aillm_app  # noqa: E402
 
 app.add_typer(aillm_app)
 
@@ -256,35 +256,35 @@ def frameworks() -> None:
 
 # -- Compliance ---------------------------------------------------------------
 
-from exa.cli.compliance import compliance_app
+from exa.cli.compliance import compliance_app  # noqa: E402
 
 app.add_typer(compliance_app)
 
 
 # -- Config -------------------------------------------------------------------
 
-from exa.cli.config import config_app
+from exa.cli.config import config_app  # noqa: E402
 
 app.add_typer(config_app)
 
 
 # -- Update -------------------------------------------------------------------
 
-from exa.cli.update import update_app
+from exa.cli.update import update_app  # noqa: E402
 
 app.add_typer(update_app)
 
 
 # -- Splunk -------------------------------------------------------------------
 
-from exa.cli.splunk_convert import splunk_app
+from exa.cli.splunk_convert import splunk_app  # noqa: E402
 
 app.add_typer(splunk_app)
 
 
 # -- Sigma --------------------------------------------------------------------
 
-from exa.cli.sigma import sigma_app
+from exa.cli.sigma import sigma_app  # noqa: E402
 
 app.add_typer(sigma_app)
 
@@ -338,7 +338,7 @@ def connect() -> None:
         client = get_dev_client_from_env()
         ttl = int(client._expires_at - time.time())
         console.print("Connected (internal tier)", style="green")
-        console.print("  Token expires in {}s".format(ttl))
+        console.print(f"  Token expires in {ttl}s")
         client.close()
     except Exception as e:
         console.print(f"Failed: {e}", style="red")

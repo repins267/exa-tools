@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -263,6 +265,24 @@ def status(
         client.close()
 
 
+def _render_pdf(html_path: Path, pdf_path: Path) -> None:
+    """Render an HTML file to PDF using playwright chromium."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        console.print(
+            "  playwright not installed. Run: uv run playwright install chromium",
+            style="yellow",
+        )
+        return
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(f"file:///{html_path.resolve()}")
+        page.pdf(path=str(pdf_path), format="A4", print_background=True)
+        browser.close()
+
+
 def _print_status(client: object) -> None:
     """Print identity table status as a Rich table."""
     from exa.compliance.identity import get_identity_table_status
@@ -324,7 +344,14 @@ def audit(
         str | None,
         typer.Option(
             "--output-html",
-            help="Save HTML report (default: reports/<tenant>-<fw>-<date>.html)",
+            help="Path for HTML report (default: reports/<tenant>-<fw>-<date>.html)",
+        ),
+    ] = None,
+    output_pdf: Annotated[
+        str | None,
+        typer.Option(
+            "--output-pdf",
+            help="Render HTML report to PDF (requires: uv run playwright install chromium)",
         ),
     ] = None,
     tenant: Annotated[
@@ -350,26 +377,40 @@ def audit(
             output_report=output_json,
         )
 
+        from exa.compliance.report import (
+            default_report_path,
+            generate_html_report,
+            save_html_report,
+        )
+
+        # Determine HTML path. When --output-pdf is given without
+        # --output-html, skip saving HTML (tempfile used for PDF only).
         if output_html is not None:
-            from exa.compliance.report import (
-                default_report_path,
-                save_html_report,
-            )
+            html_path: Path | None = Path(output_html)
+        elif output_pdf is None:
+            t_name = tenant or "default"
+            date_str = report.timestamp[:10]
+            html_path = default_report_path(t_name, report.framework_name, date_str)
+        else:
+            html_path = None  # PDF-only: HTML goes to a tempfile
 
-            if output_html == "":
-                # Default path: reports/<tenant>-<fw>-<date>.html
-                t_name = tenant or "default"
-                date_str = report.timestamp[:10]
-                html_path = default_report_path(
-                    t_name, report.framework_name, date_str,
-                )
-            else:
-                html_path = output_html  # type: ignore[assignment]
-
+        if html_path is not None:
             save_html_report(report, html_path)
-            console.print(
-                f"\n  HTML report saved: {html_path}",
-                style="green",
-            )
+            console.print(f"\n  HTML report saved: {html_path}", style="green")
+
+        if output_pdf is not None:
+            pdf_path = Path(output_pdf)
+            if html_path is not None:
+                _render_pdf(html_path, pdf_path)
+            else:
+                tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+                tmp_path = Path(tmp.name)
+                tmp.close()
+                tmp_path.write_text(generate_html_report(report), encoding="utf-8")
+                try:
+                    _render_pdf(tmp_path, pdf_path)
+                finally:
+                    tmp_path.unlink(missing_ok=True)
+            console.print(f"\n  PDF report saved: {pdf_path}", style="green")
     finally:
         client.close()

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from fnmatch import fnmatch
 from typing import TYPE_CHECKING, Any
 
-from exa.context.tables import get_all_records, get_tables
+from exa.context.tables import get_tables
 
 if TYPE_CHECKING:
     from exa.client import ExaClient
@@ -26,11 +26,20 @@ _KEY_PRIORITY = [
 # Discovery: target patterns for scoring
 _TARGET_PATTERNS: dict[str, list[str]] = {
     "privileged_users": ["privileged", "admin", "priv user", "elevated"],
-    "service_accounts": ["service account", "service acct", "svc account", "system account", "managed identity"],
+    "service_accounts": [
+        "service account", "service acct", "svc account", "system account", "managed identity",
+    ],
     "shared_accounts": ["shared account", "shared acct", "generic account", "shared"],
-    "third_party_users": ["third party", "third-party", "vendor", "contractor", "external user", "guest"],
-    "in_scope_systems": ["critical device", "critical asset", "in-scope", "data system", "database server", "file server"],
-    "network_systems": ["domain controller", "network security", "firewall", "network device", "infrastructure"],
+    "third_party_users": [
+        "third party", "third-party", "vendor", "contractor", "external user", "guest",
+    ],
+    "in_scope_systems": [
+        "critical device", "critical asset", "in-scope",
+        "data system", "database server", "file server",
+    ],
+    "network_systems": [
+        "domain controller", "network security", "firewall", "network device", "infrastructure",
+    ],
 }
 
 # Default patterns for FilterMode

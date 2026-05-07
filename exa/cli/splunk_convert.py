@@ -67,7 +67,7 @@ def convert_cmd(
 
     To deploy, use:  exa splunk deploy <output.json>
     """
-    from exa.splunk.batch import convert_file, conversion_summary, export_api_payloads
+    from exa.splunk.batch import conversion_summary, convert_file, export_api_payloads
 
     if not excel_file.exists():
         console.print(f"[red]File not found: {excel_file}[/red]")
@@ -307,8 +307,9 @@ def deploy_cmd(
     if dry_run:
         for i, p in enumerate(payloads, 1):
             console.print(f"  {i:>2}. {p['name']}", style="cyan")
-            console.print(f"      EQL: {p['sequencesConfig']['sequences'][0]['query'][:80]}", style="dim")
-        console.print(f"\n  [dim]Dry run — no API calls made.[/dim]")
+            eql_preview = p['sequencesConfig']['sequences'][0]['query'][:80]
+            console.print(f"      EQL: {eql_preview}", style="dim")
+        console.print("\n  [dim]Dry run — no API calls made.[/dim]")
         return
 
     from exa.correlation import create_correlation_rule

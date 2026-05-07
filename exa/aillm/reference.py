@@ -91,7 +91,9 @@ def load_reference_data() -> ReferenceData:
             seen_cats.add(cat_lower)
             proxy_categories.append({"key": cat})
 
-    public_domains = [{"key": d["domain"], "risk": d.get("risk", "medium")} for d in filtered_domains]
+    public_domains = [
+        {"key": d["domain"], "risk": d.get("risk", "medium")} for d in filtered_domains
+    ]
     web_domains = [{"key": d["domain"]} for d in filtered_domains]
     web_categories = list(proxy_categories)  # same data
     applications = [{"key": a["app"]} for a in raw_apps]

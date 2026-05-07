@@ -48,7 +48,7 @@ def _card(cls: str, value: str, label: str) -> str:
 
 def _coverage_bar(pct: int) -> str:
     color = (
-        "#00C389" if pct >= 80
+        "#2e7d32" if pct >= 80
         else "#F0AD4E" if pct >= 50
         else "#E53E3E"
     )
@@ -95,7 +95,7 @@ def generate_html_report(report: AuditReport) -> str:
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
   Roboto,sans-serif;color:#333;background:#f5f6f8}}
-.header{{background:linear-gradient(135deg,#00C389,#0078D4);
+.header{{background:linear-gradient(135deg,#009D00,#006BFF);
   color:#fff;padding:32px 40px}}
 .header h1{{font-size:24px;font-weight:600;
   display:flex;align-items:center}}
@@ -108,20 +108,20 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
   box-shadow:0 2px 8px rgba(0,0,0,0.08);text-align:center}}
 .card .value{{font-size:32px;font-weight:800}}
 .card .label{{font-size:13px;color:#666;margin-top:4px}}
-.card.pass .value{{color:#00C389}}
-.card.fail .value{{color:#E53E3E}}
-.card.cov .value{{color:#0078D4}}
+.card.pass .value{{color:#2e7d32}}
+.card.fail .value{{color:#c62828}}
+.card.cov .value{{color:#006BFF}}
 .card.ev .value{{color:#718096}}
-h2{{font-size:18px;margin:28px 0 12px;color:#1a1a1a}}
+h2{{font-size:18px;margin:28px 0 12px;color:#009D00}}
 table{{width:100%;border-collapse:collapse;background:#fff;
   border-radius:8px;overflow:hidden;
   box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}}
-th{{background:#f0f2f5;text-align:left;padding:10px 14px;
-  font-size:13px;font-weight:600;color:#555}}
+th{{background:#e8f5e9;text-align:left;padding:10px 14px;
+  font-size:13px;font-weight:600;color:#006400}}
 td{{padding:10px 14px;border-top:1px solid #eee;font-size:13px}}
 tr:hover{{background:#fafbfc}}
-.status-pass{{color:#00C389;font-weight:600}}
-.status-fail{{color:#E53E3E;font-weight:600}}
+.status-pass{{background:#e8f5e9;color:#2e7d32;font-weight:600}}
+.status-fail{{background:#ffebee;color:#c62828;font-weight:600}}
 .bar-bg{{display:inline-block;width:80px;height:10px;
   background:#e9ecef;border-radius:5px;vertical-align:middle}}
 .bar{{height:10px;border-radius:5px}}
@@ -200,7 +200,7 @@ tr:hover{{background:#fafbfc}}
         parts.append("</table>")
     else:
         parts.append(
-            '<p style="color:#00C389;font-weight:600">'
+            '<p style="color:#2e7d32;font-weight:600">'
             "No detection gaps found.</p>"
         )
 

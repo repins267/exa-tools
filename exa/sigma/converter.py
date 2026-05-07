@@ -20,7 +20,7 @@ CIM2_FIELD_MAP: dict[str, str] = {
     "ParentImage": "parent_process_name",            # CIM2: parent_process_name ✓
     "ParentCommandLine": "parent_process_command_line",  # CIM2: parent_process_command_line ✓
     "User": "user",
-    "IntegrityLevel": "process_integrity",           # CIM2: process_integrity ✓ (not integrity_level)
+    "IntegrityLevel": "process_integrity",           # CIM2: process_integrity ✓
     "ProcessId": "process_id",                       # CIM2: process_id ✓ (not pid)
     "ParentProcessId": "parent_process_id",          # CIM2: parent_process_id ✓ (not ppid)
     "CurrentDirectory": "process_dir",               # CIM2: process_dir ✓ (not directory)
@@ -54,8 +54,8 @@ CIM2_FIELD_MAP: dict[str, str] = {
     "Details": "registry_value",
     # Web proxy
     "c-uri": "url",                                  # CIM2: url ✓
-    "cs-uri-stem": "uri_path",                       # CIM2: uri_path ✓ (verified in new-scale-content-hub rules)
-    "cs-uri-query": "uri_query",                     # CIM2: uri_query ✓ (verified in new-scale-content-hub rules)
+    "cs-uri-stem": "uri_path",                       # CIM2: uri_path ✓
+    "cs-uri-query": "uri_query",                     # CIM2: uri_query ✓
     "r-dns": "web_domain",                           # CIM2: web_domain ✓
     # DNS
     "QueryName": "query",                            # CIM2: query ✓
@@ -66,7 +66,7 @@ CIM2_FIELD_MAP: dict[str, str] = {
     "userIdentity.type": "user_type",
     "userIdentity.arn": "user_arn",
     "requestParameters.bucketName": "bucket_name",
-    "responseElements.ConsoleLogin": "alert_name",   # closest CIM2 field; console_login not in CIMLibrary
+    "responseElements.ConsoleLogin": "alert_name",   # closest CIM2 field; console_login not in CIM2
     # Hostname — verified
     "ComputerName": "dest_host",                     # CIM2: dest_host ✓
     "SourceHostname": "src_host",                    # CIM2: src_host ✓
@@ -538,7 +538,10 @@ def convert_to_exa_rule(sigma: dict[str, Any]) -> dict[str, Any]:
 
     # Map severity
     level = sigma.get("level", "medium")
-    severity_map = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low", "informational": "Informational"}
+    severity_map = {
+        "critical": "Critical", "high": "High", "medium": "Medium",
+        "low": "Low", "informational": "Informational",
+    }
     severity = severity_map.get(level, "Medium") if isinstance(level, str) else "Medium"
 
     # Extract MITRE tags

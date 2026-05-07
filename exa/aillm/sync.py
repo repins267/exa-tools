@@ -14,13 +14,13 @@ Tables:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
-from exa.aillm.merge import MergedData, merge_aillm_data
+from exa.aillm.merge import merge_aillm_data
 from exa.aillm.reference import load_reference_data
 from exa.context.tables import (
     add_records,
@@ -171,7 +171,9 @@ def sync_aillm_context_tables(
     if discovered_domains:
         console.print(f"  Discovered: {ms.discovered_new} new domains from {ms.discovered_total}")
     if discovered_apps:
-        console.print(f"  Discovered: {ms.discovered_apps_new} new apps from {ms.discovered_apps_total}")
+        console.print(
+            f"  Discovered: {ms.discovered_apps_new} new apps from {ms.discovered_apps_total}"
+        )
 
     # Dry run: show what would be written and return early
     if dry_run:
@@ -232,7 +234,9 @@ def sync_aillm_context_tables(
 
         if bucket not in table_ids:
             console.print("    SKIP: Table not resolved", style="red")
-            results.append(SyncResult(table_name=exa_name, errors=1, error_detail="Table not resolved"))
+            results.append(
+                SyncResult(table_name=exa_name, errors=1, error_detail="Table not resolved")
+            )
             continue
 
         table_id = table_ids[bucket]
