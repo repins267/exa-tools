@@ -121,6 +121,18 @@ def _run_update() -> None:
                     cr.name, str(cr.records), cr.updated,
                 )
 
+        if result.aillm_domains_sha:
+            from exa.aillm.reference import load_reference_data
+            try:
+                ref = load_reference_data()
+                cache_table.add_row(
+                    "ai_llm_domains",
+                    str(len(ref.public_domains)),
+                    result.aillm_domains_sha[:12],
+                )
+            except Exception:
+                pass
+
         console.print(cache_table)
 
     console.print(
