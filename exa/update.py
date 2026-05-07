@@ -72,19 +72,39 @@ def _git_clone(repo_url: str, target_dir: Path) -> str:
     return result.stdout
 
 
+def _git_set_config(repo_dir: Path, key: str, value: str) -> None:
+    """Set a repo-level git config value (persisted to .git/config)."""
+    subprocess.run(
+        ["git", "-C", str(repo_dir), "config", key, value],
+        capture_output=True, text=True, timeout=10,
+    )
+
+
 def _git_pull(repo_dir: Path) -> str:
     """Fetch and hard-reset to origin HEAD.
 
     Uses fetch + reset --hard instead of pull to handle:
     - Local modifications (content-hub has edited files)
-    - Windows-invalid filenames (CIM2 has a file with a literal quote
-      in its name — core.protectNTFS=false lets git skip it cleanly)
+    - Windows NTFS constraints:
+        core.longpaths=true  — content-hub has paths > 260 chars
+        core.protectNTFS=false — CIM2 has a file with a literal quote
+          in its name (ParsersLegacy/"_parsers.md); git skips it cleanly
     These repos are read-only caches so force-resetting is correct.
+
+    The "Could not reset index file" fatal error fires on Windows even
+    when all working-tree files are updated successfully (git just can't
+    write the index entry for the problematic filename). We treat that
+    specific failure as a warning rather than a hard error — the cache
+    parsing only needs files on disk, not a clean git index.
     """
+    # Persist Windows-safe config before any git operations so fetch
+    # and reset both benefit from it.
+    _git_set_config(repo_dir, "core.longpaths", "true")
+    _git_set_config(repo_dir, "core.protectNTFS", "false")
+
     # Fetch latest from origin
     fetch = subprocess.run(
-        ["git", "-c", "core.protectNTFS=false", "-C", str(repo_dir),
-         "fetch", "origin"],
+        ["git", "-C", str(repo_dir), "fetch", "origin"],
         capture_output=True, text=True, timeout=300,
     )
     if fetch.returncode != 0:
@@ -96,22 +116,29 @@ def _git_pull(repo_dir: Path) -> str:
          "refs/remotes/origin/HEAD"],
         capture_output=True, text=True, timeout=30,
     )
-    if branch_result.returncode == 0:
-        # e.g. refs/remotes/origin/main → main
-        branch = branch_result.stdout.strip().split("/")[-1]
-    else:
-        branch = "main"
+    branch = (
+        branch_result.stdout.strip().split("/")[-1]
+        if branch_result.returncode == 0
+        else "main"
+    )
 
-    # Hard reset to remote branch, discard local changes and untracked files
+    # Hard reset to remote branch, discard local changes
     reset = subprocess.run(
-        ["git", "-c", "core.protectNTFS=false", "-C", str(repo_dir),
-         "reset", "--hard", f"origin/{branch}"],
+        ["git", "-C", str(repo_dir), "reset", "--hard", f"origin/{branch}"],
         capture_output=True, text=True, timeout=300,
     )
-    if reset.returncode != 0:
-        raise RuntimeError(f"git reset failed: {reset.stderr.strip()}")
 
-    # Clean untracked files and directories that would block merge
+    if reset.returncode != 0:
+        # Windows-specific: git can't write the index entry for filenames
+        # that are invalid on NTFS (e.g. containing `"`) or exceed MAX_PATH,
+        # but the working-tree files are already updated on disk.
+        # Treat "unable to create file" index errors as non-fatal warnings.
+        if "unable to create file" in reset.stderr:
+            pass  # files on disk are correct; index entry skipped by git
+        else:
+            raise RuntimeError(f"git reset failed: {reset.stderr.strip()}")
+
+    # Clean untracked files and directories that would block future resets
     subprocess.run(
         ["git", "-C", str(repo_dir), "clean", "-fd"],
         capture_output=True, text=True, timeout=60,
