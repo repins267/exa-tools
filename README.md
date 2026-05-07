@@ -8,11 +8,7 @@
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Converts Splunk SPL searches and SigmaHQ detection rules to Exabeam EQL correlation rules, deploys them to your tenant, and manages context tables — all from the command line.
 
-## Pipeline Animation
-
-[![Pipeline Animation](docs/oracle.svg)](docs/pipeline-animation.html)
-
-> [View the interactive pipeline animation](docs/pipeline-animation.html) — shows the SPL→Sigma→EQL and Sigma→EQL conversion flows with Field Oracle integration.
+![Pipeline Animation](docs/pipeline-animation.svg)
 
 ## How It Works
 
