@@ -21,16 +21,18 @@ _BASE = "/detection-management/v1/analytics-rules"
 RULE_A = {
     "id": "rule-uuid-001",
     "name": "Suspicious PowerShell Execution",
-    "enabled": True,
-    "status": "enabled",
+    "isEnabled": True,
+    "state": "Active",
+    "severity": "High",
     "description": "Detects encoded PowerShell commands",
 }
 
 RULE_B = {
     "id": "rule-uuid-002",
     "name": "Brute Force Login Attempt",
-    "enabled": False,
-    "status": "disabled",
+    "isEnabled": False,
+    "state": "Active",
+    "severity": "Medium",
     "description": "Detects rapid failed authentication",
 }
 
@@ -53,15 +55,40 @@ class TestGetDetectionRules:
         assert len(result) == 2
         assert result[0]["id"] == "rule-uuid-001"
 
-    def test_filter_by_name(self, exa, mock_auth):
-        mock_auth.add_response(method="GET", json={"rules": [RULE_A]})
+    def test_filter_by_name_client_side(self, exa, mock_auth):
+        # API always returns all rules; name filter is applied client-side
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
         result = get_detection_rules(exa, name="PowerShell")
         assert len(result) == 1
+        assert result[0]["id"] == "rule-uuid-001"
 
-    def test_filter_by_status(self, exa, mock_auth):
-        mock_auth.add_response(method="GET", json={"rules": [RULE_B]})
+    def test_filter_by_name_case_insensitive(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
+        result = get_detection_rules(exa, name="powershell")
+        assert len(result) == 1
+
+    def test_filter_by_status_enabled(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
+        result = get_detection_rules(exa, status="enabled")
+        assert len(result) == 1
+        assert result[0]["isEnabled"] is True
+
+    def test_filter_by_status_disabled(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
         result = get_detection_rules(exa, status="disabled")
-        assert result[0]["status"] == "disabled"
+        assert len(result) == 1
+        assert result[0]["isEnabled"] is False
+
+    def test_limit_applied_client_side(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
+        result = get_detection_rules(exa, limit=1)
+        assert len(result) == 1
+
+    def test_no_query_params_sent_to_api(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
+        get_detection_rules(exa, name="PowerShell", status="enabled", limit=1)
+        request = mock_auth.get_request(url=f"{BASE_URL}{_BASE}")
+        assert "?" not in str(request.url)
 
     def test_empty_response(self, exa, mock_auth):
         mock_auth.add_response(method="GET", json={"rules": []})
@@ -263,14 +290,14 @@ class TestDiffRules:
         assert result["added"] == []
 
     def test_changed_rule_field(self):
-        rule_a_disabled = {**RULE_A, "enabled": False}
+        rule_a_disabled = {**RULE_A, "isEnabled": False}
         result = diff_rules([RULE_A], [rule_a_disabled])
         assert len(result["changed"]) == 1
         entry = result["changed"][0]
         assert entry["id"] == "rule-uuid-001"
-        assert "enabled" in entry["changes"]
-        assert entry["changes"]["enabled"]["before"] is True
-        assert entry["changes"]["enabled"]["after"] is False
+        assert "isEnabled" in entry["changes"]
+        assert entry["changes"]["isEnabled"]["before"] is True
+        assert entry["changes"]["isEnabled"]["after"] is False
 
     def test_custom_key_field(self):
         rules_a = [{"name": "Rule Alpha", "status": "enabled"}]

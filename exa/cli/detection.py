@@ -74,12 +74,20 @@ def detection_list(
         if json_out:
             console.print_json(json.dumps(rules))
             return
-        tbl = Table("ID", "Name", "Status", show_header=True, header_style="bold")
+        tbl = Table("ID", "Name", "Enabled", "Severity", show_header=True, header_style="bold")
         for r in rules:
+            enabled_val = r.get("isEnabled")
+            if enabled_val is True:
+                enabled_str = "[green]yes[/green]"
+            elif enabled_val is False:
+                enabled_str = "[dim]no[/dim]"
+            else:
+                enabled_str = ""
             tbl.add_row(
                 r.get("id", ""),
                 r.get("name", ""),
-                r.get("enabled", r.get("status", "")),
+                enabled_str,
+                r.get("severity", ""),
             )
         console.print(tbl)
         console.print(f"\n  {len(rules)} rules", style="dim")
@@ -289,6 +297,6 @@ def detection_diff(
             console.print(f"  ~ {entry.get('id', '?')}")
             for field, delta in entry.get("changes", {}).items():
                 console.print(
-                    f"      {field}: {delta['before']!r} → {delta['after']!r}",
+                    f"      {field}: {delta['before']!r} -> {delta['after']!r}",
                     style="dim",
                 )

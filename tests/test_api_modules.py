@@ -77,7 +77,7 @@ class TestDetectionRules:
         from exa.detection import get_detection_rules
 
         mock_auth.add_response(
-            url=f"{BASE_URL}/detection-management/v1/analytics-rules?limit=100",
+            url=f"{BASE_URL}/detection-management/v1/analytics-rules",
             method="GET",
             json={"rules": [{"id": "d1", "name": "Anomaly"}]},
         )

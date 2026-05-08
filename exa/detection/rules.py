@@ -1,6 +1,7 @@
 """Detection (analytics) rule operations for Exabeam New-Scale.
 
-API base path: /detection-management/v1/analytics-rules  # EXA-UNVERIFIED
+API base path: /detection-management/v1/analytics-rules
+Verified live against sademodev22 2026-05-08.
 """
 
 from __future__ import annotations
@@ -10,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from exa.client import ExaClient
 
-# EXA-UNVERIFIED: base path — verify live with GET /detection-management/v1/analytics-rules
 _BASE = "/detection-management/v1/analytics-rules"
 
 
@@ -19,37 +19,48 @@ def get_detection_rules(
     *,
     name: str | None = None,
     status: str | None = None,
-    limit: int = 100,
-    after: str | None = None,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     """List detection/analytics rules with optional filters.
 
+    The API returns all rules in a single response — it ignores limit/name/status
+    query params. Filtering and limiting are applied client-side.
+
     Args:
         client: Authenticated ExaClient.
-        name: Filter by rule name (substring match).
-        status: Filter by status, e.g. "enabled" or "disabled".
-        limit: Max rules to return.
-        after: Pagination cursor (value of last rule's id from prior page).
+        name: Case-insensitive substring match on rule name.
+        status: "enabled" or "disabled" — filters on the isEnabled boolean field.
+        limit: Cap on rules returned after filtering.
 
     Returns:
-        List of rule dicts.
+        List of rule dicts. Key fields: id, name, isEnabled, state, severity,
+        description, mitre, families, requiredFields, author, createdAt, updatedAt.
 
-    API: GET /detection-management/v1/analytics-rules  # EXA-UNVERIFIED
-    Response: {"rules": [...], ...}
+    API: GET /detection-management/v1/analytics-rules
+    Response: {"rules": [...]}
     """
-    params: dict[str, Any] = {"limit": limit}
-    if name:
-        params["name"] = name
-    if status:
-        params["status"] = status
-    if after:
-        params["after"] = after
+    resp = client.get(_BASE)
 
-    resp = client.get(_BASE, params=params)
-
+    rules: list[dict[str, Any]]
     if isinstance(resp, dict) and "rules" in resp:
-        return resp["rules"]
-    return resp
+        rules = list(resp["rules"])
+    elif isinstance(resp, list):
+        rules = list(resp)
+    else:
+        rules = []
+
+    if name:
+        name_lower = name.lower()
+        rules = [r for r in rules if name_lower in r.get("name", "").lower()]
+
+    if status:
+        want_enabled = status.lower() == "enabled"
+        rules = [r for r in rules if bool(r.get("isEnabled")) is want_enabled]
+
+    if limit is not None:
+        rules = rules[:limit]
+
+    return rules
 
 
 def get_detection_rule(client: ExaClient, rule_id: str) -> dict[str, Any]:
