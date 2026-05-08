@@ -49,6 +49,24 @@ class TestSearchEventsBodyKey:
         assert body["query"] == EQL_FILTER
 
 
+class TestSearchEventsGroupBy:
+    def test_group_by_excludes_approx_log_time(self, exa, mock_auth):
+        """GROUP BY queries reject fields not in group_by — approxLogTime must be omitted."""
+        mock_auth.add_response(url=SEARCH_URL, method="POST", json={"rows": []})
+        search_events(exa, EQL_FILTER, fields=["web_domain"], group_by=["web_domain"])
+        request = mock_auth.get_request(url=SEARCH_URL)
+        body = json.loads(request.content)
+        assert "approxLogTime" not in body["fields"]
+        assert body["groupBy"] == ["web_domain"]
+
+    def test_non_group_by_includes_approx_log_time(self, exa, mock_auth):
+        mock_auth.add_response(url=SEARCH_URL, method="POST", json={"rows": []})
+        search_events(exa, EQL_FILTER, fields=["web_domain"])
+        request = mock_auth.get_request(url=SEARCH_URL)
+        body = json.loads(request.content)
+        assert "approxLogTime" in body["fields"]
+
+
 class TestSearchEventsResults:
     def test_returns_rows(self, exa, mock_auth):
         mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)

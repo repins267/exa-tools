@@ -42,7 +42,8 @@ def search_events(
         raw: Return raw API response instead of flattened rows.
     """
     req_fields = list(fields or _DEFAULT_FIELDS)
-    if "approxLogTime" not in req_fields:
+    # approxLogTime is invalid in GROUP BY queries (not grouped, not aggregated)
+    if "approxLogTime" not in req_fields and not group_by:
         req_fields.append("approxLogTime")
 
     # Resolve time range
