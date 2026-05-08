@@ -56,6 +56,68 @@ def _show_check() -> None:
     console.print(table)
 
 
+def _find_repo_root() -> "Path | None":
+    """Walk up from the exa package location to find the git repo root."""
+    from pathlib import Path
+
+    import exa
+
+    candidate = Path(exa.__file__).resolve().parent
+    for directory in [candidate, *candidate.parents]:
+        if (directory / ".git").exists():
+            return directory
+    return None
+
+
+@update_app.command("self")
+def update_self(
+    branch: Annotated[
+        str,
+        typer.Option("--branch", "-b", help="Branch to pull (default: current branch)"),
+    ] = "",
+) -> None:
+    """Pull the latest exa-tools code from git and sync dependencies."""
+    import subprocess
+    from pathlib import Path
+
+    repo_root = _find_repo_root()
+    if repo_root is None:
+        console.print("[red]✗ exa-tools does not appear to be installed from a git repo.[/red]")
+        console.print("  Run: git clone <repo> && cd exa-tools && uv sync")
+        raise typer.Exit(1)
+
+    console.print(f"  Repo: {repo_root}", style="dim")
+
+    git_cmd = ["git", "pull"] + (["origin", branch] if branch else [])
+    try:
+        result = subprocess.run(git_cmd, cwd=repo_root, capture_output=False, text=True)
+    except FileNotFoundError:
+        console.print("[red]✗ git not found in PATH. Install git and try again.[/red]")
+        raise typer.Exit(1)
+
+    if result.returncode != 0:
+        console.print(f"[red]✗ git pull failed (exit {result.returncode})[/red]")
+        raise typer.Exit(result.returncode)
+
+    console.print()
+
+    try:
+        result = subprocess.run(["uv", "sync"], cwd=repo_root, capture_output=False, text=True)
+    except FileNotFoundError:
+        console.print(
+            "[red]✗ uv not found in PATH. Install uv (https://docs.astral.sh/uv/) and try again.[/red]"
+        )
+        raise typer.Exit(1)
+
+    if result.returncode != 0:
+        console.print(f"[red]✗ uv sync failed (exit {result.returncode})[/red]")
+        raise typer.Exit(result.returncode)
+
+    console.print(
+        "[green]✓ exa-tools updated. Restart your shell or re-run exa if the version changed.[/green]"
+    )
+
+
 def _run_update() -> None:
     """Run the full update pipeline."""
     from rich.progress import Progress
