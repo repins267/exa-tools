@@ -194,6 +194,16 @@ from exa.cli.aillm import aillm_app  # noqa: E402
 
 app.add_typer(aillm_app)
 
+# -- Threat Center (cases + alerts + case triage) ----------------------------
+
+from exa.cli.case import case_app  # noqa: E402
+from exa.cli.cases import alerts_app, cases_app  # noqa: E402
+
+app.add_typer(cases_app)
+app.add_typer(alerts_app)
+app.add_typer(case_app)
+
+
 
 # -- Search -------------------------------------------------------------------
 
