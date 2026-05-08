@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "exabeam-api-docs": {
+      "type": "sse",
+      "url": "https://developers.exabeam.com/mcp"
+    }
+  }
+}
