@@ -60,15 +60,15 @@ def configure() -> None:
     )
 
     # Credentials
-    client_id = Prompt.ask("Client ID")
+    client_id = Prompt.ask("Key ID")
     if not client_id.strip():
-        console.print("Client ID cannot be empty.", style="red")
+        console.print("Key ID cannot be empty.", style="red")
         raise typer.Exit(1)
     client_id = client_id.strip()
 
-    client_secret = Prompt.ask("Client Secret", password=True)
+    client_secret = Prompt.ask("Key Secret", password=True)
     if not client_secret:
-        console.print("Client Secret cannot be empty.", style="red")
+        console.print("Key Secret cannot be empty.", style="red")
         raise typer.Exit(1)
 
     # Test connection

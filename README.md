@@ -4,13 +4,19 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-401%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-533%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
 **Detection rule conversion** routes Splunk SPL searches and SigmaHQ community rules through a shared `SPL → Sigma → EQL` pipeline backed by the **Field Oracle** — a local index of 4,258 raw→CIM2 field mappings extracted from Exabeam's own parser definitions. Every converted field gets a confidence rating (Oracle / Schema / Passthrough) so you know exactly what's verified before you deploy.
 
 **One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
+
+**Threat Center integration** gives analysts a full CLI workflow for cases and alerts — search, triage, update, and qualify. `exa case qualify` pulls the triggering correlation rule, entity history, context table membership, and score trend, then issues a structured verdict (SUSPECTED_INCIDENT / LIKELY_FP / LEARNING_PHASE_NOISE / NEEDS_INVESTIGATION) to help analysts decide faster.
+
+**Outcome tracking and calibration** logs every qualification and tracks analyst decisions over time. `exa case baseline` uses the tenant's licensed LTS retention window to pull historical closed cases, computes per-rule and per-entity false-positive rates, and feeds that calibration back into future verdicts automatically.
+
+**Detection Management** exports, imports, and diffs analytics rules across tenants — enabling rule backup, migration, and cross-environment gap analysis.
 
 **Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF v2.0, CMMC L2/L3, PCI DSS, HIPAA, FedRAMP Moderate, CIS Controls v8, ISO 27001, CJIS, GDPR, and SOX — and produces HTML and PDF reports with executive summaries and gap analysis. Queries are dynamically built per-tenant using **Field Oracle concept resolution**, ensuring controls match the actual `activity_type` values present in each environment.
 
@@ -78,6 +84,12 @@ This means compliance queries automatically adapt to each customer's log sources
 - **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
 - **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution for rules and compliance
 - **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
+- **Threat Center — cases** — search, get, update, and create cases with EQL filtering and rich table output
+- **Threat Center — alerts** — search, get, and update alerts; priority colour coding; `--json` for pipeline use
+- **Case triage (`exa case qualify`)** — structured analyst triage: rule definition, entity history, context table membership, score trend, IP annotation, and a four-outcome verdict
+- **Outcome tracking** — every `qualify` run is logged; `exa case outcome sync` back-fills analyst decisions from closed cases
+- **Historical calibration (`exa case baseline`)** — LTS-aware lookback capped to licensed retention; per-rule and per-entity FP rates feed back into future verdicts
+- **Detection Management** — export, import, and diff analytics (UEBA) rules across tenants
 - **Context table management** — CRUD operations with 20k batch support and pagination
 - <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
 - <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks with tenant-aware query resolution, HTML + PDF report output
@@ -275,6 +287,86 @@ HTML reports are saved to `reports/` and include an executive summary, family co
 | GDPR | ~30 | Stub (queries pending) |
 | SOX | ~15 | Stub (queries pending) |
 
+### `exa cases` / `exa alerts`
+
+Search and manage Threat Center cases and alerts.
+
+```bash
+exa cases list                                        # all open cases, last 30 days
+exa cases list --filter 'NOT stage:"CLOSED"' --limit 20
+exa cases list --json                                 # raw JSON for pipeline use
+exa cases get <case-uuid>
+exa cases get <case-uuid> --json
+exa cases update <case-uuid> --stage CLOSED --closed-reason "False Positive"
+exa cases update <case-uuid> --priority CRITICAL --assignee analyst@corp.com
+exa cases update <case-uuid> --tags "reviewed,escalated"
+
+exa alerts list --filter 'priority:"HIGH"' --lookback 7
+exa alerts get <alert-uuid>
+exa alerts update <alert-uuid> --priority LOW --tags "noise"
+```
+
+### `exa case qualify`
+
+Structured analyst triage for a single case. Pulls the triggering correlation rule definition, entity case history, context table membership, score trend, and external IP annotations — then issues a verdict.
+
+```bash
+exa case qualify C-1042
+exa case qualify C-1042 --window 30    # ±30 min event context window
+exa case qualify C-1042 --json         # machine-readable QualificationReport
+```
+
+**Verdicts:**
+
+| Verdict | Meaning |
+|---|---|
+| `SUSPECTED_INCIDENT` | Single-event rule, new entity, first appearance or escalating score — investigate now |
+| `LIKELY_FP` | Entity in compliance context table, not a new high, or rule has >75% historical FP rate |
+| `LEARNING_PHASE_NOISE` | Threshold rule, consistent score, 3+ prior cases — rule may need tuning |
+| `NEEDS_INVESTIGATION` | Spike or escalating score with no mitigating context |
+
+### `exa case outcome`
+
+Track and record analyst decisions on qualified cases. Every `qualify` run is logged automatically.
+
+```bash
+exa case outcome list                                 # all logged qualifications + current outcome
+exa case outcome sync                                 # auto-fill outcomes for closed cases from API
+exa case outcome resolve C-1042 --outcome fp          # manually record: tp | fp | noise | duplicate
+```
+
+### `exa case baseline`
+
+Pull historical closed cases, compute per-rule and per-entity false-positive rates, and write a calibration cache that improves future `qualify` verdicts.
+
+```bash
+exa case baseline                                     # default 90-day lookback, LTS-capped
+exa case baseline --lookback 60
+exa case baseline --report                            # show calibration table: rule | TP | FP | FP rate
+exa case baseline --json
+```
+
+The lookback is automatically capped to the tenant's licensed LTS retention window (`GET /health-consumption/v1/consumption/lts`) — no hardcoded limits.
+
+### `exa detection`
+
+Export, import, and manage analytics (UEBA) rules. Useful for backups, cross-tenant migration, and auditing enabled/disabled state.
+
+```bash
+exa detection list
+exa detection list --status enabled
+exa detection get <rule-id>
+exa detection enable <rule-id>
+exa detection disable <rule-id>
+exa detection export                                  # stdout (pipeable)
+exa detection export --out rules-backup.json
+exa detection import rules-backup.json
+exa detection import rules-backup.json --overwrite
+exa detection diff --from sademodev22 --to prod-tenant
+```
+
+> **Note:** Detection Management endpoints are EXA-UNVERIFIED — paths will be confirmed in a live session against sademodev22 and updated before production use.
+
 ### `exa search`
 
 ```bash
@@ -334,7 +426,7 @@ Additional features are available for Exabeam employees.
 
 ```bash
 uv sync                    # install deps
-uv run pytest -v           # run tests (401 passing)
+uv run pytest -v           # run tests (533 passing)
 uv run pytest tests/test_sigma.py::TestProxyFieldMappings  # single test class
 uv run ruff check exa/     # lint
 ```
