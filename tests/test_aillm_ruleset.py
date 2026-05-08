@@ -29,9 +29,14 @@ def test_match_keywords_custom():
     assert not _match_keywords("Copilot Activity", ["openai"])
 
 
-def test_match_keywords_partial_word():
-    # "ai" should match "airedale" — substring match by design
-    assert _match_keywords("airedale", ["ai"])
+def test_match_keywords_word_boundary():
+    # "ai" must NOT match mid-word — word-boundary protection
+    assert not _match_keywords("airedale", ["ai"])
+    assert not _match_keywords("email alert", ["ai"])
+    assert not _match_keywords("domain activity", ["ai"])
+    # But standalone "AI" in a real alert name should match
+    assert _match_keywords("Public AI Domains and Risk", ["ai"])
+    assert _match_keywords("AI Upload Detected", ["ai"])
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +97,7 @@ def test_sync_writes_new_records(exa, httpx_mock):
     )
     # Existing records (empty table)
     httpx_mock.add_response(
-        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records",
+        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records?limit=100000&offset=0",
         method="GET",
         json={"records": [], "paging": {"count": 0, "limit": 100000, "offset": 0, "pages": 0}},
     )
@@ -124,7 +129,7 @@ def test_sync_skips_existing_records(exa, httpx_mock):
     )
     # One already present
     httpx_mock.add_response(
-        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records",
+        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records?limit=100000&offset=0",
         method="GET",
         json={
             "records": [{"key": "Public AI Domains and Risk"}],
@@ -216,7 +221,7 @@ def test_sync_all_already_present(exa, httpx_mock):
         json=_tables_response("tbl-001"),
     )
     httpx_mock.add_response(
-        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records",
+        url=f"{BASE_URL}/context-management/v1/tables/tbl-001/records?limit=100000&offset=0",
         method="GET",
         json={
             "records": [{"key": "Public AI Domains and Risk"}],

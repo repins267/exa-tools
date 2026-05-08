@@ -12,6 +12,7 @@ the Looker dashboard tiles show data.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -25,14 +26,17 @@ if TYPE_CHECKING:
 
 console = Console()
 
-# Default keyword set — case-insensitive substring match against alert name.
-# Covers Exabeam OOTB rules and common custom rule naming conventions.
+# Default keyword set for AI/LLM alert name matching.
+# Short abbreviations (≤4 chars: "ai", "llm", "gpt") use word-boundary matching
+# to avoid substring false positives ("domain" contains "ai", "email" contains "ai",
+# "help" contains "lp", etc.).
+# Multi-word and longer keywords use plain substring matching.
 DEFAULT_KEYWORDS: list[str] = [
-    "ai",
-    "llm",
+    "ai",           # word-boundary matched
+    "llm",          # word-boundary matched
+    "gpt",          # word-boundary matched
     "genai",
     "gen ai",
-    "gpt",
     "copilot",
     "claude",
     "openai",
@@ -48,8 +52,11 @@ DEFAULT_KEYWORDS: list[str] = [
     "ai domain",
     "ai application",
     "ai agent",
-    "dlp",
 ]
+
+# Keywords short enough to generate false positives as bare substrings.
+# These are matched only at word boundaries (\b...\b).
+_WORD_BOUNDARY_KEYWORDS: frozenset[str] = frozenset({"ai", "llm", "gpt"})
 
 _TABLE_DISPLAY_NAME = "AI/LLM DLP Rulesets"
 
@@ -71,9 +78,23 @@ class SyncRulesetResult:
 
 
 def _match_keywords(name: str, keywords: list[str]) -> bool:
-    """Return True if any keyword appears in the alert name (case-insensitive)."""
+    """Return True if any keyword matches the alert name (case-insensitive).
+
+    Short abbreviations in _WORD_BOUNDARY_KEYWORDS ("ai", "llm", "gpt") are
+    matched at word boundaries only, preventing false positives like
+    "domain" (dom-ai-n) or "email" (em-ai-l) matching keyword "ai".
+    All other keywords use plain substring matching.
+    """
     name_lower = name.lower()
-    return any(kw.lower() in name_lower for kw in keywords)
+    for kw in keywords:
+        kw_lower = kw.lower()
+        if kw_lower in _WORD_BOUNDARY_KEYWORDS:
+            if re.search(rf"\b{re.escape(kw_lower)}\b", name_lower):
+                return True
+        else:
+            if kw_lower in name_lower:
+                return True
+    return False
 
 
 def sync_dlp_ruleset(
