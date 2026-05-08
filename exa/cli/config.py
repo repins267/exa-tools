@@ -114,8 +114,8 @@ def config_tenants() -> None:
         table.add_row(
             nickname,
             entry.get("fqdn", f"{nickname}.exabeam.cloud"),
-            entry.get("region", "—"),
-            entry.get("api_server", "—"),
+            entry.get("region", "-"),
+            entry.get("api_server", "-"),
             f"[green]{is_default}[/green]",
         )
 

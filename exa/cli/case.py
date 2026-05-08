@@ -530,7 +530,7 @@ def outcome_resolve(
         console.print(_json.dumps({"case_number": case_number, "outcome": outcome}))
     else:
         console.print(
-            f"  Case {case_number} → outcome set to [bold]{outcome}[/bold]", style="green"
+            f"  Case {case_number}: outcome set to [bold]{outcome}[/bold]", style="green"
         )
 
 
