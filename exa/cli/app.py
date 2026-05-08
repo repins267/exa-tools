@@ -204,6 +204,12 @@ app.add_typer(alerts_app)
 app.add_typer(case_app)
 
 
+# -- Detection rules ----------------------------------------------------------
+
+from exa.cli.detection import detection_app  # noqa: E402
+
+app.add_typer(detection_app)
+
 
 # -- Search -------------------------------------------------------------------
 
