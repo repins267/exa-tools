@@ -162,30 +162,9 @@ def auth(
 
 # -- Context tables -----------------------------------------------------------
 
-@app.command()
-def tables(
-    name: Annotated[
-        str | None,
-        typer.Option("--name", help="Filter by name"),
-    ] = None,
-    tenant: Annotated[
-        str | None,
-        typer.Option("--tenant", "-t", help=_TENANT_HELP),
-    ] = None,
-) -> None:
-    """List context tables."""
-    from exa.context import get_tables
+from exa.cli.tables import tables_app  # noqa: E402
 
-    client = _make_client(tenant)
-    try:
-        result = get_tables(client, name=name)
-        for t in result:
-            console.print(
-                f"  {t.get('id', '?'):<40} {t.get('name', '?')}",
-            )
-        console.print(f"\n  {len(result)} tables", style="dim")
-    finally:
-        client.close()
+app.add_typer(tables_app)
 
 
 # -- AI/LLM ------------------------------------------------------------------
@@ -402,11 +381,11 @@ def search(
 
             scanned_note = ""
             if hit_limit:
-                scanned_note = " (fetch limit — results may be partial)"
+                scanned_note = " (fetch limit - results may be partial)"
             elif user_set_limit:
                 scanned_note = " (user-set limit)"
             console.print(
-                f"  {total_distinct} distinct values  ·  {n:,} events scanned{scanned_note}",
+                f"  {total_distinct} distinct values | {n:,} events scanned{scanned_note}",
                 style="dim",
             )
         return
@@ -453,7 +432,7 @@ def search(
             raw = row.get(api_col)
             val = "" if raw is None else str(raw)
             if len(val) > 80:
-                val = val[:79] + "…"
+                val = val[:79] + "~"
             cells.append(_style_cell(col, val))
         tbl.add_row(*cells)
 
@@ -462,7 +441,7 @@ def search(
     now_dt = datetime.now(UTC)
     start_dt = now_dt - timedelta(days=lookback_days)
     console.print(
-        f"  {n:,} events  ·  lookback: {lookback_days}d  ·  "
+        f"  {n:,} events | lookback: {lookback_days}d | "
         f"scanned {start_dt.strftime('%Y-%m-%d')} to {now_dt.strftime('%Y-%m-%d')}",
         style="dim",
     )
@@ -497,6 +476,13 @@ def frameworks() -> None:
 from exa.cli.compliance import compliance_app  # noqa: E402
 
 app.add_typer(compliance_app)
+
+
+# -- HotKey -------------------------------------------------------------------
+
+from exa.cli.hotkey import hotkey_app  # noqa: E402
+
+app.add_typer(hotkey_app)
 
 
 # -- Config -------------------------------------------------------------------
