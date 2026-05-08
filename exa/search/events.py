@@ -65,7 +65,7 @@ def search_events(
     body: dict[str, Any] = {
         "limit": limit,
         "distinct": distinct,
-        "filter": filter,
+        "query": filter,
         "startTime": resolved_start.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "endTime": resolved_end.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "fields": req_fields,
