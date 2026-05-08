@@ -30,8 +30,16 @@ class TestSearchEventsBodyKey:
         search_events(exa, EQL_FILTER, lookback_hours=1, limit=3)
         request = mock_auth.get_request(url=SEARCH_URL)
         body = json.loads(request.content)
-        assert "query" in body, "body must use 'query' key, not 'filter'"
-        assert "filter" not in body, "'filter' key must not appear in body"
+        assert "query" in body, "EQL string must go in 'query' key"
+
+    def test_mandatory_filter_key_present(self, exa, mock_auth):
+        """EXA-SEARCH-FILTER-400: 'filter' key must always be present (empty string ok)."""
+        mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)
+        search_events(exa, EQL_FILTER, lookback_hours=1, limit=3)
+        request = mock_auth.get_request(url=SEARCH_URL)
+        body = json.loads(request.content)
+        assert "filter" in body, "body must include 'filter' key (EXA-SEARCH-FILTER-400)"
+        assert body["filter"] == "", "'filter' must be empty string when no secondary filter needed"
 
     def test_eql_string_reaches_api_unchanged(self, exa, mock_auth):
         mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)

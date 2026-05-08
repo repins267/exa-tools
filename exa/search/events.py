@@ -66,6 +66,9 @@ def search_events(
         "limit": limit,
         "distinct": distinct,
         "query": filter,
+        # Always include filter key — /search/v2/events returns 400
+        # "Mandatory filter field missing" if absent (EXA-SEARCH-FILTER-400)
+        "filter": "",
         "startTime": resolved_start.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "endTime": resolved_end.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "fields": req_fields,
