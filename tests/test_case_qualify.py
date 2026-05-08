@@ -1,10 +1,13 @@
 """Tests for case qualification engine: ip_classify, score trend, verdict, run_qualification."""
 
+import json
 import re
 
 import pytest
 
+import exa.case.outcomes as outcomes_mod
 from exa.case.ip_classify import classify_ip, classify_ip_with_label
+from exa.case.outcomes import load_outcomes
 from exa.case.qualify import (
     QualificationReport,
     _compute_score_trend,
@@ -471,3 +474,36 @@ class TestRunQualification:
         report = run_qualification(exa, "221")
         assert report.entity_in_context_tables == ["Compliance - Privileged Users"]
         assert report.verdict == "LIKELY_FP"
+
+    def test_qualify_likely_fp_from_fp_cache(self, exa, mock_auth, tmp_path, monkeypatch):
+        # Prior scores [98, 100] → score_is_new_high=False; cache says rule has 80% FP rate
+        prior_cases = {
+            "rows": [
+                {"caseId": "old-001", "riskScore": 98, "caseCreationTimestamp": "2026-04-01T00:00:00Z"},
+                {"caseId": "old-002", "riskScore": 100, "caseCreationTimestamp": "2026-04-15T00:00:00Z"},
+            ]
+        }
+        rule_name = SEARCH_CASES_RESPONSE["rows"][0]["alertName"]
+        cache_file = tmp_path / "rule_fp_rates.json"
+        cache_file.write_text(json.dumps({rule_name: 0.80}), encoding="utf-8")
+
+        import exa.case.qualify as qualify_mod
+        monkeypatch.setattr(qualify_mod, "_RULE_FP_RATES_PATH", cache_file)
+
+        _register_standard_mocks(mock_auth, prior_cases_response=prior_cases)
+
+        report = run_qualification(exa, "221")
+        assert report.verdict == "LIKELY_FP"
+        assert any("historical FP rate" in r for r in report.verdict_reasons)
+
+    def test_qualify_appends_outcome_record(self, exa, mock_auth, tmp_path, monkeypatch):
+        """run_qualification() must log a record to outcomes.jsonl."""
+        monkeypatch.setattr(outcomes_mod, "_OUTCOMES_PATH", tmp_path / "outcomes.jsonl")
+        _register_standard_mocks(mock_auth)
+
+        report = run_qualification(exa, "221")
+        records = load_outcomes()
+        assert len(records) == 1
+        assert records[0].case_id == "case-uuid-221"
+        assert records[0].verdict_issued == report.verdict
+        assert records[0].outcome is None

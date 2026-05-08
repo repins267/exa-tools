@@ -21,14 +21,17 @@ API endpoints used:
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from exa.client import ExaClient
 
 _COMPLIANCE_TABLE_PREFIXES = ("Compliance -",)
+_RULE_FP_RATES_PATH = Path.home() / ".exa" / "cache" / "rule_fp_rates.json"
 
 
 # ---------------------------------------------------------------------------
@@ -252,6 +255,15 @@ def _determine_verdict(report: QualificationReport) -> tuple[str, list[str], str
     No hardcoded score thresholds — risk score is only compared against the
     entity's own prior case history.
     """
+    # Load calibration cache if available (module attr patchable in tests)
+    rule_fp_rates: dict[str, float] = {}
+    if _RULE_FP_RATES_PATH.exists():
+        try:
+            with _RULE_FP_RATES_PATH.open(encoding="utf-8") as _f:
+                rule_fp_rates = json.load(_f)
+        except Exception:
+            pass
+
     reasons: list[str] = []
     is_first_seen = report.rule_trigger_type == "first_seen"
     has_context = bool(report.entity_in_context_tables)
@@ -293,6 +305,19 @@ def _determine_verdict(report: QualificationReport) -> tuple[str, list[str], str
             reasons,
             "Consider adding entity to allowlist or adjusting rule scope.",
         )
+
+    # LIKELY_FP (calibration cache):
+    # Rule has a >75% historical FP rate from resolved outcomes AND score is not a new high.
+    if report.rule_name and not report.score_is_new_high:
+        cached_rate = rule_fp_rates.get(report.rule_name)
+        if cached_rate is not None and cached_rate > 0.75:
+            reasons.append(f"Rule has {cached_rate:.0%} historical FP rate")
+            reasons.append(f"Score ({report.risk_score}) is not a new high for this entity")
+            return (
+                "LIKELY_FP",
+                reasons,
+                "Consider adding entity to allowlist or adjusting rule scope.",
+            )
 
     # LEARNING_PHASE_NOISE:
     # Threshold-based rule with consistent score across 3+ prior cases —
@@ -443,5 +468,25 @@ def run_qualification(
     report.verdict = verdict
     report.verdict_reasons = verdict_reasons
     report.recommended_action = recommended_action
+
+    # Log for historical baseline — lazy import, never fail qualification on error
+    try:
+        from exa.case.outcomes import OutcomeRecord, append_outcome
+
+        append_outcome(OutcomeRecord(
+            ts=datetime.now(UTC).isoformat(),
+            case_number=case_number,
+            case_id=case_id,
+            rule_name=rule_name or None,
+            entity_name=entity_name or None,
+            entity_type=entity_type if entity_name else None,
+            verdict_issued=verdict,
+            risk_score=risk_score,
+            score_trend=score_trend,
+            closed_reason=None,
+            outcome=None,
+        ))
+    except Exception:
+        pass
 
     return report
