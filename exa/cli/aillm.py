@@ -1,8 +1,9 @@
-"""AI/LLM CLI commands — sync and status.
+"""AI/LLM CLI commands -- sync, sync-ruleset, and status.
 
 Commands:
-  exa aillm sync    -- Sync 6 AI/LLM context tables from reference data
-  exa aillm status  -- Show live record counts for all 6 tables
+  exa aillm sync           -- Sync 6 AI/LLM context tables from reference data
+  exa aillm sync-ruleset   -- Sync 'AI/LLM DLP Rulesets' from live alert history
+  exa aillm status         -- Show live record counts for all 6 tables
 """
 
 from __future__ import annotations
@@ -103,6 +104,105 @@ def sync_cmd(
         client.close()
 
 
+# -- sync-ruleset -------------------------------------------------------------
+
+
+@aillm_app.command("sync-ruleset")
+def sync_ruleset_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option(
+            "--lookback",
+            help="Days to search back for alert names (default 90)",
+        ),
+    ] = 90,
+    keywords: Annotated[
+        str | None,
+        typer.Option(
+            "--keywords",
+            help=(
+                "Comma-separated keywords to filter alert names "
+                "(default: built-in AI/LLM keyword list)"
+            ),
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option("--limit", help="Max alerts to pull from Threat Center (max 3000)"),
+    ] = 3000,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Preview matched names without writing"),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option("--force", help="Replace all existing records instead of append"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Sync 'AI/LLM DLP Rulesets' table from live alert history.
+
+    Pulls real Exabeam alert names from the Threat Center, filters for
+    AI/LLM-related names, and writes them to the 'AI/LLM DLP Rulesets'
+    context table. This makes the Looker/BigQuery AI/LLM dashboard tiles
+    show data (they filter alert_name against this table).
+
+    Run once per tenant after AI/LLM correlation rules are active.
+    Use --dry-run to preview what would be added first.
+
+    Example (4 tenants):
+
+      exa aillm sync-ruleset -t tenant1
+      exa aillm sync-ruleset -t tenant2
+      exa aillm sync-ruleset -t tenant3
+      exa aillm sync-ruleset -t tenant4
+    """
+    from exa.aillm.ruleset import sync_dlp_ruleset
+
+    kw_list: list[str] | None = None
+    if keywords:
+        kw_list = [k.strip() for k in keywords.split(",") if k.strip()]
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.rule(f"{prefix}AI/LLM DLP Ruleset Sync")
+
+    client = _make_client(tenant)
+    try:
+        result = sync_dlp_ruleset(
+            client,
+            lookback_days=lookback,
+            keywords=kw_list,
+            limit=limit,
+            dry_run=dry_run,
+            force=force,
+        )
+    finally:
+        client.close()
+
+    console.rule("Result", style="dim")
+    console.print(f"  Alerts searched:   {result.alerts_searched}")
+    console.print(f"  Unique names:      {result.alert_names_found}")
+    console.print(f"  AI/LLM matched:    {result.keyword_matched}")
+    if not dry_run:
+        console.print(f"  Already present:   {result.already_present}")
+        console.print(f"  Upserted:          {result.upserted}")
+
+    if result.error:
+        console.print(f"\n  x {result.error}", style="red")
+        raise typer.Exit(1)
+    elif result.keyword_matched == 0:
+        console.print(
+            "\n  No AI/LLM alert names found -- "
+            "try --lookback 180 or --keywords to broaden the search.",
+            style="yellow",
+        )
+    else:
+        console.print("\n  Done", style="green")
+
+
 # -- status -------------------------------------------------------------------
 
 
@@ -128,7 +228,7 @@ def status_cmd(
         total = 0
         for s in statuses:
             if not s.found:
-                tbl.add_row(s.table_name, "—", "Not found", style="dim")
+                tbl.add_row(s.table_name, "-", "Not found", style="dim")
             else:
                 tbl.add_row(
                     s.table_name,
