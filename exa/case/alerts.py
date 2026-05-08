@@ -65,8 +65,8 @@ def search_alerts(
         "startTime": t_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "endTime": t_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
-    if filter is not None:
-        body["filter"] = filter
+    # Always include filter key — some tenants return 400 if it's absent entirely
+    body["filter"] = filter if filter is not None else ""
 
     response = client.post("/threat-center/v1/search/alerts", json=body)
 
