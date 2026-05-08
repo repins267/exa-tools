@@ -213,37 +213,259 @@ app.add_typer(detection_app)
 
 # -- Search -------------------------------------------------------------------
 
+_SEARCH_DEFAULT_API_FIELDS = ["user", "host", "activity_type", "outcome"]
+_SEARCH_DEFAULT_DISPLAY_FIELDS = ["timestamp"] + _SEARCH_DEFAULT_API_FIELDS
+
+_OUTCOME_STYLES: dict[str, str] = {
+    "success": "green", "allow": "green", "allowed": "green",
+    "fail": "red", "failure": "red", "blocked": "red", "deny": "red", "denied": "red",
+}
+_PARSED_STYLES: dict[str, str] = {"yes": "green", "no": "red"}
+
+
+def _style_cell(col: str, value: str) -> str:
+    """Return Rich markup for a table cell, applying colour rules."""
+    col_lower = col.lower()
+    if col_lower == "outcome":
+        style = _OUTCOME_STYLES.get(value.lower())
+        if style:
+            return f"[{style}]{value}[/{style}]"
+    elif col_lower == "parsed":
+        style = _PARSED_STYLES.get(value.lower())
+        if style:
+            return f"[{style}]{value}[/{style}]"
+    return value
+
+
 @app.command()
 def search(
     filter_str: Annotated[
-        str, typer.Argument(help="EQL filter string"),
-    ],
+        str,
+        typer.Argument(
+            help=(
+                "EQL filter string. "
+                "Omit or pass '' for catch-all. "
+            ),
+        ),
+    ] = "",
     lookback_days: Annotated[
         int,
-        typer.Option("--lookback", help="Days to search back"),
+        typer.Option("--lookback", help="Days to search back (default 1)"),
     ] = 1,
     limit: Annotated[
-        int, typer.Option("--limit", help="Max events"),
-    ] = 100,
+        int | None,
+        typer.Option("--limit", help="Max events (default varies by mode: table=100, unique/count/csv=10000, json=100)"),
+    ] = None,
+    fields: Annotated[
+        str | None,
+        typer.Option(
+            "--fields",
+            metavar="FIELD[,FIELD...]",
+            help=(
+                "Comma-separated CIM fields to return "
+                "(default: timestamp,user,host,activity_type,outcome). "
+                "Ignored when --unique is set."
+            ),
+        ),
+    ] = None,
+    unique: Annotated[
+        str | None,
+        typer.Option("--unique", metavar="FIELD", help="Show value frequency table for a single field"),
+    ] = None,
+    count: Annotated[
+        bool,
+        typer.Option("--count", help="Print matched event count only"),
+    ] = False,
+    as_json: Annotated[
+        bool,
+        typer.Option("--json", help="Output NDJSON to stdout (compatible with jq)"),
+    ] = False,
+    csv_path: Annotated[
+        str | None,
+        typer.Option("--csv", metavar="PATH", help="Write results to CSV file"),
+    ] = None,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Search Exabeam events."""
+    """Search Exabeam events using EQL.
+
+    \b
+    Examples:
+      exa search 'activity_type:"authentication"' --lookback 7
+      exa search 'parsed:"No"' --fields parsed,m_collector_name,error_detail
+      exa search 'activity_type:"authentication"' --unique user --lookback 30
+      exa search 'outcome:"fail"' --count --lookback 7
+      exa search 'user:"jsmith"' --json | jq .
+      exa search 'activity_type:"authentication"' --csv auth.csv --lookback 30
+    """
+    import csv as _csv
+    import json as _json
+    import sys
+    from collections import Counter
+    from datetime import UTC, datetime, timedelta
+
+    from rich import box
+    from rich.table import Table
+
     from exa.search import search_events
 
+    # ── Mutex conflict detection (before any API call) ─────────────────────
+    if as_json and csv_path:
+        console.print("✗ Cannot combine --json and --csv", style="red")
+        raise typer.Exit(1)
+    if unique and count:
+        console.print("✗ Cannot combine --unique and --count", style="red")
+        raise typer.Exit(1)
+    if csv_path and count:
+        console.print("✗ --count produces no rows; use without --csv", style="red")
+        raise typer.Exit(1)
+    if unique and fields:
+        console.print("  --fields ignored when --unique is set", style="yellow")
+
+    # ── Mode-dependent auto-limit ──────────────────────────────────────────
+    user_set_limit = limit is not None
+    if unique or count or csv_path:
+        resolved_limit = limit if user_set_limit else 10_000
+    elif as_json:
+        resolved_limit = limit if user_set_limit else 100
+    else:
+        resolved_limit = limit if user_set_limit else 100  # table mode
+
+    # ── Determine fields to fetch and display ──────────────────────────────
+    if unique:
+        fetch_fields: list[str] = [unique]
+        display_fields: list[str] = [unique]
+    elif fields:
+        requested = [f.strip() for f in fields.split(",") if f.strip()]
+        # "timestamp" is derived from approxLogTime — don't send to API
+        fetch_fields = [f for f in requested if f != "timestamp"]
+        display_fields = requested
+    else:
+        fetch_fields = _SEARCH_DEFAULT_API_FIELDS.copy()
+        display_fields = _SEARCH_DEFAULT_DISPLAY_FIELDS.copy()
+
+    # ── API call ───────────────────────────────────────────────────────────
     client = _make_client(tenant)
     try:
         events = search_events(
-            client, filter_str,
-            lookback_days=lookback_days, limit=limit,
+            client,
+            filter_str,  # "" verified working on sademodev22 2026-05-08
+            fields=fetch_fields if fetch_fields else None,
+            lookback_days=lookback_days,
+            limit=resolved_limit,
         )
-        for e in events:
-            console.print(e)
-        console.print(f"\n  {len(events)} events", style="dim")
     finally:
         client.close()
+
+    n = len(events)
+    hit_limit = (not user_set_limit) and n >= resolved_limit
+
+    # ── --count mode ───────────────────────────────────────────────────────
+    if count:
+        if as_json:
+            sys.stdout.write(_json.dumps({"count": n}) + "\n")
+        else:
+            suffix = "+" if hit_limit else ""
+            console.print(f"  {n:,}{suffix} events matched")
+        return
+
+    # ── --unique mode ──────────────────────────────────────────────────────
+    if unique:
+        counter: Counter[str] = Counter()
+        null_count = 0
+        for row in events:
+            v = row.get(unique)
+            if v is None or v == "":
+                null_count += 1
+            else:
+                counter[str(v)] += 1
+
+        sorted_items = counter.most_common()
+        total_distinct = len(sorted_items) + (1 if null_count else 0)
+
+        if as_json:
+            for value, cnt in sorted_items:
+                sys.stdout.write(_json.dumps({"value": value, "count": cnt}) + "\n")
+            if null_count:
+                sys.stdout.write(_json.dumps({"value": None, "count": null_count}) + "\n")
+        else:
+            tbl = Table(box=box.SIMPLE_HEAD, show_header=True, header_style="bold")
+            tbl.add_column("value", overflow="fold")
+            tbl.add_column("count", justify="right")
+            for value, cnt in sorted_items:
+                tbl.add_row(str(value), f"{cnt:,}")
+            if null_count:
+                tbl.add_row("[dim](null)[/dim]", f"{null_count:,}")
+            console.print(tbl)
+
+            scanned_note = ""
+            if hit_limit:
+                scanned_note = " (fetch limit — results may be partial)"
+            elif user_set_limit:
+                scanned_note = " (user-set limit)"
+            console.print(
+                f"  {total_distinct} distinct values  ·  {n:,} events scanned{scanned_note}",
+                style="dim",
+            )
+        return
+
+    # ── --json mode ────────────────────────────────────────────────────────
+    if as_json:
+        for row in events:
+            row.pop("approxLogTime", None)
+            sys.stdout.write(_json.dumps(row) + "\n")
+        return
+
+    # ── --csv mode ─────────────────────────────────────────────────────────
+    if csv_path:
+        # Build column list; "timestamp" is always first if present in display
+        csv_cols = list(display_fields)
+        with open(csv_path, "w", newline="", encoding="utf-8") as fh:
+            writer = _csv.DictWriter(fh, fieldnames=csv_cols, extrasaction="ignore")
+            writer.writeheader()
+            for row in events:
+                row.pop("approxLogTime", None)
+                writer.writerow({col: row.get(col, "") for col in csv_cols})
+        console.print(f"  {n:,} events written to {csv_path}", style="dim")
+        return
+
+    # ── Default table mode ─────────────────────────────────────────────────
+    # Sort by timestamp ascending (approxLogTime is added by search_events)
+    events.sort(key=lambda r: r.get("approxLogTime", 0))
+
+    # Suppress entirely-null/empty columns
+    cols_to_show = []
+    for col in display_fields:
+        api_col = "timestamp" if col == "timestamp" else col
+        if any(row.get(api_col) not in (None, "") for row in events):
+            cols_to_show.append(col)
+
+    tbl = Table(box=box.SIMPLE_HEAD, show_header=True, header_style="bold")
+    for col in cols_to_show:
+        tbl.add_column(col, overflow="fold")
+
+    for row in events:
+        cells = []
+        for col in cols_to_show:
+            api_col = "timestamp" if col == "timestamp" else col
+            raw = row.get(api_col)
+            val = "" if raw is None else str(raw)
+            if len(val) > 80:
+                val = val[:79] + "…"
+            cells.append(_style_cell(col, val))
+        tbl.add_row(*cells)
+
+    console.print(tbl)
+
+    now_dt = datetime.now(UTC)
+    start_dt = now_dt - timedelta(days=lookback_days)
+    console.print(
+        f"  {n:,} events  ·  lookback: {lookback_days}d  ·  "
+        f"scanned {start_dt.strftime('%Y-%m-%d')} to {now_dt.strftime('%Y-%m-%d')}",
+        style="dim",
+    )
 
 
 # -- Frameworks ---------------------------------------------------------------
