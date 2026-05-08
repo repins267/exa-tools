@@ -436,6 +436,7 @@ def audit(
                                 edge,
                                 "--headless",
                                 "--disable-gpu",
+                                "--print-to-pdf-no-header",
                                 f"--print-to-pdf={resolved_pdf.resolve()}",
                                 str(src_path.resolve()),
                             ],

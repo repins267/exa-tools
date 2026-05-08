@@ -102,7 +102,7 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
 .header .sub{{opacity:.9;margin-top:6px;font-size:14px}}
 .wrap{{max-width:1100px;margin:0 auto;padding:24px}}
 .cards{{display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
   gap:16px;margin:24px 0}}
 .card{{background:#fff;border-radius:8px;padding:20px;
   box-shadow:0 2px 8px rgba(0,0,0,0.08);text-align:center}}
@@ -129,6 +129,12 @@ tr:hover{{background:#fafbfc}}
   border-radius:8px;padding:16px 20px;margin:32px 0;
   font-size:13px;color:#664d03}}
 .ft{{text-align:center;font-size:12px;color:#999;padding:20px}}
+@media print{{
+  @page{{margin:1.5cm 1.5cm}}
+  body{{min-height:unset!important}}
+  .container{{min-height:unset!important}}
+  *:last-child{{page-break-after:avoid!important}}
+}}
 </style>
 </head>
 <body>""")
