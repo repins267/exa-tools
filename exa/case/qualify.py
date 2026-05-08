@@ -385,7 +385,7 @@ def run_qualification(
     from exa.case.entities import get_entity_cases
 
     # Step 1: Resolve case number → full case dict
-    rows = search_cases(client, filter=f'caseNumber:"{case_number}"', limit=1)
+    rows = search_cases(client, filter=f'caseNumber:{case_number}', limit=1)
     if not rows:
         raise ValueError(f"No case found with number {case_number!r}")
     case = rows[0]

@@ -159,8 +159,8 @@ def cases_get(
         console.print(f"  Risk Score:  {case.get('riskScore', '')}")
         console.print(f"  Queue:       {case.get('queue', '')}")
         console.print(f"  Assignee:    {case.get('assignee', '')}")
-        console.print(f"  Created:     {case.get('caseCreationTimestamp', '')}")
-        console.print(f"  Updated:     {case.get('lastUpdateTimestamp', '')}")
+        console.print(f"  Created:     {case.get('creationTimestamp', '')}")
+        console.print(f"  Updated:     {case.get('lastModifiedTimestamp', '')}")
 
         tags = case.get("tags", [])
         if tags:

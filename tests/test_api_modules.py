@@ -88,10 +88,11 @@ class TestDetectionRules:
     def test_get_detection_rule(self, exa, mock_auth):
         from exa.detection import get_detection_rule
 
+        # Per-ID endpoint returns 404 on sademodev22; implementation fetches all and filters.
         mock_auth.add_response(
-            url=f"{BASE_URL}/detection-management/v1/analytics-rules/d1",
+            url=f"{BASE_URL}/detection-management/v1/analytics-rules",
             method="GET",
-            json={"id": "d1", "name": "Anomaly", "enabled": True},
+            json={"rules": [{"id": "d1", "name": "Anomaly", "enabled": True}]},
         )
         rule = get_detection_rule(exa, "d1")
         assert rule["id"] == "d1"

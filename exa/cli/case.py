@@ -46,6 +46,18 @@ def _make_client(tenant: str | None = None):
     return client
 
 
+def _fmt_us(ts: int | None) -> str:
+    """Convert microsecond timestamp to YYYY-MM-DD HH:MM UTC string."""
+    from datetime import UTC, datetime
+
+    if not ts:
+        return ""
+    try:
+        return datetime.fromtimestamp(int(ts) // 1_000_000, tz=UTC).strftime("%Y-%m-%d %H:%M UTC")
+    except (ValueError, OSError):
+        return str(ts)
+
+
 # ---------------------------------------------------------------------------
 # qualify
 # ---------------------------------------------------------------------------
@@ -119,7 +131,7 @@ def _print_qualification_report(report) -> None:
         prior_label += f"  [scores: {', '.join(str(s) for s in r.prior_scores)}]"
     grid.add_row("Prior Cases", prior_label)
 
-    console.print(Panel(grid, title=f"CASE {r.case_number} — Qualification Report", expand=True))
+    console.print(Panel(grid, title=f"CASE {r.case_number} - Qualification Report", expand=True))
 
     # Nova summary
     if r.nova_summary:
@@ -129,13 +141,13 @@ def _print_qualification_report(report) -> None:
     context_table = Table.grid(padding=(0, 2))
     context_table.add_column(style="dim", no_wrap=True)
     context_table.add_column()
-    context_table.add_row("Events ±window", str(r.event_context_count))
+    context_table.add_row("Events +/-window", str(r.event_context_count))
 
     if r.external_ips:
         for i, ip_info in enumerate(r.external_ips):
             label = f"{ip_info['ip']} ({ip_info['label']})"
             if ip_info.get("port_count"):
-                label += f" — {ip_info['port_count']} distinct ports"
+                label += f" ({ip_info['port_count']} distinct ports)"
             context_table.add_row("External IPs" if i == 0 else "", label)
     else:
         context_table.add_row("External IPs", "(none detected)")
@@ -145,7 +157,7 @@ def _print_qualification_report(report) -> None:
     # Verdict
     verdict_lines = [f"[bold {style}]{icon}  {r.verdict}[/bold {style}]", ""]
     for reason in r.verdict_reasons:
-        verdict_lines.append(f"  • {reason}")
+        verdict_lines.append(f"  - {reason}")
     verdict_lines.append("")
     verdict_lines.append(f"  [dim]Recommend:[/dim] {r.recommended_action}")
 
@@ -170,7 +182,7 @@ def show(
 
     client = _make_client(tenant)
     try:
-        rows = search_cases(client, filter=f'caseNumber:"{case_number}"', limit=1)
+        rows = search_cases(client, filter=f'caseNumber:{case_number}', limit=1)
         if not rows:
             console.print(f"Case {case_number!r} not found.", style="red")
             raise typer.Exit(1)
@@ -180,12 +192,12 @@ def show(
 
     console.print(f"\n[bold]Case {case.get('caseNumber', case_number)}[/bold]")
     console.print(f"  ID:          {case.get('caseId', '')}")
-    console.print(f"  Name:        {case.get('alertName', '')}")
+    console.print(f"  Name:        {case.get('name', '')}")
     console.print(f"  Stage:       {case.get('stage', '')}")
     console.print(f"  Priority:    {case.get('priority', '')}")
     console.print(f"  Risk Score:  {case.get('riskScore', '')}")
     console.print(f"  Assignee:    {case.get('assignee', '')}")
-    console.print(f"  Created:     {case.get('caseCreationTimestamp', '')}")
+    console.print(f"  Created:     {_fmt_us(case.get('caseCreationTimestamp'))}")
 
     users = case.get("users") or []
     if users:
@@ -238,7 +250,7 @@ def search(
     # Build EQL filter
     clauses: list[str] = []
     if rule:
-        clauses.append(f'alertName:WLDi("*{rule}*")')
+        clauses.append(f'name:WLDi("*{rule}*")')
     if entity:
         clauses.append(f'users:"{entity}"')
     if stage:
@@ -268,7 +280,7 @@ def search(
         risk = str(row.get("riskScore", ""))
         table.add_row(
             str(row.get("caseNumber", "")),
-            str(row.get("alertName", "")),
+            str(row.get("name", "")),
             str(row.get("stage", "")),
             risk,
             entity_display,
@@ -307,7 +319,7 @@ def events(
 
     client = _make_client(tenant)
     try:
-        rows = search_cases(client, filter=f'caseNumber:"{case_number}"', limit=1)
+        rows = search_cases(client, filter=f'caseNumber:{case_number}', limit=1)
         if not rows:
             console.print(f"Case {case_number!r} not found.", style="red")
             raise typer.Exit(1)
@@ -315,10 +327,10 @@ def events(
 
         from datetime import UTC, datetime
 
-        trigger_str = case.get("caseCreationTimestamp", "")
-        try:
-            t = datetime.fromisoformat(trigger_str.replace("Z", "+00:00"))
-        except (ValueError, AttributeError):
+        trigger_us = case.get("caseCreationTimestamp")
+        if trigger_us:
+            t = datetime.fromtimestamp(int(trigger_us) // 1_000_000, tz=UTC)
+        else:
             t = datetime.now(UTC)
 
         users = case.get("users") or []
@@ -359,7 +371,7 @@ def events(
         )
 
     console.print(table)
-    console.print(f"\n  {len(events_rows)} event(s) within ±{window} min of trigger", style="dim")
+    console.print(f"\n  {len(events_rows)} event(s) within +/-{window} min of trigger", style="dim")
 
 
 # ---------------------------------------------------------------------------
@@ -392,7 +404,7 @@ def history(
         console.print(f"No cases found for {entity!r} in last {lookback} days.", style="dim")
         return
 
-    table = Table(show_header=True, header_style="bold", title=f"Cases — {entity}")
+    table = Table(show_header=True, header_style="bold", title=f"Cases - {entity}")
     table.add_column("Case #", style="cyan", no_wrap=True)
     table.add_column("Rule/Name", max_width=40)
     table.add_column("Stage", no_wrap=True)
@@ -402,10 +414,10 @@ def history(
     for case in cases:
         table.add_row(
             str(case.get("caseNumber", "")),
-            str(case.get("alertName", "")),
+            str(case.get("name", "")),
             str(case.get("stage", "")),
             str(case.get("riskScore", "")),
-            str(case.get("caseCreationTimestamp", ""))[:10],
+            _fmt_us(case.get("caseCreationTimestamp"))[:10],
         )
 
     console.print(table)
@@ -470,8 +482,8 @@ def outcome_list(
             r.verdict_issued,
             str(r.risk_score),
             r.score_trend,
-            f"[{outcome_style}]{r.outcome or '—'}[/{outcome_style}]",
-            r.closed_reason or "—",
+            f"[{outcome_style}]{r.outcome or '-'}[/{outcome_style}]",
+            r.closed_reason or "-",
         )
 
     console.print(table)
@@ -594,7 +606,7 @@ def baseline(
         )
     else:
         console.print(
-            f"  LTS retention unknown — using requested {report.lookback_days_used} days",
+            f"  LTS retention unknown - using requested {report.lookback_days_used} days",
             style="dim",
         )
 
@@ -620,9 +632,9 @@ def baseline(
             # Approximate TP/FP counts from verdict_accuracy if available
             table.add_row(
                 rule_name,
-                "—",
-                "—",
-                "—",
+                "-",
+                "-",
+                "-",
                 f"[{style}]{fp_rate:.0%}[/{style}]",
             )
         console.print(table)

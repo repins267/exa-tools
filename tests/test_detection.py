@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from exa.detection import (
     diff_rules,
     export_rules,
@@ -108,24 +110,16 @@ class TestGetDetectionRules:
 
 class TestGetDetectionRule:
     def test_returns_rule_by_id(self, exa, mock_auth):
-        mock_auth.add_response(
-            url=f"{BASE_URL}{_BASE}/rule-uuid-001",
-            method="GET",
-            json=RULE_A,
-        )
+        # Per-ID endpoint returns 404 on sademodev22; implementation fetches all and filters.
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
         result = get_detection_rule(exa, "rule-uuid-001")
         assert result["id"] == "rule-uuid-001"
         assert result["name"] == "Suspicious PowerShell Execution"
 
-    def test_correct_endpoint(self, exa, mock_auth):
-        rule_id = "abc-999"
-        mock_auth.add_response(
-            url=f"{BASE_URL}{_BASE}/{rule_id}",
-            method="GET",
-            json={"id": rule_id},
-        )
-        result = get_detection_rule(exa, rule_id)
-        assert result["id"] == rule_id
+    def test_raises_for_missing_id(self, exa, mock_auth):
+        mock_auth.add_response(method="GET", json=RULES_LIST_RESPONSE)
+        with pytest.raises(KeyError, match="not found"):
+            get_detection_rule(exa, "does-not-exist")
 
 
 # ---------------------------------------------------------------------------

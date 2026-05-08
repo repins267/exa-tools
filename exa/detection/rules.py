@@ -66,9 +66,14 @@ def get_detection_rules(
 def get_detection_rule(client: ExaClient, rule_id: str) -> dict[str, Any]:
     """Get a single detection rule by ID.
 
-    API: GET /detection-management/v1/analytics-rules/{id}  # EXA-UNVERIFIED
+    The per-ID endpoint (GET /{id}) returns 404 on sademodev22 — fetch all and
+    filter client-side instead.
     """
-    return client.get(f"{_BASE}/{rule_id}")
+    rules = get_detection_rules(client)
+    for rule in rules:
+        if rule.get("id") == rule_id:
+            return rule
+    raise KeyError(f"Detection rule not found: {rule_id!r}")
 
 
 def set_detection_rule_state(

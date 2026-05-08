@@ -195,7 +195,7 @@ def detection_export(
         bundle = export_rules(client, rule_ids=rule_ids if rule_ids else None)
         output.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
         count = len(bundle.get("rules", bundle.get("ruleIds", [])))
-        console.print(f"Exported {count} rules → {output}", style="green")
+        console.print(f"Exported {count} rules to {output}", style="green")
     finally:
         client.close()
 
