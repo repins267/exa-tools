@@ -1,0 +1,10 @@
+#!/bin/sh
+# Run help tests before every commit.
+# Install: git config core.hooksPath .githooks
+echo "Running help tests..."
+uv run pytest tests/test_help.py -q --tb=short
+if [ $? -ne 0 ]; then
+    echo "Help tests failed. Fix before committing."
+    exit 1
+fi
+echo "Help tests passed."

@@ -26,76 +26,6 @@ All from the command line.
 
 ![Pipeline Animation](docs/pipeline-animation.svg)
 
-## How It Works
-
-### SPL → Sigma → EQL Pipeline
-
-Splunk SPL and Exabeam EQL are fundamentally different languages. Rather than a lossy direct translation, exa-tools routes through [Sigma](https://github.com/SigmaHQ/sigma) as a structured intermediate format:
-
-```
-Splunk SPL search
-    ↓  exa/splunk/parser.py      — extract index, fields, pipeline stages
-    ↓  exa/splunk/to_sigma.py    — build Sigma rule dict with logsource + detection
-    ↓  exa/sigma/converter.py    — map Sigma fields → CIM2, build EQL query
-    ↓
-Exabeam EQL correlation rule  →  deploy via API
-```
-
-This means field mapping reuses the community-maintained Sigma field vocabulary, wildcard values become proper Sigma modifiers (`|contains`, `|endswith`, `|startswith`), and negations become proper `filter` blocks. Pipeline stages that can't be represented in EQL (`stats`, `eval`, `lookup`, etc.) are inventoried as warnings rather than silently dropped.
-
-### Field Oracle
-
-<img src="docs/oracle.svg" width="180" align="right" alt="Field Oracle"/>
-
-The Field Oracle is the translation engine at the heart of the converter. Rather than relying on hand-maintained field maps or incomplete documentation, it reads Exabeam's own parser definitions directly.
-
-`exa update` walks **8,278 parser files** across 269 vendors in the `Content-Library-CIM2/DS/` directory and builds a local index:
-
-- **4,258 raw → CIM2 field mappings** extracted from parser regex capture groups and JSON path definitions
-- **25 activity types** indexed with their confirmed field sets
-- **269 vendors** — Code42, Digital Guardian, Microsoft O365, Cisco, and hundreds more
-
-Every field the converter resolves is assigned a confidence level:
-
-| Confidence | Meaning |
-|---|---|
-| `oracle` | Field confirmed in DS/ parser definitions for this vendor/activity_type — no warning |
-| `schema` | Field in CIM2_FIELD_MAP but not confirmed in DS/ for this specific source |
-| `passthrough` | No mapping found — field not in CIM2 for this vendor |
-
-The oracle refreshes automatically every time you run `exa update`. When Exabeam adds new parser fields, the converter picks them up on the next update — no code changes needed.
-
-### Field Oracle Concept Resolution (Compliance)
-
-The Field Oracle also powers **tenant-aware compliance auditing**. Each compliance control is annotated with one or more semantic **concepts** (e.g. `GROUP_MANAGEMENT`, `PERMISSION_CHANGE`) that map to specific `activity_type` values. At audit time, the **ConceptResolver** queries the tenant for all activity types seen in the lookback window, then dynamically builds EQL filters using only the types confirmed present in that environment.
-
-```
-Control concepts  →  ConceptResolver (filters to tenant-active types)
-                  →  ComplianceQueryBuilder (builds EQL filter string)
-                  →  search_events (live query against tenant)
-```
-
-This means compliance queries automatically adapt to each customer's log sources without manual tuning per tenant. If a log source isn't connected (e.g. physical access control), the control fails with a clear gap — not a false negative from a wrong query.
-
-## Features
-
-- **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
-- **Splunk SPL conversion** — SPL→Sigma→EQL pipeline; batch from Excel or inline one-off via `exa splunk one`
-- **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
-- **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution for rules and compliance
-- **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
-- **Threat Center — cases** — search, get, update, and create cases with EQL filtering and rich table output
-- **Threat Center — alerts** — search, get, and update alerts; priority colour coding; `--json` for pipeline use
-- **Case triage (`exa case qualify`)** — structured analyst triage: rule definition, entity history, context table membership, score trend, IP annotation, and a four-outcome verdict
-- **Outcome tracking** — every `qualify` run is logged; `exa case outcome sync` back-fills analyst decisions from closed cases
-- **Historical calibration (`exa case baseline`)** — LTS-aware lookback capped to licensed retention; per-rule and per-entity FP rates feed back into future verdicts
-- **Detection Management** — export, import, and diff analytics (UEBA) rules across tenants
-- **Context table management** — CRUD operations with 20k batch support and pagination
-- <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
-- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks with tenant-aware query resolution, HTML + PDF report output
-- **Event search** — EQL query interface with time range and result limiting
-- **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
-
 ## Prerequisites
 
 - Python 3.12+
@@ -145,8 +75,9 @@ Interactive setup: enter your tenant FQDN, client ID, and client secret. Tests t
 ### `exa update`
 
 ```bash
-exa update           # clone/pull CIM2 + SigmaHQ repos, build Field Oracle cache
-exa update --check   # show current commit SHAs without pulling
+exa update             # sync CIM2 + SigmaHQ repos, build Field Oracle
+exa update self        # git pull main + uv sync on exa-tools itself
+exa update --check     # show current SHAs without pulling
 ```
 
 Downloads [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2), [new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub), and [SigmaHQ/sigma](https://github.com/SigmaHQ/sigma), then builds the Field Oracle from 8,278 parser definition files.
@@ -161,6 +92,71 @@ exa config show
 ```
 
 Configuration stored at `~/.exa/config.json`. Secrets are never written to this file.
+
+### `exa tables`
+
+```
+exa tables list [--name FILTER] [--tenant TENANT] [--json]
+
+exa tables create NAME [--type TYPE] [--key COLNAME] [--columns a,b,c]
+                       [--csv PATH] [--replace] [--tenant TENANT]
+  --type     Context type: Other (default), User, TI_ips, TI_domains,
+             Device, Domain, IP
+  --key      Key column name (default: "key", or first CSV column)
+  --columns  Extra column names (comma-separated; ignored if --csv given)
+  --csv      CSV file — headers become columns, rows uploaded immediately
+  --replace  Use replace semantics when uploading CSV (default: append)
+
+exa tables delete TABLE [--yes] [--purge-attributes] [--tenant TENANT]
+  TABLE  Table ID or display name
+
+exa tables records list TABLE [--limit N] [--offset N]
+                               [--csv PATH] [--json] [--tenant TENANT]
+
+exa tables records upload TABLE CSV_PATH [--replace] [--key COLNAME]
+                                          [--tenant TENANT]
+  --replace  Overwrite entire table (default: append)
+
+exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
+```
+
+### `exa hotkey`
+
+Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (BJC customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
+
+```
+exa hotkey analyze [--ip-field COL] [--name-field COL]
+                   [--json] [--csv] [--tenant TENANT]
+  Classify Network Zones table entries by Dataflow hot key risk.
+  COARSE = /8 or /16 (high risk). MEDIUM = /24 (acceptable). FINE = /32.
+
+exa hotkey scan [--lookback N] [--threshold N] [--limit N]
+                [--ip-field COL] [--name-field COL]
+                [--json] [--csv] [--tenant TENANT]
+  Scan recent events for active source IPs per zone.
+  Flags zones with >N distinct IPs as HOT_KEY_RISK (default threshold: 500).
+
+exa hotkey expand [--zone ZONE] [--lookback N] [--enumerate]
+                  [--dry-run] [--limit N]
+                  [--ip-field COL] [--name-field COL] [--tenant TENANT]
+  Expand COARSE zone(s) from /8 or /16 to /24-granularity entries.
+  Writes a rollback manifest to ~/.exa/hotkey-rollback/ before any change.
+  --zone       Target a single zone by name (default: all COARSE zones)
+  --enumerate  Create all /24 subnets in range (default: observed IPs only)
+  --dry-run    Print planned changes without writing anything
+
+exa hotkey autofix [--lookback N] [--threshold N] [--max-zones N]
+                   [--enumerate] [--dry-run] [--json] [--tenant TENANT]
+  Full automated pipeline: analyze → scan → expand in one command.
+  --max-zones  Safety cap (default 10). Refuses to expand more zones
+               than this in a single run.
+  Safe to schedule — non-interactive, exits non-zero on any failure.
+
+exa hotkey rollback [--manifest PATH] [--confirm] [--tenant TENANT]
+  Restore Network Zones table from the most recent rollback manifest.
+  Use --manifest to specify an older manifest by path.
+  Requires --confirm to apply (shows diff first without it).
+```
 
 ### `exa sigma convert`
 
@@ -376,18 +372,83 @@ exa search 'user:"admin"' --tenant sademodev22
 
 > Exabeam New-Scale uses SQL-style EQL (SELECT / WHERE / GROUP-BY / ORDER-BY). Pipe-based syntax is not supported.
 
-### `exa tables`
-
-```bash
-exa tables --name "Public AI Domains and Risk"
-exa tables --tenant sademodev22
-```
-
 ### `exa frameworks`
 
 ```bash
 exa frameworks    # list all available compliance frameworks with testable control counts
 ```
+
+## How It Works
+
+### SPL → Sigma → EQL Pipeline
+
+Splunk SPL and Exabeam EQL are fundamentally different languages. Rather than a lossy direct translation, exa-tools routes through [Sigma](https://github.com/SigmaHQ/sigma) as a structured intermediate format:
+
+```
+Splunk SPL search
+    ↓  exa/splunk/parser.py      — extract index, fields, pipeline stages
+    ↓  exa/splunk/to_sigma.py    — build Sigma rule dict with logsource + detection
+    ↓  exa/sigma/converter.py    — map Sigma fields → CIM2, build EQL query
+    ↓
+Exabeam EQL correlation rule  →  deploy via API
+```
+
+This means field mapping reuses the community-maintained Sigma field vocabulary, wildcard values become proper Sigma modifiers (`|contains`, `|endswith`, `|startswith`), and negations become proper `filter` blocks. Pipeline stages that can't be represented in EQL (`stats`, `eval`, `lookup`, etc.) are inventoried as warnings rather than silently dropped.
+
+### Field Oracle
+
+<img src="docs/oracle.svg" width="180" align="right" alt="Field Oracle"/>
+
+The Field Oracle is the translation engine at the heart of the converter. Rather than relying on hand-maintained field maps or incomplete documentation, it reads Exabeam's own parser definitions directly.
+
+`exa update` walks **8,278 parser files** across 269 vendors in the `Content-Library-CIM2/DS/` directory and builds a local index:
+
+- **4,258 raw → CIM2 field mappings** extracted from parser regex capture groups and JSON path definitions
+- **25 activity types** indexed with their confirmed field sets
+- **269 vendors** — Code42, Digital Guardian, Microsoft O365, Cisco, and hundreds more
+
+Every field the converter resolves is assigned a confidence level:
+
+| Confidence | Meaning |
+|---|---|
+| `oracle` | Field confirmed in DS/ parser definitions for this vendor/activity_type — no warning |
+| `schema` | Field in CIM2_FIELD_MAP but not confirmed in DS/ for this specific source |
+| `passthrough` | No mapping found — field not in CIM2 for this vendor |
+
+The oracle refreshes automatically every time you run `exa update`. When Exabeam adds new parser fields, the converter picks them up on the next update — no code changes needed.
+
+### Field Oracle Concept Resolution (Compliance)
+
+The Field Oracle also powers **tenant-aware compliance auditing**. Each compliance control is annotated with one or more semantic **concepts** (e.g. `GROUP_MANAGEMENT`, `PERMISSION_CHANGE`) that map to specific `activity_type` values. At audit time, the **ConceptResolver** queries the tenant for all activity types seen in the lookback window, then dynamically builds EQL filters using only the types confirmed present in that environment.
+
+```
+Control concepts  →  ConceptResolver (filters to tenant-active types)
+                  →  ComplianceQueryBuilder (builds EQL filter string)
+                  →  search_events (live query against tenant)
+```
+
+This means compliance queries automatically adapt to each customer's log sources without manual tuning per tenant. If a log source isn't connected (e.g. physical access control), the control fails with a clear gap — not a false negative from a wrong query.
+
+## Features
+
+- **Dataflow hot key detection and remediation** (`exa hotkey`) — analyze the Network Zones context table for coarse IP groupings that cause Dataflow worker imbalance; scan real traffic to confirm active hot keys; expand coarse zone entries to /24 granularity with automatic rollback support
+- **Self-update** (`exa update self`) — `git pull` + `uv sync` in one command; keeps the local install current without leaving the terminal
+- **Context table full CRUD** (`exa tables`) — create tables from CSV with auto-derived schema; delete tables; list, upload (append or replace), and export records; all with 20k-record batching
+- **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
+- **Splunk SPL conversion** — SPL→Sigma→EQL pipeline; batch from Excel or inline one-off via `exa splunk one`
+- **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
+- **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution for rules and compliance
+- **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
+- **Threat Center — cases** — search, get, update, and create cases with EQL filtering and rich table output
+- **Threat Center — alerts** — search, get, and update alerts; priority colour coding; `--json` for pipeline use
+- **Case triage (`exa case qualify`)** — structured analyst triage: rule definition, entity history, context table membership, score trend, IP annotation, and a four-outcome verdict
+- **Outcome tracking** — every `qualify` run is logged; `exa case outcome sync` back-fills analyst decisions from closed cases
+- **Historical calibration (`exa case baseline`)** — LTS-aware lookback capped to licensed retention; per-rule and per-entity FP rates feed back into future verdicts
+- **Detection Management** — export, import, and diff analytics (UEBA) rules across tenants
+- <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
+- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks with tenant-aware query resolution, HTML + PDF report output
+- **Event search** — EQL query interface with time range and result limiting
+- **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
 
 ## Splunk Converter
 
@@ -429,6 +490,9 @@ uv sync                    # install deps
 uv run pytest -v           # run tests (533 passing)
 uv run pytest tests/test_sigma.py::TestProxyFieldMappings  # single test class
 uv run ruff check exa/     # lint
+
+# Enable pre-commit help tests (one-time setup)
+git config core.hooksPath .githooks
 ```
 
 ## License

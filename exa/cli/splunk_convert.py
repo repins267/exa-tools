@@ -61,7 +61,7 @@ def convert_cmd(
     'title' and 'search' columns (Excel/CSV) or stanza names (conf).
     Outputs a rich table and an API-ready JSON file.
 
-    All converted rules are deploy_ready="Needs review" — SPL→EQL is
+    All converted rules are deploy_ready="Needs review" — SPL-to-EQL is
     lossy (stats/lookups/eval are dropped) and require human sign-off
     before deployment.
 
