@@ -13,6 +13,7 @@ build/
 htmlcov/
 CLAUDE.md
 CLAUDE.local.md
+*-prompt.md
 reports/*.html
 reports/*.json
 /_logo_b64.txt
