@@ -299,6 +299,169 @@ def expand(
         console.print("Undo with: [bold]exa hotkey rollback[/bold]")
 
 
+# -- autofix ------------------------------------------------------------------
+
+
+@hotkey_app.command("autofix")
+def autofix(
+    tenant: Annotated[str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)] = None,
+    lookback: Annotated[int, typer.Option("--lookback", help="Days of traffic to scan")] = 7,
+    threshold: Annotated[int, typer.Option(
+        "--threshold",
+        help="Min distinct IPs in a zone to qualify for expansion",
+    )] = 500,
+    limit: Annotated[int, typer.Option("--limit", help="Max IPs fetched from search")] = 50_000,
+    max_zones: Annotated[int, typer.Option(
+        "--max-zones",
+        help="Safety cap: refuse to expand more than N zones in one run",
+    )] = 10,
+    enumerate_all: Annotated[bool, typer.Option(
+        "--enumerate/--no-enumerate",
+        help="Enumerate all /24s in range (not just observed IPs)",
+    )] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run/--no-dry-run")] = False,
+    ip_field: Annotated[str | None, typer.Option("--ip-field")] = None,
+    name_field: Annotated[str | None, typer.Option("--name-field")] = None,
+    as_json: Annotated[
+        bool, typer.Option("--json", help="Machine-readable output (progress to stderr)")
+    ] = False,
+) -> None:
+    """Analyze, scan, and expand all hot key zones in one step.
+
+    Chains: analyze -> scan -> expand (COARSE + HOT_KEY_RISK zones only).
+    Writes a rollback manifest before every change.
+    Safe to schedule -- non-interactive, exits non-zero on any failure.
+    """
+    import json
+    import sys
+
+    from rich.console import Console as _Console
+    from rich.table import Table
+
+    from exa.hotkey.analyze import analyze_zones
+    from exa.hotkey.expand import expand_zones
+    from exa.hotkey.scan import _parse_grouped_rows, scan_zones
+    from exa.search.events import search_events
+
+    # Progress messages go to stderr when --json so stdout stays pipeable
+    err = _Console(stderr=True) if as_json else console
+
+    client = _make_client(tenant)
+    try:
+        # Phase 1 — Analyze
+        err.print("  [1/3] Analyzing Network Zones table...", style="dim")
+        try:
+            zones = analyze_zones(client, ip_field=ip_field, name_field=name_field)
+        except ValueError as e:
+            err.print(f"FAIL: {e}", style="red")
+            raise typer.Exit(1)
+
+        coarse = [z for z in zones if z.risk == "COARSE"]
+        if not coarse:
+            err.print("No COARSE zones found. Nothing to do.", style="green")
+            raise typer.Exit(0)
+
+        # Phase 2 — Scan
+        err.print(
+            f"  [2/3] Scanning {len(coarse)} COARSE zone(s) for active traffic...",
+            style="dim",
+        )
+        scans = scan_zones(
+            client, zones, lookback_days=lookback, threshold=threshold, limit=limit
+        )
+        hot = [s for s in scans if s.risk == "HOT_KEY_RISK"]
+
+        if not hot:
+            err.print(
+                f"No HOT_KEY_RISK zones detected above threshold={threshold}.",
+                style="green",
+            )
+            raise typer.Exit(0)
+
+        # Safety cap
+        if len(hot) > max_zones:
+            err.print(
+                f"FAIL: {len(hot)} zones qualify for expansion but --max-zones={max_zones}.\n"
+                f"  Re-run with --max-zones {len(hot)} to proceed, or use "
+                f"'exa hotkey expand --zone NAME' to fix individually.",
+                style="red",
+            )
+            raise typer.Exit(1)
+
+        # Phase 3 — Expand
+        verb = "[DRY RUN] Would expand" if dry_run else "Expanding"
+        err.print(f"  [3/3] {verb} {len(hot)} zone(s) to /24 granularity...", style="dim")
+
+        # Fetch observed IPs for targeted /24 selection (re-query; scan only stores counts)
+        observed_ips: list[str] | None = None
+        if not enumerate_all:
+            rows = search_events(
+                client,
+                "src_ip:*",
+                fields=["src_ip"],
+                group_by=["src_ip"],
+                lookback_days=lookback,
+                limit=limit,
+            )
+            observed_ips = _parse_grouped_rows(rows)
+
+        # Expand only COARSE zones confirmed HOT_KEY_RISK by scan
+        hot_names = {s.zone_name for s in hot}
+        target_zones = [
+            z for z in zones if z.entry.zone_name in hot_names and z.risk == "COARSE"
+        ]
+
+        results = expand_zones(
+            client,
+            target_zones,
+            observed_ips=observed_ips,
+            enumerate_all=enumerate_all,
+            dry_run=dry_run,
+            tenant=tenant or "default",
+        )
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        err.print(f"FAIL: {e}", style="red")
+        raise typer.Exit(1)
+    finally:
+        client.close()
+
+    if as_json:
+        for r in results:
+            sys.stdout.write(json.dumps({
+                "zone": r["zone_name"],
+                "old_key": r["old_key"],
+                "new_entries": r["new_key_count"],
+                "status": r["status"],
+            }) + "\n")
+        return
+
+    tbl = Table(title="Autofix Results", show_lines=False)
+    tbl.add_column("Zone", style="white", no_wrap=True)
+    tbl.add_column("Old Key", style="dim")
+    tbl.add_column("New /24 Entries", justify="right")
+    tbl.add_column("Status", justify="center")
+
+    for r in results:
+        status = r["status"]
+        style = "yellow" if status == "dry-run" else "green"
+        tbl.add_row(
+            r["zone_name"],
+            r["old_key"],
+            str(r["new_key_count"]),
+            f"[{style}]{status}[/{style}]",
+        )
+    console.print(tbl)
+
+    if not dry_run and results:
+        console.print(
+            f"\n{len(results)} zone(s) expanded · rollback manifests at "
+            f"[dim]~/.exa/hotkey-rollback/{tenant or 'default'}/[/dim]"
+        )
+
+
 # -- rollback -----------------------------------------------------------------
 
 

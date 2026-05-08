@@ -7,7 +7,6 @@ xfail marks commands that are defined in the spec but not yet implemented.
 
 from __future__ import annotations
 
-import pytest
 from typer.testing import CliRunner
 
 from exa.cli.app import app
@@ -322,6 +321,7 @@ def test_hotkey_help():
     assert "scan" in result.output
     assert "expand" in result.output
     assert "rollback" in result.output
+    assert "autofix" in result.output
 
 
 def test_hotkey_analyze_help():
@@ -348,7 +348,6 @@ def test_hotkey_expand_help():
     assert "--enumerate" in result.output
 
 
-@pytest.mark.xfail(strict=False, reason="autofix command not yet implemented")
 def test_hotkey_autofix_help():
     result = runner.invoke(app, ["hotkey", "autofix", "--help"])
     assert result.exit_code == 0
