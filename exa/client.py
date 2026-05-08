@@ -127,13 +127,9 @@ class ExaClient:
         self._access_token: str | None = None
         self._expires_at: float = 0.0
 
-        transport = _RetryTransport(
-            httpx.HTTPTransport(),
-            max_retries=max_retries,
-        )
         self._http = httpx.Client(
             base_url=self.base_url,
-            transport=transport,
+            transport=_RetryTransport(max_retries=max_retries),
             timeout=timeout,
             follow_redirects=True,
         )

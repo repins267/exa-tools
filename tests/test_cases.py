@@ -114,8 +114,8 @@ class TestSearchCases:
             json=SEARCH_CASES_RESPONSE,
         )
         search_cases(exa, fields=["caseId", "stage"], limit=100, lookback_days=7)
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/cases")
         body = json.loads(request.content)
         assert body["fields"] == ["caseId", "stage"]
         assert body["limit"] == 100
@@ -127,8 +127,8 @@ class TestSearchCases:
             json=SEARCH_CASES_RESPONSE,
         )
         search_cases(exa)
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/cases")
         body = json.loads(request.content)
         assert body["fields"] == ["*"]
 
@@ -141,8 +141,8 @@ class TestSearchCases:
         start = datetime(2026, 4, 1, tzinfo=UTC)
         end = datetime(2026, 5, 1, tzinfo=UTC)
         search_cases(exa, start_time=start, end_time=end)
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/cases")
         body = json.loads(request.content)
         assert body["startTime"] == "2026-04-01T00:00:00Z"
         assert body["endTime"] == "2026-05-01T00:00:00Z"
@@ -216,8 +216,8 @@ class TestUpdateCase:
             json=CASE_ROW,
         )
         update_case(exa, "case-uuid-001", tags=["reviewed"])
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001")
         body = json.loads(request.content)
         assert body == {"tags": ["reviewed"]}
 
@@ -228,8 +228,8 @@ class TestUpdateCase:
             json=CASE_ROW,
         )
         update_case(exa, "case-uuid-001", name="New Case Name")
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001")
         body = json.loads(request.content)
         assert "alertName" in body
         assert body["alertName"] == "New Case Name"
@@ -261,8 +261,8 @@ class TestCreateCase:
             priority="HIGH",
             queue="Tier-1",
         )
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases")
         body = json.loads(request.content)
         assert body["alertId"] == "alert-uuid-001"
         assert body["stage"] == "IN PROGRESS"
@@ -276,8 +276,8 @@ class TestCreateCase:
             json=CASE_ROW,
         )
         create_case(exa, "my-alert-id")
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases")
         body = json.loads(request.content)
         assert body["alertId"] == "my-alert-id"
 
@@ -332,8 +332,8 @@ class TestSearchAlerts:
             json=SEARCH_ALERTS_RESPONSE,
         )
         search_alerts(exa)
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/alerts")
         body = json.loads(request.content)
         assert body["orderBy"] == ["riskScore DESC"]
 
@@ -386,8 +386,8 @@ class TestUpdateAlert:
             json=ALERT_ROW,
         )
         update_alert(exa, "alert-uuid-001", tags=["reviewed", "dlp"])
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/alerts/alert-uuid-001")
         body = json.loads(request.content)
         assert body == {"tags": ["reviewed", "dlp"]}
 
@@ -398,8 +398,8 @@ class TestUpdateAlert:
             json=ALERT_ROW,
         )
         update_alert(exa, "alert-uuid-001", name="Renamed Alert")
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/alerts/alert-uuid-001")
         body = json.loads(request.content)
         assert list(body.keys()) == ["alertName"]
         assert body["alertName"] == "Renamed Alert"
@@ -411,8 +411,8 @@ class TestUpdateAlert:
             json=ALERT_ROW,
         )
         update_alert(exa, "alert-uuid-001", name="New Name")
-        request = mock_auth.get_request()
         import json
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/alerts/alert-uuid-001")
         body = json.loads(request.content)
         assert "alertName" in body
         assert "name" not in body
