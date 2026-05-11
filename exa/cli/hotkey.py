@@ -122,11 +122,10 @@ def analyze(
 
     table = Table(title="Network Zones - Hot Key Risk", show_lines=False)
     table.add_column("Zone Name", style="white", no_wrap=True)
-    table.add_column("Key (IP/Subnet)", style="dim")
+    table.add_column("Key (IP/Subnet)", style="dim", no_wrap=True)
     table.add_column("Prefix", justify="right")
     table.add_column("Addresses", justify="right")
-    table.add_column("Risk", justify="center")
-    table.add_column("Recommendation")
+    table.add_column("Risk", justify="center", no_wrap=True)
 
     def sort_key(z):
         return (_RISK_ORDER.get(z.risk, 99), z.prefix_len or 999, z.entry.zone_name)
@@ -135,22 +134,18 @@ def analyze(
         style = _RISK_STYLE.get(z.risk, "")
         cardinality = f"{z.cardinality:,}" if z.cardinality is not None else "-"
         prefix = f"/{z.prefix_len}" if z.prefix_len is not None else "-"
-        risk_label = z.risk
         if z.risk == "CRITICAL":
-            risk_label = "[bold red]CRITICAL (AUTO-FLAG)[/bold red]"
+            risk_label = "[bold red]CRITICAL[/bold red]"
         elif style:
             risk_label = f"[{style}]{z.risk}[/{style}]"
-        table.add_row(
-            z.entry.zone_name,
-            z.entry.key,
-            prefix,
-            cardinality,
-            risk_label,
-            _analyze_rec(z.risk, tenant),
-        )
+        else:
+            risk_label = z.risk
+        table.add_row(z.entry.zone_name, z.entry.key, prefix, cardinality, risk_label)
 
     console.print(table)
 
+    # Per-tier recommendation legend (same text for all zones of a tier — no repetition)
+    t = f" --tenant {tenant}" if tenant else ""
     if n_critical or n_coarse:
         parts = []
         if n_critical:
@@ -158,10 +153,18 @@ def analyze(
         if n_coarse:
             parts.append(f"[red]{n_coarse} COARSE[/red]")
         console.print("\n" + " + ".join(parts) + " zone(s) require attention.")
-        t = f" --tenant {tenant}" if tenant else ""
+        if n_critical:
+            console.print(
+                f"  [bold red]CRITICAL[/bold red]  Prefix too coarse - guaranteed hot key"
+                f" risk. Run: [bold]exa hotkey expand{t}[/bold]"
+            )
+        if n_coarse:
+            console.print(
+                f"  [red]COARSE[/red]     Coarse prefix - run [bold]exa hotkey scan{t}[/bold]"
+                f" to assess traffic, then expand if HOT_KEY_RISK."
+            )
         console.print(
-            f"Run [bold]exa hotkey autofix{t}[/bold] to fix all flagged zones automatically, "
-            f"or [bold]exa hotkey expand{t}[/bold] to fix interactively."
+            f"\nFix all flagged zones: [bold]exa hotkey autofix{t}[/bold]"
         )
     else:
         console.print("\nNo hot key risk detected in network zones.", style="green")
@@ -253,17 +256,11 @@ def scan(
     )
     table.add_column("Zone Name", style="white", no_wrap=True)
     table.add_column("Distinct IPs", justify="right")
-    table.add_column("Risk", justify="center")
-    table.add_column("Recommendation")
+    table.add_column("Risk", justify="center", no_wrap=True)
 
     # CRITICAL zones always shown (auto-flag, no traffic query run)
     for z in sorted(critical, key=lambda z: z.entry.zone_name):
-        table.add_row(
-            z.entry.zone_name,
-            "--",
-            "[bold red]CRITICAL[/bold red]",
-            _scan_rec("CRITICAL", "CRITICAL", tenant),
-        )
+        table.add_row(z.entry.zone_name, "--", "[bold red]CRITICAL[/bold red]")
 
     # COARSE scan results (skip truly zero-traffic zones)
     for r in scan_results:
@@ -274,19 +271,27 @@ def scan(
             r.zone_name,
             f"{r.ip_count:,}",
             f"[{risk_style}]{r.risk}[/{risk_style}]",
-            _scan_rec("COARSE", r.risk, tenant),
         )
 
     console.print(table)
 
+    t = f" --tenant {tenant}" if tenant else ""
     if critical or hot_coarse:
         parts = []
         if critical:
             parts.append(f"[bold red]{len(critical)} CRITICAL[/bold red]")
         if hot_coarse:
-            parts.append(f"[red]{hot_coarse} HOT_KEY_RISK[/red]")
+            parts.append(f"[red]{hot_coarse} HOT_KEY_RISK COARSE[/red]")
         console.print("\n" + " + ".join(parts) + " zone(s) flagged.")
-        t = f" --tenant {tenant}" if tenant else ""
+        if critical:
+            console.print(
+                "  [bold red]CRITICAL[/bold red]  Guaranteed hot key - expand regardless"
+                " of traffic count."
+            )
+        if hot_coarse:
+            console.print(
+                "  [red]HOT_KEY_RISK[/red] Active hot key confirmed - split into /24s."
+            )
         console.print(f"Run [bold]exa hotkey expand{t}[/bold] to fix.")
 
 
