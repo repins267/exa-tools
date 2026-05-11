@@ -68,11 +68,11 @@ def detection_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output as JSON (stdout or --output file)"),
+        typer.Option("--json/--no-json", help="Output as JSON (stdout or --output file)"),
     ] = False,
     csv_out: Annotated[
         bool,
-        typer.Option("--csv", help="Output as CSV (stdout or --output file)"),
+        typer.Option("--csv/--no-csv", help="Output as CSV (stdout or --output file)"),
     ] = False,
     output: Annotated[
         Path | None,
@@ -172,7 +172,7 @@ def detection_get(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON"),
     ] = False,
 ) -> None:
     """Get a single detection rule by ID."""
@@ -322,7 +322,7 @@ def detection_diff(
     ],
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON diff"),
+        typer.Option("--json/--no-json", help="Output raw JSON diff"),
     ] = False,
 ) -> None:
     """Diff two exported detection rule bundles."""

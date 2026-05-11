@@ -349,19 +349,34 @@ The lookback is automatically capped to the tenant's licensed LTS retention wind
 Export, import, and manage analytics (UEBA) rules. Useful for backups, cross-tenant migration, and auditing enabled/disabled state.
 
 ```bash
-exa detection list
-exa detection list --status enabled
+# List — table view
+exa detection list                                    # first 100 rules
+exa detection list --status enabled                   # enabled only
+exa detection list --status enabled --limit 0         # all enabled rules
+exa detection list --name "Brute Force"               # name substring filter
+
+# List — export formats
+exa detection list --status enabled --limit 0 --csv                         # CSV to stdout
+exa detection list --status enabled --limit 0 --csv --output enabled.csv    # CSV to file
+exa detection list --status enabled --limit 0 --json                        # JSON to stdout
+exa detection list --limit 0 --json --output all_rules.json                 # JSON to file
+
+# Single rule
 exa detection get <rule-id>
+
+# Enable / disable
 exa detection enable <rule-id>
 exa detection disable <rule-id>
-exa detection export                                  # stdout (pipeable)
+
+# Export / import / diff bundles
+exa detection export                                  # all rules → stdout (pipeable)
 exa detection export --out rules-backup.json
 exa detection import rules-backup.json
 exa detection import rules-backup.json --overwrite
-exa detection diff --from sademodev22 --to prod-tenant
+exa detection diff bundle-a.json bundle-b.json
 ```
 
-> **Note:** Detection Management endpoints are EXA-UNVERIFIED — paths will be confirmed in a live session against sademodev22 and updated before production use.
+The `list` table auto-displays **Type** and **Families** columns when the API returns them, and prints a summary of distinct rule types found. The `--csv` output includes all available fields: `id, name, isEnabled, severity, type, families, author, createdAt, updatedAt, description`.
 
 ### `exa search`
 
