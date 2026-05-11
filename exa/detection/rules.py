@@ -99,21 +99,23 @@ def export_rules(
 ) -> dict[str, Any]:
     """Export analytics rules as a portable JSON bundle.
 
-    Args:
-        client: Authenticated ExaClient.
-        rule_ids: Specific rule IDs to export. None = export all.
+    The API requires at least one rule ID — there is no export-all mode.
+    When rule_ids is None, all rules are listed first and their IDs collected.
 
-    Returns:
-        Export bundle dict (write to file for backup/migration).
+    Returns bundle: {"version": "1", "ruleDefinitions": [...]}
 
-    API: POST /detection-management/v1/analytics-rules/export  # EXA-UNVERIFIED
-    Request body: {"ruleIds": [...]} or {} for all rules
+    API: POST /detection-management/v1/analytics-rules/export
+    Request body: {"ruleIds": ["<uuid>", ...]}  — must not be empty
+    Verified live: sademodev22 2026-05-11
     """
-    body: dict[str, Any] = {}
-    if rule_ids is not None:
-        body["ruleIds"] = rule_ids
+    if rule_ids is None:
+        all_rules = get_detection_rules(client)
+        rule_ids = [r["id"] for r in all_rules if r.get("id")]
 
-    return client.post(f"{_BASE}/export", json=body)
+    if not rule_ids:
+        return {"version": "1", "ruleDefinitions": []}
+
+    return client.post(f"{_BASE}/export", json={"ruleIds": rule_ids})
 
 
 def import_rules(

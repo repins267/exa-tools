@@ -165,6 +165,12 @@ class TestSetDetectionRuleState:
 
 class TestExportRules:
     def test_export_all_rules(self, exa, mock_auth):
+        # export_rules(None) lists all rules first, then POSTs their IDs
+        mock_auth.add_response(
+            url=f"{BASE_URL}{_BASE}",
+            method="GET",
+            json=RULES_LIST_RESPONSE,
+        )
         mock_auth.add_response(
             url=f"{BASE_URL}{_BASE}/export",
             method="POST",
@@ -173,6 +179,23 @@ class TestExportRules:
         result = export_rules(exa)
         assert "rules" in result
         assert len(result["rules"]) == 2
+
+    def test_export_all_sends_all_ids(self, exa, mock_auth):
+        # Verifies that all IDs from the list call are forwarded to export
+        mock_auth.add_response(
+            url=f"{BASE_URL}{_BASE}",
+            method="GET",
+            json=RULES_LIST_RESPONSE,
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}{_BASE}/export",
+            method="POST",
+            json=EXPORT_BUNDLE,
+        )
+        export_rules(exa)
+        request = mock_auth.get_request(url=f"{BASE_URL}{_BASE}/export")
+        body = json.loads(request.content)
+        assert body["ruleIds"] == ["rule-uuid-001", "rule-uuid-002"]
 
     def test_export_specific_rules(self, exa, mock_auth):
         mock_auth.add_response(
@@ -194,16 +217,15 @@ class TestExportRules:
         body = json.loads(request.content)
         assert body["ruleIds"] == ["rule-uuid-001", "rule-uuid-002"]
 
-    def test_export_all_sends_empty_body(self, exa, mock_auth):
+    def test_export_empty_tenant_returns_empty_bundle(self, exa, mock_auth):
+        # No rules on tenant → returns empty bundle without calling export
         mock_auth.add_response(
-            url=f"{BASE_URL}{_BASE}/export",
-            method="POST",
-            json=EXPORT_BUNDLE,
+            url=f"{BASE_URL}{_BASE}",
+            method="GET",
+            json={"rules": []},
         )
-        export_rules(exa)
-        request = mock_auth.get_request(url=f"{BASE_URL}{_BASE}/export")
-        body = json.loads(request.content)
-        assert "ruleIds" not in body
+        result = export_rules(exa)
+        assert result == {"version": "1", "ruleDefinitions": []}
 
 
 # ---------------------------------------------------------------------------
