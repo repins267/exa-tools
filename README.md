@@ -122,7 +122,7 @@ exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
 
 ### `exa hotkey`
 
-Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (BJC customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
+Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (Known customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
 
 ```
 exa hotkey analyze [--ip-field COL] [--name-field COL]
