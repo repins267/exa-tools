@@ -8,19 +8,19 @@
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
-#Detection rule conversion** routes Splunk SPL searches and SigmaHQ community rules through a shared `SPL → Sigma → EQL` pipeline backed by the **Field Oracle** — a local index of 4,258 raw→CIM2 field mappings extracted from Exabeam's own parser definitions. Every converted field gets a confidence rating (Oracle / Schema / Passthrough) so you know exactly what's verified before you deploy.
+## Detection rule conversion** routes Splunk SPL searches and SigmaHQ community rules through a shared `SPL → Sigma → EQL` pipeline backed by the **Field Oracle** — a local index of 4,258 raw→CIM2 field mappings extracted from Exabeam's own parser definitions. Every converted field gets a confidence rating (Oracle / Schema / Passthrough) so you know exactly what's verified before you deploy.
 
-**One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
+## One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
 
-**Threat Center integration** gives analysts a full CLI workflow for cases and alerts — search, triage, update, and qualify. `exa case qualify` pulls the triggering correlation rule, entity history, context table membership, and score trend, then issues a structured verdict (SUSPECTED_INCIDENT / LIKELY_FP / LEARNING_PHASE_NOISE / NEEDS_INVESTIGATION) to help analysts decide faster.
+## Threat Center integration** gives analysts a full CLI workflow for cases and alerts — search, triage, update, and qualify. `exa case qualify` pulls the triggering correlation rule, entity history, context table membership, and score trend, then issues a structured verdict (SUSPECTED_INCIDENT / LIKELY_FP / LEARNING_PHASE_NOISE / NEEDS_INVESTIGATION) to help analysts decide faster.
 
-**Outcome tracking and calibration** logs every qualification and tracks analyst decisions over time. `exa case baseline` uses the tenant's licensed LTS retention window to pull historical closed cases, computes per-rule and per-entity false-positive rates, and feeds that calibration back into future verdicts automatically.
+## Outcome tracking and calibration** logs every qualification and tracks analyst decisions over time. `exa case baseline` uses the tenant's licensed LTS retention window to pull historical closed cases, computes per-rule and per-entity false-positive rates, and feeds that calibration back into future verdicts automatically.
 
-**Detection Management** exports, imports, and diffs analytics rules across tenants — enabling rule backup, migration, and cross-environment gap analysis.
+## Detection Management** exports, imports, and diffs analytics rules across tenants — enabling rule backup, migration, and cross-environment gap analysis.
 
-**Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF v2.0, CMMC L2/L3, PCI DSS, HIPAA, FedRAMP Moderate, CIS Controls v8, ISO 27001, CJIS, GDPR, and SOX — and produces HTML and PDF reports with executive summaries and gap analysis. Queries are dynamically built per-tenant using **Field Oracle concept resolution**, ensuring controls match the actual `activity_type` values present in each environment.
+## Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF v2.0, CMMC L2/L3, PCI DSS, HIPAA, FedRAMP Moderate, CIS Controls v8, ISO 27001, CJIS, GDPR, and SOX — and produces HTML and PDF reports with executive summaries and gap analysis. Queries are dynamically built per-tenant using **Field Oracle concept resolution**, ensuring controls match the actual `activity_type` values present in each environment.
 
-**Context table management** handles bulk CRUD operations with 20k-record batch support, including pre-built sync for AI/LLM threat detection reference tables.
+## Context table management** handles bulk CRUD operations with 20k-record batch support, including pre-built sync for AI/LLM threat detection reference tables.
 
 All from the command line.
 
