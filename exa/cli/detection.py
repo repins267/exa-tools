@@ -11,7 +11,9 @@
 
 from __future__ import annotations
 
+import csv
 import json
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -42,6 +44,10 @@ def _make_client(tenant: str | None = None):
 # list
 # ---------------------------------------------------------------------------
 
+_CSV_FIELDS = ["id", "name", "isEnabled", "severity", "type", "families", "author",
+               "createdAt", "updatedAt", "description"]
+
+
 @detection_app.command("list")
 def detection_list(
     name: Annotated[
@@ -54,7 +60,7 @@ def detection_list(
     ] = None,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max rules to return"),
+        typer.Option("--limit", help="Max rules to return (default 100; use 0 for all)"),
     ] = 100,
     tenant: Annotated[
         str | None,
@@ -62,35 +68,93 @@ def detection_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json", help="Output as JSON (stdout or --output file)"),
     ] = False,
+    csv_out: Annotated[
+        bool,
+        typer.Option("--csv", help="Output as CSV (stdout or --output file)"),
+    ] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write output to file instead of stdout"),
+    ] = None,
 ) -> None:
-    """List analytics/detection rules."""
+    """List analytics/detection rules with optional JSON or CSV export."""
     from exa.detection import get_detection_rules
 
+    effective_limit = None if limit == 0 else limit
     client = _make_client(tenant)
     try:
-        rules = get_detection_rules(client, name=name, status=status, limit=limit)
+        rules = get_detection_rules(client, name=name, status=status, limit=effective_limit)
+
+        # ── JSON ──────────────────────────────────────────────────────────────
         if json_out:
-            console.print_json(json.dumps(rules))
+            payload = json.dumps(rules, indent=2)
+            if output:
+                output.write_text(payload, encoding="utf-8")
+                console.print(f"Wrote {len(rules)} rules → [bold]{output}[/bold]")
+            else:
+                console.print_json(payload)
             return
-        tbl = Table("ID", "Name", "Enabled", "Severity", show_header=True, header_style="bold")
+
+        # ── CSV ───────────────────────────────────────────────────────────────
+        if csv_out:
+            # Use fields present in the first rule + our preferred order
+            sample = rules[0] if rules else {}
+            extra = [k for k in sample if k not in _CSV_FIELDS]
+            fields = [f for f in _CSV_FIELDS if f in sample or f in ("id", "name", "isEnabled", "severity")] + extra
+
+            dest = open(output, "w", newline="", encoding="utf-8") if output else sys.stdout
+            try:
+                writer = csv.DictWriter(dest, fieldnames=fields, extrasaction="ignore")
+                writer.writeheader()
+                for r in rules:
+                    row = {f: r.get(f, "") for f in fields}
+                    # Flatten lists (e.g. families, mitre) to semicolon-separated strings
+                    for k, v in row.items():
+                        if isinstance(v, list):
+                            row[k] = "; ".join(str(x) for x in v)
+                        elif isinstance(v, dict):
+                            row[k] = json.dumps(v)
+                    writer.writerow(row)
+            finally:
+                if output:
+                    dest.close()
+            if output:
+                console.print(f"Wrote {len(rules)} rules → [bold]{output}[/bold]")
+            return
+
+        # ── Rich table ────────────────────────────────────────────────────────
+        sample = rules[0] if rules else {}
+        has_type = "type" in sample
+        has_families = "families" in sample
+
+        cols = ["ID", "Name", "Enabled", "Severity"]
+        if has_type:
+            cols.append("Type")
+        if has_families:
+            cols.append("Families")
+
+        tbl = Table(*cols, show_header=True, header_style="bold")
         for r in rules:
             enabled_val = r.get("isEnabled")
-            if enabled_val is True:
-                enabled_str = "[green]yes[/green]"
-            elif enabled_val is False:
-                enabled_str = "[dim]no[/dim]"
-            else:
-                enabled_str = ""
-            tbl.add_row(
-                r.get("id", ""),
-                r.get("name", ""),
-                enabled_str,
-                r.get("severity", ""),
-            )
+            enabled_str = ("[green]yes[/green]" if enabled_val is True
+                           else "[dim]no[/dim]" if enabled_val is False else "")
+            families_val = r.get("families", [])
+            families_str = "; ".join(str(f) for f in families_val) if isinstance(families_val, list) else str(families_val)
+
+            row = [r.get("id", ""), r.get("name", ""), enabled_str, r.get("severity", "")]
+            if has_type:
+                row.append(r.get("type", ""))
+            if has_families:
+                row.append(families_str)
+            tbl.add_row(*row)
+
         console.print(tbl)
         console.print(f"\n  {len(rules)} rules", style="dim")
+        if has_type:
+            types = sorted({r.get("type", "") for r in rules if r.get("type")})
+            console.print(f"  Rule types: {', '.join(types)}", style="dim")
     finally:
         client.close()
 
