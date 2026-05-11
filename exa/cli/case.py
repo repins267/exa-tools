@@ -68,11 +68,11 @@ def qualify(
     case_number: Annotated[str, typer.Argument(help="Case number (e.g. 221)")],
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to search for prior entity cases"),
+        typer.Option("--lookback", help="Days to search for prior entity cases [default: 30]"),
     ] = 30,
     window: Annotated[
         int,
-        typer.Option("--window", help="Minutes around trigger to search events"),
+        typer.Option("--window", help="Minutes ±window around trigger to search events [default: 30]"),
     ] = 30,
     tenant: Annotated[
         str | None,
@@ -300,11 +300,11 @@ def events(
     case_number: Annotated[str, typer.Argument(help="Case number")],
     window: Annotated[
         int,
-        typer.Option("--window", help="Minutes around trigger (default 30)"),
+        typer.Option("--window", help="Minutes ±window around trigger to fetch events [default: 30]"),
     ] = 30,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max events (default 100)"),
+        typer.Option("--limit", help="Max events to return [default: 100]"),
     ] = 100,
     tenant: Annotated[
         str | None,
@@ -384,7 +384,7 @@ def history(
     entity: Annotated[str, typer.Argument(help="Username or hostname")],
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to look back (default 30)"),
+        typer.Option("--lookback", help="Days to look back for entity cases [default: 30]"),
     ] = 30,
     tenant: Annotated[
         str | None,
@@ -440,7 +440,7 @@ case_app.add_typer(outcome_app)
 @outcome_app.command("list")
 def outcome_list(
     as_json: Annotated[
-        bool, typer.Option("--json", help="Output as JSON"),
+        bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Table of all logged outcome records."""
@@ -497,7 +497,7 @@ def outcome_resolve(
         str,
         typer.Option(
             "--outcome",
-            help="Outcome: tp | fp | noise | duplicate | unknown",
+            help="Outcome verdict: tp | fp | noise | duplicate | unknown",
         ),
     ],
     closed_reason: Annotated[
@@ -505,7 +505,7 @@ def outcome_resolve(
         typer.Option("--closed-reason", help="Optional closed reason text"),
     ] = None,
     as_json: Annotated[
-        bool, typer.Option("--json", help="Output as JSON"),
+        bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Set the outcome on a logged case record."""
@@ -541,7 +541,7 @@ def outcome_sync(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
     as_json: Annotated[
-        bool, typer.Option("--json", help="Output as JSON"),
+        bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Auto-fill outcomes for closed cases from Threat Center."""
@@ -570,14 +570,14 @@ def outcome_sync(
 def baseline(
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to look back for closed cases (default 90)"),
+        typer.Option("--lookback", help="Days to look back for closed cases [default: 90]"),
     ] = 90,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
     as_json: Annotated[
-        bool, typer.Option("--json", help="Output as JSON"),
+        bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Compute FP rate calibration from closed cases and outcomes log."""

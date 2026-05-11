@@ -364,3 +364,65 @@ def detection_diff(
                     f"      {field}: {delta['before']!r} -> {delta['after']!r}",
                     style="dim",
                 )
+
+
+# ---------------------------------------------------------------------------
+# snapshot
+# ---------------------------------------------------------------------------
+
+@detection_app.command("snapshot")
+def detection_snapshot(
+    table: Annotated[
+        str,
+        typer.Argument(help="Context table name (substring) or exact table ID"),
+    ],
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Snapshot all analytics rules into a context table (full replace)."""
+    from exa.detection.snapshot import snapshot_rules_to_table
+
+    client = _make_client(tenant)
+    try:
+        table_id, display_name = _resolve_table(client, table)
+        result = snapshot_rules_to_table(client, table_id)
+        console.print(
+            f"Wrote {result['written']} rules to context table '{display_name}'",
+            style="green",
+        )
+    finally:
+        client.close()
+
+
+def _resolve_table(client, name_or_id: str) -> tuple[str, str]:
+    """Return (table_id, display_name) for a given table name substring or exact ID."""
+    from exa.context.tables import get_tables
+
+    tables = get_tables(client)
+
+    # Exact ID match first
+    for t in tables:
+        if t.get("id") == name_or_id:
+            return t["id"], t.get("displayName") or t.get("name", name_or_id)
+
+    # Substring match on displayName or name (case-insensitive)
+    needle = name_or_id.lower()
+    matches = [
+        t for t in tables
+        if needle in (t.get("displayName") or "").lower()
+        or needle in (t.get("name") or "").lower()
+    ]
+    if len(matches) == 1:
+        t = matches[0]
+        return t["id"], t.get("displayName") or t.get("name", name_or_id)
+    if len(matches) > 1:
+        names = [t.get("displayName") or t.get("name", "?") for t in matches]
+        raise typer.BadParameter(
+            f"Ambiguous table name '{name_or_id}' — matches: {names}."
+            " Use a more specific name or the table ID."
+        )
+    raise typer.BadParameter(
+        f"Table '{name_or_id}' not found. Check the name with: exa context list"
+    )

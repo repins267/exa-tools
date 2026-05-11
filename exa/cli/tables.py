@@ -139,7 +139,7 @@ def tables_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output each table as a JSON line (ndjson)"),
+        typer.Option("--json/--no-json", help="Output as ndjson — one table per line [default: no-json]"),
     ] = False,
     tenant: Annotated[
         str | None,
@@ -198,12 +198,12 @@ def tables_create(
         str,
         typer.Option(
             "--type",
-            help="Context type: Other, User, TI_ips, TI_domains, Device, Domain, IP",
+            help='Context type: Other, User, TI_ips, TI_domains, Device, Domain, IP [default: Other]',
         ),
     ] = "Other",
     key_col: Annotated[
         str,
-        typer.Option("--key", metavar="COLNAME", help="Name of the key column"),
+        typer.Option("--key", metavar="COLNAME", help='Name of the key column [default: "key"]'),
     ] = "key",
     columns: Annotated[
         str | None,
@@ -324,11 +324,11 @@ def records_list(
     table: Annotated[str, typer.Argument(help="Table ID or display name")],
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max records to return"),
+        typer.Option("--limit", help="Max records to return [default: 1000]"),
     ] = 1000,
     offset: Annotated[
         int,
-        typer.Option("--offset", help="Pagination offset"),
+        typer.Option("--offset", help="Pagination offset for large tables [default: 0]"),
     ] = 0,
     csv_path: Annotated[
         str | None,
@@ -336,7 +336,7 @@ def records_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output each record as a JSON line"),
+        typer.Option("--json/--no-json", help="Output each record as a JSON line (ndjson) [default: no-json]"),
     ] = False,
     tenant: Annotated[
         str | None,

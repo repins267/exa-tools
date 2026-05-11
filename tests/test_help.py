@@ -294,6 +294,13 @@ def test_detection_help():
     assert "export" in result.output
     assert "import" in result.output
     assert "diff" in result.output
+    assert "snapshot" in result.output
+
+
+def test_detection_snapshot_help():
+    result = runner.invoke(app, ["detection", "snapshot", "--help"])
+    assert result.exit_code == 0
+    assert "--tenant" in result.output
 
 
 # ---------------------------------------------------------------------------

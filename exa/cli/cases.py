@@ -50,15 +50,15 @@ def _make_client(tenant: str | None = None):
 def cases_list(
     filter: Annotated[
         str | None,
-        typer.Option("--filter", "-f", help='EQL filter, e.g. \'NOT stage:"CLOSED"\''),
+        typer.Option("--filter", "-f", help='EQL filter e.g. \'NOT stage:"CLOSED"\' or \'priority:"HIGH"\''),
     ] = None,
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to look back (default 30)"),
+        typer.Option("--lookback", help="Days to look back [default: 30]"),
     ] = 30,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max cases to return (default 50)"),
+        typer.Option("--limit", help="Max cases to return [default: 50]"),
     ] = 50,
     tenant: Annotated[
         str | None,
@@ -66,7 +66,7 @@ def cases_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """List Threat Center cases."""
@@ -134,7 +134,7 @@ def cases_get(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Get details for a specific case."""
@@ -195,7 +195,7 @@ def cases_update(
     ] = None,
     stage: Annotated[
         str | None,
-        typer.Option("--stage", help="Case stage (e.g. OPEN, IN PROGRESS, CLOSED)"),
+        typer.Option("--stage", help='New stage: OPEN, "IN PROGRESS", CLOSED'),
     ] = None,
     closed_reason: Annotated[
         str | None,
@@ -215,7 +215,7 @@ def cases_update(
     ] = None,
     tags: Annotated[
         str | None,
-        typer.Option("--tags", help="Comma-separated tags"),
+        typer.Option("--tags", help="Comma-separated replacement tag list (replaces all existing tags)"),
     ] = None,
     tenant: Annotated[
         str | None,
@@ -264,15 +264,15 @@ def cases_update(
 def alerts_list(
     filter: Annotated[
         str | None,
-        typer.Option("--filter", "-f", help='EQL filter, e.g. \'priority:"HIGH"\''),
+        typer.Option("--filter", "-f", help='EQL filter e.g. \'priority:"HIGH"\' or \'NOT stage:"CLOSED"\''),
     ] = None,
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to look back (default 30)"),
+        typer.Option("--lookback", help="Days to look back [default: 30]"),
     ] = 30,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max alerts to return (default 50)"),
+        typer.Option("--limit", help="Max alerts to return [default: 50]"),
     ] = 50,
     tenant: Annotated[
         str | None,
@@ -280,7 +280,7 @@ def alerts_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """List Threat Center alerts."""
@@ -344,7 +344,7 @@ def alerts_get(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
     """Get details for a specific alert."""
@@ -401,7 +401,7 @@ def alerts_update(
     ] = None,
     tags: Annotated[
         str | None,
-        typer.Option("--tags", help="Comma-separated tags"),
+        typer.Option("--tags", help="Comma-separated replacement tag list (replaces all existing tags)"),
     ] = None,
     tenant: Annotated[
         str | None,

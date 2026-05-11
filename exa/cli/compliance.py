@@ -60,7 +60,7 @@ def sync_ootb(
     framework: Annotated[
         str,
         typer.Option("--framework", "-f",
-                     help="Framework name or ID"),
+                     help="Framework ID or name [default: NIST_CSF] — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, ISO_27001, FedRAMP, CJIS, CMMC_L2, CMMC_L3"),
     ] = "NIST_CSF",
     dry_run: Annotated[
         bool,
@@ -135,23 +135,23 @@ def sync_ootb(
 def sync_identity(
     source_privileged: Annotated[
         str | None,
-        typer.Option(help="Source table for privileged users"),
+        typer.Option(help="Source table → 'Compliance - Privileged Users'"),
     ] = None,
     source_service_accounts: Annotated[
         str | None,
-        typer.Option(help="Source table for service accounts"),
+        typer.Option(help="Source table → 'Compliance - System & Service Accounts'"),
     ] = None,
     source_network_systems: Annotated[
         str | None,
-        typer.Option(help="Source table for network systems"),
+        typer.Option(help="Source table → 'Compliance - Network Security Systems'"),
     ] = None,
     source_shared_accounts: Annotated[
         str | None,
-        typer.Option(help="Source table for shared accounts"),
+        typer.Option(help="Source table → 'Compliance - Shared Accounts'"),
     ] = None,
     source_third_party: Annotated[
         str | None,
-        typer.Option(help="Source table for third-party users"),
+        typer.Option(help="Source table → 'Compliance - Third-Party Users'"),
     ] = None,
     in_scope_systems_list: Annotated[
         str | None,
@@ -172,7 +172,7 @@ def sync_identity(
     ] = False,
     source_table: Annotated[
         str | None,
-        typer.Option(help="Source table (with --filter-mode)"),
+        typer.Option(help="Source table when using --filter-mode"),
     ] = None,
     force: Annotated[
         bool,
@@ -308,17 +308,17 @@ def audit(
     framework: Annotated[
         str,
         typer.Option("--framework", "-f",
-                     help="Framework name or ID"),
+                     help="Framework ID or name [default: NIST_CSF] — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, ISO_27001, FedRAMP, CJIS, CMMC_L2, CMMC_L3"),
     ] = "NIST_CSF",
     lookback_days: Annotated[
         int,
         typer.Option("--lookback",
-                     help="Days to search back"),
+                     help="Days of events to search per control [default: 30]"),
     ] = 30,
     min_evidence: Annotated[
         int,
         typer.Option("--min-evidence",
-                     help="Min events per control"),
+                     help="Minimum events required to mark a control PASS [default: 10]"),
     ] = 10,
     output_json: Annotated[
         str | None,
@@ -335,9 +335,8 @@ def audit(
     output_pdf: Annotated[
         bool,
         typer.Option(
-            "--output-pdf",
-            is_flag=True,
-            help="Render HTML report to PDF (auto-path: reports/<tenant>-<fw>-<date>.pdf)",
+            "--output-pdf/--no-output-pdf",
+            help="Render HTML report to PDF (auto-path in reports/) [default: no-output-pdf]",
         ),
     ] = False,
     pdf_path: Annotated[

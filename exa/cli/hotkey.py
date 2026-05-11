@@ -74,8 +74,8 @@ def analyze(
         str | None,
         typer.Option("--name-field", help="Column id holding the zone name"),
     ] = None,
-    as_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
-    as_csv: Annotated[bool, typer.Option("--csv", help="Output as CSV")] = False,
+    as_json: Annotated[bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]")] = False,
+    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Output as CSV [default: no-csv]")] = False,
 ) -> None:
     """Classify Network Zones table entries by hot key risk (CRITICAL/COARSE/FINE)."""
     from exa.hotkey.analyze import analyze_zones
@@ -176,16 +176,16 @@ def analyze(
 @hotkey_app.command("scan")
 def scan(
     tenant: Annotated[str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)] = None,
-    lookback: Annotated[int, typer.Option("--lookback", help="Days of events to search")] = 7,
+    lookback: Annotated[int, typer.Option("--lookback", help="Days of events to search [default: 7]")] = 7,
     threshold: Annotated[
         int,
-        typer.Option("--threshold", help="Distinct IPs per zone above which zone is HOT_KEY_RISK"),
+        typer.Option("--threshold", help="Distinct IPs per zone to flag HOT_KEY_RISK [default: 500]"),
     ] = 500,
-    limit: Annotated[int, typer.Option("--limit", help="Max IPs to collect from search")] = 50_000,
-    ip_field: Annotated[str | None, typer.Option("--ip-field")] = None,
-    name_field: Annotated[str | None, typer.Option("--name-field")] = None,
-    as_json: Annotated[bool, typer.Option("--json")] = False,
-    as_csv: Annotated[bool, typer.Option("--csv")] = False,
+    limit: Annotated[int, typer.Option("--limit", help="Max IPs to collect from event search [default: 50000]")] = 50_000,
+    ip_field: Annotated[str | None, typer.Option("--ip-field", help="Column name holding IP/subnet in Network Zones table (auto-detected if omitted)")] = None,
+    name_field: Annotated[str | None, typer.Option("--name-field", help="Column name holding zone name in Network Zones table (auto-detected if omitted)")] = None,
+    as_json: Annotated[bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]")] = False,
+    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Output as CSV [default: no-csv]")] = False,
 ) -> None:
     """Scan recent events for active source IPs per zone; flag HOT_KEY_RISK zones.
 
@@ -306,16 +306,16 @@ def expand(
         typer.Option("--zone", help="Zone name to expand (default: all CRITICAL/COARSE zones)"),
     ] = None,
     lookback: Annotated[
-        int, typer.Option("--lookback", help="Days of events to scan for observed IPs")
+        int, typer.Option("--lookback", help="Days of events to scan for observed IPs [default: 7]")
     ] = 7,
     enumerate_all: Annotated[
         bool,
         typer.Option("--enumerate/--no-enumerate", help="Enumerate all /24s (not just observed)"),
     ] = False,
-    dry_run: Annotated[bool, typer.Option("--dry-run/--no-dry-run")] = False,
-    limit: Annotated[int, typer.Option("--limit")] = 50_000,
-    ip_field: Annotated[str | None, typer.Option("--ip-field")] = None,
-    name_field: Annotated[str | None, typer.Option("--name-field")] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run/--no-dry-run", help="Preview changes without writing to the table [default: no-dry-run]")] = False,
+    limit: Annotated[int, typer.Option("--limit", help="Max IPs to collect from event search [default: 50000]")] = 50_000,
+    ip_field: Annotated[str | None, typer.Option("--ip-field", help="Column name holding IP/subnet in Network Zones table (auto-detected if omitted)")] = None,
+    name_field: Annotated[str | None, typer.Option("--name-field", help="Column name holding zone name in Network Zones table (auto-detected if omitted)")] = None,
 ) -> None:
     """Expand coarse zone(s) to /24 granularity.
 
@@ -406,15 +406,15 @@ def expand(
 @hotkey_app.command("autofix")
 def autofix(
     tenant: Annotated[str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)] = None,
-    lookback: Annotated[int, typer.Option("--lookback", help="Days of traffic to scan")] = 7,
+    lookback: Annotated[int, typer.Option("--lookback", help="Days of traffic to scan [default: 7]")] = 7,
     threshold: Annotated[int, typer.Option(
         "--threshold",
-        help="Min distinct IPs in a COARSE zone to qualify for expansion",
+        help="Distinct IPs per zone to flag HOT_KEY_RISK [default: 500]",
     )] = 500,
-    limit: Annotated[int, typer.Option("--limit", help="Max IPs fetched from search")] = 50_000,
+    limit: Annotated[int, typer.Option("--limit", help="Max IPs to collect from event search [default: 50000]")] = 50_000,
     max_zones: Annotated[int, typer.Option(
         "--max-zones",
-        help="Safety cap: refuse to expand more than N zones in one run",
+        help="Safety cap: refuse to expand more than N zones in one run [default: 10]",
     )] = 10,
     enumerate_all: Annotated[bool, typer.Option(
         "--enumerate/--no-enumerate",
@@ -424,7 +424,7 @@ def autofix(
     ip_field: Annotated[str | None, typer.Option("--ip-field")] = None,
     name_field: Annotated[str | None, typer.Option("--name-field")] = None,
     as_json: Annotated[
-        bool, typer.Option("--json", help="Machine-readable output (progress to stderr)")
+        bool, typer.Option("--json/--no-json", help="Machine-readable output; progress to stderr [default: no-json]")
     ] = False,
 ) -> None:
     """Analyze, scan, and expand all hot key zones in one step.

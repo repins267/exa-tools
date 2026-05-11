@@ -8,6 +8,7 @@ from exa.detection.rules import (
     import_rules,
     set_detection_rule_state,
 )
+from exa.detection.snapshot import snapshot_rules_to_table
 
 __all__ = [
     "diff_rules",
@@ -16,4 +17,5 @@ __all__ = [
     "get_detection_rules",
     "import_rules",
     "set_detection_rule_state",
+    "snapshot_rules_to_table",
 ]
