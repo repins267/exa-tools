@@ -194,7 +194,7 @@ def detection_export(
     try:
         bundle = export_rules(client, rule_ids=rule_ids if rule_ids else None)
         output.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
-        count = len(bundle.get("rules", bundle.get("ruleIds", [])))
+        count = len(bundle.get("ruleDefinitions", []))
         console.print(f"Exported {count} rules to {output}", style="green")
     finally:
         client.close()
@@ -267,10 +267,10 @@ def detection_diff(
     bundle_a = json.loads(file_a.read_text(encoding="utf-8"))
     bundle_b = json.loads(file_b.read_text(encoding="utf-8"))
 
-    rules_a: list[dict] = bundle_a if isinstance(bundle_a, list) else bundle_a.get("rules", [])
-    rules_b: list[dict] = bundle_b if isinstance(bundle_b, list) else bundle_b.get("rules", [])
+    rules_a: list[dict] = bundle_a if isinstance(bundle_a, list) else bundle_a.get("ruleDefinitions", [])
+    rules_b: list[dict] = bundle_b if isinstance(bundle_b, list) else bundle_b.get("ruleDefinitions", [])
 
-    result = diff_rules(rules_a, rules_b)
+    result = diff_rules(rules_a, rules_b, key="templateId")
 
     if json_out:
         console.print_json(json.dumps(result))
@@ -284,17 +284,17 @@ def detection_diff(
     if result["added"]:
         console.print("\n[green]Added:[/green]")
         for r in result["added"]:
-            console.print(f"  + {r.get('id', '?')}  {r.get('name', '')}")
+            console.print(f"  + {r.get('templateId', '?')}  {r.get('name', '')}")
 
     if result["removed"]:
         console.print("\n[red]Removed:[/red]")
         for r in result["removed"]:
-            console.print(f"  - {r.get('id', '?')}  {r.get('name', '')}")
+            console.print(f"  - {r.get('templateId', '?')}  {r.get('name', '')}")
 
     if result["changed"]:
         console.print("\n[yellow]Changed:[/yellow]")
         for entry in result["changed"]:
-            console.print(f"  ~ {entry.get('id', '?')}")
+            console.print(f"  ~ {entry.get('templateId', '?')}")
             for field, delta in entry.get("changes", {}).items():
                 console.print(
                     f"      {field}: {delta['before']!r} -> {delta['after']!r}",
