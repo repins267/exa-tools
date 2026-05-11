@@ -49,12 +49,12 @@ def _mock_client() -> MagicMock:
 
 
 # ---------------------------------------------------------------------------
-# test_autofix_no_coarse_exits_clean
+# test_autofix_no_fixable_zones_exits_clean
 # ---------------------------------------------------------------------------
 
 
-def test_autofix_no_coarse_exits_clean(monkeypatch):
-    """analyze returns no COARSE zones → exits 0, scan and expand never called."""
+def test_autofix_no_fixable_zones_exits_clean(monkeypatch):
+    """analyze returns only FINE zones (no CRITICAL, no COARSE) → exits 0."""
     import exa.cli.hotkey as hotkey_cli
     import exa.hotkey.analyze as analyze_mod
     import exa.hotkey.expand as expand_mod
@@ -62,7 +62,7 @@ def test_autofix_no_coarse_exits_clean(monkeypatch):
 
     monkeypatch.setattr(hotkey_cli, "_make_client", lambda tenant=None: _mock_client())
 
-    fine_zones = [_make_zone("10.5.42.0/24", "Net_10_5_42_0", "MEDIUM", prefix_len=24)]
+    fine_zones = [_make_zone("10.5.42.0/24", "Net_10_5_42_0", "FINE", prefix_len=24)]
     monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: fine_zones)
 
     scan_called: list[bool] = []
@@ -88,12 +88,12 @@ def test_autofix_no_coarse_exits_clean(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# test_autofix_no_hot_zones_exits_clean
+# test_autofix_no_hot_coarse_zones_exits_clean
 # ---------------------------------------------------------------------------
 
 
-def test_autofix_no_hot_zones_exits_clean(monkeypatch):
-    """scan returns no HOT_KEY_RISK zones → exits 0, expand never called."""
+def test_autofix_no_hot_coarse_zones_exits_clean(monkeypatch):
+    """COARSE zones present but scan returns OK → exits 0, expand never called."""
     import exa.cli.hotkey as hotkey_cli
     import exa.hotkey.analyze as analyze_mod
     import exa.hotkey.expand as expand_mod
@@ -101,7 +101,8 @@ def test_autofix_no_hot_zones_exits_clean(monkeypatch):
 
     monkeypatch.setattr(hotkey_cli, "_make_client", lambda tenant=None: _mock_client())
 
-    coarse_zones = [_make_zone("10.0.0.0/8", "Net_10_0_0_0", "COARSE", prefix_len=8)]
+    # /20 is COARSE (17-23 range) — needs scan to qualify
+    coarse_zones = [_make_zone("10.0.0.0/20", "Net_10_0_0_0", "COARSE", prefix_len=20)]
     monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: coarse_zones)
 
     ok_scan = [_make_scan("Net_10_0_0_0", ip_count=3, risk="OK")]
@@ -127,7 +128,7 @@ def test_autofix_no_hot_zones_exits_clean(monkeypatch):
 
 
 def test_autofix_safety_cap(monkeypatch):
-    """11 HOT_KEY_RISK zones with --max-zones=10 → exit 1, expand never called."""
+    """11 CRITICAL zones with --max-zones=10 → exit 1, expand never called."""
     import exa.cli.hotkey as hotkey_cli
     import exa.hotkey.analyze as analyze_mod
     import exa.hotkey.expand as expand_mod
@@ -135,18 +136,21 @@ def test_autofix_safety_cap(monkeypatch):
 
     monkeypatch.setattr(hotkey_cli, "_make_client", lambda tenant=None: _mock_client())
 
-    # 11 COARSE zones
-    coarse_zones = [
-        _make_zone(f"10.{i}.0.0/16", f"Zone_{i}", "COARSE", prefix_len=16)
+    # 11 CRITICAL zones (/16 → CRITICAL in new tier system)
+    critical_zones = [
+        _make_zone(f"10.{i}.0.0/16", f"Zone_{i}", "CRITICAL", prefix_len=16)
         for i in range(11)
     ]
-    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: coarse_zones)
+    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: critical_zones)
 
-    # 11 HOT_KEY_RISK scans
-    hot_scans = [
-        _make_scan(f"Zone_{i}", ip_count=1000, risk="HOT_KEY_RISK") for i in range(11)
-    ]
-    monkeypatch.setattr(scan_mod, "scan_zones", lambda *a, **kw: hot_scans)
+    # CRITICAL zones skip scan — scan should never be called
+    scan_called: list[bool] = []
+
+    def _no_scan(*a: object, **kw: object) -> list:
+        scan_called.append(True)
+        return []
+
+    monkeypatch.setattr(scan_mod, "scan_zones", _no_scan)
 
     expand_called: list[bool] = []
 
@@ -160,6 +164,7 @@ def test_autofix_safety_cap(monkeypatch):
 
     assert result.exit_code == 1
     assert "11" in result.output
+    assert not scan_called   # CRITICAL zones skip scan
     assert not expand_called
 
 
@@ -178,11 +183,18 @@ def test_autofix_dry_run_no_writes(monkeypatch):
 
     monkeypatch.setattr(hotkey_cli, "_make_client", lambda tenant=None: _mock_client())
 
-    coarse = [_make_zone("10.0.0.0/16", "Net_10_0_0_0", "COARSE", prefix_len=16)]
-    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: coarse)
+    # /16 is CRITICAL — qualifies without scan
+    critical = [_make_zone("10.0.0.0/16", "Net_10_0_0_0", "CRITICAL", prefix_len=16)]
+    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: critical)
 
-    hot = [_make_scan("Net_10_0_0_0", ip_count=600, risk="HOT_KEY_RISK")]
-    monkeypatch.setattr(scan_mod, "scan_zones", lambda *a, **kw: hot)
+    # scan should NOT be called for CRITICAL-only autofix
+    scan_called: list[bool] = []
+
+    def _no_scan(*a: object, **kw: object) -> list:
+        scan_called.append(True)
+        return []
+
+    monkeypatch.setattr(scan_mod, "scan_zones", _no_scan)
 
     monkeypatch.setattr(
         events_mod, "search_events", lambda *a, **kw: [{"src_ip": "10.0.0.5"}]
@@ -209,6 +221,7 @@ def test_autofix_dry_run_no_writes(monkeypatch):
     result = runner.invoke(app, ["hotkey", "autofix", "--dry-run"])
 
     assert result.exit_code == 0
+    assert not scan_called
     assert len(expand_calls) == 1
     assert expand_calls[0]["dry_run"] is True
     assert "dry-run" in result.output
@@ -220,7 +233,7 @@ def test_autofix_dry_run_no_writes(monkeypatch):
 
 
 def test_autofix_happy_path(monkeypatch, tmp_path):
-    """Full chain: analyze → scan → expand fires in order, exit 0."""
+    """Full chain: CRITICAL zone auto-flags, scan skipped, expand fires. Exit 0."""
     import exa.cli.hotkey as hotkey_cli
     import exa.hotkey.analyze as analyze_mod
     import exa.hotkey.expand as expand_mod
@@ -231,11 +244,17 @@ def test_autofix_happy_path(monkeypatch, tmp_path):
     monkeypatch.setattr(hotkey_cli, "_make_client", lambda tenant=None: _mock_client())
     monkeypatch.setattr(rollback_mod, "_MANIFEST_DIR", tmp_path / "hotkey-rollback")
 
-    coarse = [_make_zone("10.0.0.0/16", "Net_10_0_0_0", "COARSE", prefix_len=16)]
-    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: coarse)
+    # /16 → CRITICAL; no COARSE zones → scan phase skipped entirely
+    critical = [_make_zone("10.0.0.0/16", "Net_10_0_0_0", "CRITICAL", prefix_len=16)]
+    monkeypatch.setattr(analyze_mod, "analyze_zones", lambda *a, **kw: critical)
 
-    hot = [_make_scan("Net_10_0_0_0", ip_count=800, risk="HOT_KEY_RISK")]
-    monkeypatch.setattr(scan_mod, "scan_zones", lambda *a, **kw: hot)
+    scan_called: list[bool] = []
+
+    def _no_scan(*a: object, **kw: object) -> list:
+        scan_called.append(True)
+        return []
+
+    monkeypatch.setattr(scan_mod, "scan_zones", _no_scan)
 
     monkeypatch.setattr(
         events_mod, "search_events", lambda *a, **kw: [{"src_ip": "10.0.0.5"}]
@@ -262,9 +281,11 @@ def test_autofix_happy_path(monkeypatch, tmp_path):
     result = runner.invoke(app, ["hotkey", "autofix"])
 
     assert result.exit_code == 0, result.output
+    assert not scan_called  # CRITICAL zones skip scan
     assert len(expand_calls) == 1
     assert expand_calls[0]["dry_run"] is False
-    # Only the HOT_KEY_RISK COARSE zone should be passed to expand
+    # The CRITICAL zone must be passed to expand
     assert len(expand_calls[0]["zones"]) == 1
     assert expand_calls[0]["zones"][0].entry.zone_name == "Net_10_0_0_0"
+    assert expand_calls[0]["zones"][0].risk == "CRITICAL"
     assert "expanded" in result.output

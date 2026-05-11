@@ -53,7 +53,7 @@ def expand_zones(
     dry_run=True: prints the plan, makes no API writes, no manifest.
     Returns list of {zone_name, old_key, new_key_count, status} per target.
     """
-    targets = [z for z in zones if z.risk == "COARSE"]
+    targets = [z for z in zones if z.risk in ("CRITICAL", "COARSE")]
     if zone_name:
         targets = [z for z in targets if z.entry.zone_name == zone_name]
 
@@ -94,7 +94,7 @@ def expand_zones(
         tenant=tenant,
         table_id=table_id,
         table_display_name=table_display_name,
-        zone_name=zone_name or "(all COARSE)",
+        zone_name=zone_name or "(all CRITICAL/COARSE)",
         original_records=all_records,
         added_keys=[],  # not used for replace-based rollback; snapshot is sufficient
     )

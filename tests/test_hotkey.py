@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ipaddress
 import json
-from pathlib import Path
 
 import pytest
 
@@ -27,7 +26,7 @@ from exa.hotkey.rollback import (
     load_manifest,
     write_manifest,
 )
-from exa.hotkey.scan import ZoneScan, _group_by_zone, _ip_in_zone, _parse_grouped_rows
+from exa.hotkey.scan import _ip_in_zone, _parse_grouped_rows
 
 BASE_URL = "https://api.us-west.exabeam.cloud"
 
@@ -38,26 +37,37 @@ BASE_URL = "https://api.us-west.exabeam.cloud"
 
 
 class TestClassifyZone:
-    def test_slash8_is_coarse(self):
+    def test_slash8_is_critical(self):
         risk, prefix, cardinality = _classify_zone("10.0.0.0/8")
-        assert risk == "COARSE"
+        assert risk == "CRITICAL"
         assert prefix == 8
         assert cardinality == 16_777_216
 
-    def test_slash16_is_coarse(self):
+    def test_slash16_is_critical(self):
         risk, prefix, cardinality = _classify_zone("192.168.0.0/16")
-        assert risk == "COARSE"
+        assert risk == "CRITICAL"
         assert prefix == 16
         assert cardinality == 65_536
 
-    def test_slash17_is_medium(self):
+    def test_slash12_is_critical(self):
+        risk, prefix, _ = _classify_zone("10.0.0.0/12")
+        assert risk == "CRITICAL"
+        assert prefix == 12
+
+    def test_slash17_is_coarse(self):
         risk, prefix, _ = _classify_zone("10.0.0.0/17")
-        assert risk == "MEDIUM"
+        assert risk == "COARSE"
         assert prefix == 17
 
-    def test_slash24_is_medium(self):
+    def test_slash23_is_coarse(self):
+        risk, prefix, _ = _classify_zone("10.0.0.0/23")
+        assert risk == "COARSE"
+        assert prefix == 23
+
+    def test_slash24_is_fine(self):
+        # /24 is the expand target itself — classified FINE
         risk, prefix, cardinality = _classify_zone("10.5.42.0/24")
-        assert risk == "MEDIUM"
+        assert risk == "FINE"
         assert prefix == 24
         assert cardinality == 256
 
@@ -194,7 +204,7 @@ class TestIpInZone:
             table_display_name="Network Zones",
             raw={},
         )
-        return ZoneRisk(entry=entry, risk="COARSE", prefix_len=8, cardinality=None)
+        return ZoneRisk(entry=entry, risk="CRITICAL", prefix_len=8, cardinality=None)
 
     def test_ip_in_cidr_returns_true(self):
         assert _ip_in_zone("10.5.42.1", self._make_zone("10.0.0.0/8")) is True
@@ -226,6 +236,81 @@ class TestParseGroupedRows:
     def test_empty_rows_returns_empty(self):
         assert _parse_grouped_rows([]) == []
 
+    def test_ip_count_equals_row_count(self):
+        # groupBy returns one row per distinct IP with no count field.
+        # Verified 2026-05-08 against sademodev22: no _count or event_count field.
+        # ip_count is purely the number of matching rows.
+        rows = [{"src_ip": f"10.0.0.{i}"} for i in range(1, 6)]
+        ips = _parse_grouped_rows(rows)
+        assert len(ips) == 5  # ip_count = len(rows), not a sum of any field
+
+
+# ---------------------------------------------------------------------------
+# Pure-unit: scan_zones uses groupBy (not a plain search)
+# ---------------------------------------------------------------------------
+
+
+class TestScanZonesUsesGroupBy:
+    """Verify scan_zones passes group_by=["src_ip"] to search_events.
+
+    groupBy bypasses the 3000-row API result cap (one row per distinct IP).
+    A plain search over 7 days would be truncated at 3000 rows, giving
+    inaccurate distinct-IP counts. groupBy returns accurate cardinality.
+    """
+
+    def test_scan_calls_group_by(self, exa, mock_auth):
+        from exa.hotkey.analyze import ZoneEntry, ZoneRisk
+        from exa.hotkey.scan import scan_zones
+
+        # Stub the search endpoint — return two distinct IPs in a /16 zone
+        mock_auth.add_response(
+            method="POST",
+            json={"rows": [{"src_ip": "10.0.0.1"}, {"src_ip": "10.0.0.2"}]},
+        )
+
+        zone_entry = ZoneEntry(
+            key="10.0.0.0/20",
+            zone_name="Net_10_0_0_0",
+            ip_field="ipRange",
+            name_field="zoneName",
+            table_id="t1",
+            table_display_name="Network Zones",
+            raw={},
+        )
+        zone = ZoneRisk(entry=zone_entry, risk="COARSE", prefix_len=20, cardinality=4096)
+
+        results = scan_zones(exa, [zone], threshold=1)
+
+        # Confirm groupBy response was parsed: ip_count = number of rows (2)
+        assert len(results) == 1
+        assert results[0].ip_count == 2
+        assert results[0].risk == "HOT_KEY_RISK"
+
+        # Verify the request used groupBy, not a plain search
+        request = mock_auth.get_request(url=f"{BASE_URL}/search/v2/events", method="POST")
+        body = json.loads(request.content)
+        assert body.get("groupBy") == ["src_ip"], "scan must use groupBy to avoid 3000-row cap"
+        assert "src_ip" in body.get("fields", [])
+
+    def test_ip_count_is_len_of_matched_rows_not_a_sum(self, exa, mock_auth):
+        from exa.hotkey.analyze import ZoneEntry, ZoneRisk
+        from exa.hotkey.scan import scan_zones
+
+        # 3 rows returned — there is no count field; ip_count must be 3, not some other value
+        mock_auth.add_response(
+            method="POST",
+            json={"rows": [{"src_ip": "10.1.2.3"}, {"src_ip": "10.1.2.4"}, {"src_ip": "10.1.2.5"}]},
+        )
+
+        entry = ZoneEntry(
+            key="10.0.0.0/8", zone_name="Net_10", ip_field="ip",
+            name_field="name", table_id="t1", table_display_name="NZ", raw={},
+        )
+        zone = ZoneRisk(entry=entry, risk="CRITICAL", prefix_len=8, cardinality=16_777_216)
+
+        results = scan_zones(exa, [zone], threshold=1)
+        assert results[0].ip_count == 3  # exactly len(rows that matched this zone)
+
 
 # ---------------------------------------------------------------------------
 # Pure-unit: _gen_slash24_records
@@ -242,7 +327,8 @@ def _coarse_zone(cidr: str = "10.0.0.0/8") -> ZoneRisk:
         table_display_name="Network Zones",
         raw={},
     )
-    return ZoneRisk(entry=entry, risk="COARSE", prefix_len=8, cardinality=16_777_216)
+    # /8 is CRITICAL in the new tier system; helper name kept for test readability
+    return ZoneRisk(entry=entry, risk="CRITICAL", prefix_len=8, cardinality=16_777_216)
 
 
 class TestGenSlash24Records:
@@ -370,10 +456,10 @@ class TestAnalyzeZones:
         zones = analyze_zones(exa)
 
         assert len(zones) == 3
-        coarse = [z for z in zones if z.risk == "COARSE"]
-        medium = [z for z in zones if z.risk == "MEDIUM"]
-        assert len(coarse) == 2  # /8 and /16
-        assert len(medium) == 1  # /24
+        critical = [z for z in zones if z.risk == "CRITICAL"]
+        fine = [z for z in zones if z.risk == "FINE"]
+        assert len(critical) == 2  # /8 and /16
+        assert len(fine) == 1      # /24 is the expand target — FINE
 
     def test_table_not_found_raises(self, exa, mock_auth):
         mock_auth.add_response(

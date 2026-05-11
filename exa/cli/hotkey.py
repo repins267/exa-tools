@@ -20,7 +20,14 @@ hotkey_app = typer.Typer(
 console = Console()
 
 _TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
-_RISK_STYLE = {"COARSE": "red", "MEDIUM": "yellow", "FINE": "green", "UNKNOWN": "dim"}
+_RISK_STYLE = {
+    "CRITICAL": "bold red",
+    "COARSE": "red",
+    "FINE": "green",
+    "UNKNOWN": "dim",
+}
+# Sort order for risk levels in table output (lower = shown first)
+_RISK_ORDER = {"CRITICAL": 0, "COARSE": 1, "FINE": 2, "UNKNOWN": 3}
 
 
 def _make_client(tenant: str | None = None):
@@ -29,6 +36,28 @@ def _make_client(tenant: str | None = None):
     client = ExaClient(tenant=tenant)
     client.authenticate()
     return client
+
+
+def _analyze_rec(risk: str, tenant: str | None) -> str:
+    """One-line recommendation string for analyze output."""
+    t = f" --tenant {tenant}" if tenant else ""
+    if risk == "CRITICAL":
+        return f"Guaranteed hot key risk - run: exa hotkey expand{t}"
+    if risk == "COARSE":
+        return f"Run: exa hotkey scan{t} to assess traffic"
+    if risk == "FINE":
+        return "No action needed"
+    return "Non-CIDR key - review manually"
+
+
+def _scan_rec(zone_risk: str, scan_risk: str, tenant: str | None) -> str:
+    """One-line recommendation string for scan output."""
+    t = f" --tenant {tenant}" if tenant else ""
+    if zone_risk == "CRITICAL":
+        return f"AUTO-FLAG: expand regardless of traffic - run: exa hotkey expand{t}"
+    if scan_risk == "HOT_KEY_RISK":
+        return f"Active hot key confirmed - run: exa hotkey expand{t}"
+    return "Below threshold - monitor or expand proactively"
 
 
 # -- analyze ------------------------------------------------------------------
@@ -48,12 +77,12 @@ def analyze(
     as_json: Annotated[bool, typer.Option("--json", help="Output as JSON")] = False,
     as_csv: Annotated[bool, typer.Option("--csv", help="Output as CSV")] = False,
 ) -> None:
-    """Classify Network Zones table entries by hot key risk (COARSE/MEDIUM/FINE)."""
+    """Classify Network Zones table entries by hot key risk (CRITICAL/COARSE/FINE)."""
     from exa.hotkey.analyze import analyze_zones
 
     client = _make_client(tenant)
     try:
-        with console.status("Reading Network Zones table…"):
+        with console.status("Reading Network Zones table..."):
             zones = analyze_zones(client, ip_field=ip_field, name_field=name_field)
     except ValueError as e:
         console.print(f"FAIL: {e}", style="red")
@@ -68,6 +97,7 @@ def analyze(
             "prefix_len": z.prefix_len,
             "cardinality": z.cardinality,
             "risk": z.risk,
+            "recommendation": _analyze_rec(z.risk, tenant),
         }
         for z in zones
     ]
@@ -79,39 +109,62 @@ def analyze(
     if as_csv:
         buf = io.StringIO()
         writer = csv.DictWriter(
-            buf, fieldnames=["zone_name", "key", "prefix_len", "cardinality", "risk"]
+            buf,
+            fieldnames=["zone_name", "key", "prefix_len", "cardinality", "risk", "recommendation"],
         )
         writer.writeheader()
         writer.writerows(rows)
         console.print(buf.getvalue(), end="")
         return
 
-    coarse = sum(1 for z in zones if z.risk == "COARSE")
-    table = Table(title="Network Zones — Hot Key Risk", show_lines=False)
+    n_critical = sum(1 for z in zones if z.risk == "CRITICAL")
+    n_coarse = sum(1 for z in zones if z.risk == "COARSE")
+
+    table = Table(title="Network Zones - Hot Key Risk", show_lines=False)
     table.add_column("Zone Name", style="white", no_wrap=True)
     table.add_column("Key (IP/Subnet)", style="dim")
     table.add_column("Prefix", justify="right")
     table.add_column("Addresses", justify="right")
     table.add_column("Risk", justify="center")
+    table.add_column("Recommendation")
 
-    for z in sorted(zones, key=lambda z: (z.prefix_len or 999, z.entry.zone_name)):
+    def sort_key(z):
+        return (_RISK_ORDER.get(z.risk, 99), z.prefix_len or 999, z.entry.zone_name)
+
+    for z in sorted(zones, key=sort_key):
         style = _RISK_STYLE.get(z.risk, "")
-        cardinality = f"{z.cardinality:,}" if z.cardinality is not None else "—"
-        prefix = f"/{z.prefix_len}" if z.prefix_len is not None else "—"
+        cardinality = f"{z.cardinality:,}" if z.cardinality is not None else "-"
+        prefix = f"/{z.prefix_len}" if z.prefix_len is not None else "-"
+        risk_label = z.risk
+        if z.risk == "CRITICAL":
+            risk_label = "[bold red]CRITICAL (AUTO-FLAG)[/bold red]"
+        elif style:
+            risk_label = f"[{style}]{z.risk}[/{style}]"
         table.add_row(
             z.entry.zone_name,
             z.entry.key,
             prefix,
             cardinality,
-            f"[{style}]{z.risk}[/{style}]",
+            risk_label,
+            _analyze_rec(z.risk, tenant),
         )
 
     console.print(table)
-    if coarse:
+
+    if n_critical or n_coarse:
+        parts = []
+        if n_critical:
+            parts.append(f"[bold red]{n_critical} CRITICAL[/bold red]")
+        if n_coarse:
+            parts.append(f"[red]{n_coarse} COARSE[/red]")
+        console.print("\n" + " + ".join(parts) + " zone(s) require attention.")
+        t = f" --tenant {tenant}" if tenant else ""
         console.print(
-            f"\n[red]{coarse} COARSE zone(s)[/red] — run [bold]exa hotkey scan[/bold] to assess"
-            f" traffic, then [bold]exa hotkey expand[/bold] to fix."
+            f"Run [bold]exa hotkey autofix{t}[/bold] to fix all flagged zones automatically, "
+            f"or [bold]exa hotkey expand{t}[/bold] to fix interactively."
         )
+    else:
+        console.print("\nNo hot key risk detected in network zones.", style="green")
 
 
 # -- scan ---------------------------------------------------------------------
@@ -133,66 +186,108 @@ def scan(
 ) -> None:
     """Scan recent events for active source IPs per zone; flag HOT_KEY_RISK zones.
 
-    Note: event_count is always 0 — the Exabeam search API does not return
-    per-IP event counts for group_by queries (verified 2026-05-08).
-    ip_count is the sole hot key signal.
+    CRITICAL zones (/8-/16) are shown with ip_count=-- because they qualify for
+    expansion regardless of observed traffic. Only COARSE zones (/17-/23) are
+    traffic-scanned to determine HOT_KEY_RISK status.
     """
     from exa.hotkey.analyze import analyze_zones
     from exa.hotkey.scan import scan_zones
 
     client = _make_client(tenant)
     try:
-        with console.status("Reading Network Zones table…"):
+        with console.status("Reading Network Zones table..."):
             zones = analyze_zones(client, ip_field=ip_field, name_field=name_field)
-        with console.status(f"Scanning events (last {lookback}d, limit {limit:,})…"):
-            results = scan_zones(
-                client, zones, lookback_days=lookback, threshold=threshold, limit=limit
-            )
+
+        critical = [z for z in zones if z.risk == "CRITICAL"]
+        coarse = [z for z in zones if z.risk == "COARSE"]
+
+        # Only scan COARSE zones; CRITICAL zones qualify without traffic confirmation
+        scan_results = []
+        if coarse:
+            with console.status(f"Scanning events (last {lookback}d, limit {limit:,})..."):
+                scan_results = scan_zones(
+                    client, coarse, lookback_days=lookback, threshold=threshold, limit=limit
+                )
     except ValueError as e:
         console.print(f"FAIL: {e}", style="red")
         raise typer.Exit(1)
     finally:
         client.close()
 
-    rows = [
-        {"zone_name": r.zone_name, "ip_count": r.ip_count, "risk": r.risk}
-        for r in results
-    ]
-
     if as_json:
-        console.print(json.dumps(rows, indent=2))
+        out = [
+            {"zone_name": z.entry.zone_name, "key": z.entry.key, "ip_count": None,
+             "risk": "CRITICAL"}
+            for z in sorted(critical, key=lambda z: z.entry.zone_name)
+        ] + [
+            {"zone_name": r.zone_name, "ip_count": r.ip_count, "risk": r.risk}
+            for r in scan_results
+        ]
+        console.print(json.dumps(out, indent=2))
         return
 
     if as_csv:
         buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=["zone_name", "ip_count", "risk"])
+        writer = csv.DictWriter(buf, fieldnames=["zone_name", "ip_count", "risk", "recommendation"])
         writer.writeheader()
-        writer.writerows(rows)
+        for z in sorted(critical, key=lambda z: z.entry.zone_name):
+            writer.writerow({
+                "zone_name": z.entry.zone_name,
+                "ip_count": "--",
+                "risk": "CRITICAL",
+                "recommendation": _scan_rec("CRITICAL", "CRITICAL", tenant),
+            })
+        for r in scan_results:
+            writer.writerow({
+                "zone_name": r.zone_name,
+                "ip_count": r.ip_count,
+                "risk": r.risk,
+                "recommendation": _scan_rec("COARSE", r.risk, tenant),
+            })
         console.print(buf.getvalue(), end="")
         return
 
-    hot = sum(1 for r in results if r.risk == "HOT_KEY_RISK")
-    table = Table(title=f"Network Zones — Active IP Scan (last {lookback}d)", show_lines=False)
+    hot_coarse = sum(1 for r in scan_results if r.risk == "HOT_KEY_RISK")
+    table = Table(
+        title=f"Network Zones - Active IP Scan (last {lookback}d)", show_lines=False
+    )
     table.add_column("Zone Name", style="white", no_wrap=True)
     table.add_column("Distinct IPs", justify="right")
     table.add_column("Risk", justify="center")
+    table.add_column("Recommendation")
 
-    for r in results:
+    # CRITICAL zones always shown (auto-flag, no traffic query run)
+    for z in sorted(critical, key=lambda z: z.entry.zone_name):
+        table.add_row(
+            z.entry.zone_name,
+            "--",
+            "[bold red]CRITICAL[/bold red]",
+            _scan_rec("CRITICAL", "CRITICAL", tenant),
+        )
+
+    # COARSE scan results (skip truly zero-traffic zones)
+    for r in scan_results:
         if r.ip_count == 0:
-            continue  # skip zones with no observed traffic
+            continue
         risk_style = "red" if r.risk == "HOT_KEY_RISK" else "green"
         table.add_row(
             r.zone_name,
             f"{r.ip_count:,}",
             f"[{risk_style}]{r.risk}[/{risk_style}]",
+            _scan_rec("COARSE", r.risk, tenant),
         )
 
     console.print(table)
-    if hot:
-        console.print(
-            f"\n[red]{hot} HOT_KEY_RISK zone(s)[/red] — run "
-            f"[bold]exa hotkey expand[/bold] to fix."
-        )
+
+    if critical or hot_coarse:
+        parts = []
+        if critical:
+            parts.append(f"[bold red]{len(critical)} CRITICAL[/bold red]")
+        if hot_coarse:
+            parts.append(f"[red]{hot_coarse} HOT_KEY_RISK[/red]")
+        console.print("\n" + " + ".join(parts) + " zone(s) flagged.")
+        t = f" --tenant {tenant}" if tenant else ""
+        console.print(f"Run [bold]exa hotkey expand{t}[/bold] to fix.")
 
 
 # -- expand -------------------------------------------------------------------
@@ -203,7 +298,7 @@ def expand(
     tenant: Annotated[str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)] = None,
     zone: Annotated[
         str | None,
-        typer.Option("--zone", help="Zone name to expand (default: all COARSE zones)"),
+        typer.Option("--zone", help="Zone name to expand (default: all CRITICAL/COARSE zones)"),
     ] = None,
     lookback: Annotated[
         int, typer.Option("--lookback", help="Days of events to scan for observed IPs")
@@ -221,6 +316,7 @@ def expand(
 
     Writes a rollback manifest to ~/.exa/hotkey-rollback/ before making changes.
     Use --dry-run to preview without writing anything.
+    Targets CRITICAL (/8-/16) and COARSE (/17-/23) zones.
     """
     from exa.hotkey.analyze import analyze_zones
     from exa.hotkey.expand import expand_zones
@@ -229,21 +325,21 @@ def expand(
 
     client = _make_client(tenant)
     try:
-        with console.status("Reading Network Zones table…"):
+        with console.status("Reading Network Zones table..."):
             zones = analyze_zones(client, ip_field=ip_field, name_field=name_field)
 
-        coarse = [z for z in zones if z.risk == "COARSE"]
+        targets = [z for z in zones if z.risk in ("CRITICAL", "COARSE")]
         if zone:
-            coarse = [z for z in coarse if z.entry.zone_name == zone]
+            targets = [z for z in targets if z.entry.zone_name == zone]
 
-        if not coarse:
-            label = f"zone '{zone}'" if zone else "any COARSE zones"
+        if not targets:
+            label = f"zone '{zone}'" if zone else "any CRITICAL or COARSE zones"
             console.print(f"No targets found for {label}.", style="yellow")
             raise typer.Exit(0)
 
         observed_ips: list[str] | None = None
         if not enumerate_all:
-            with console.status(f"Scanning events (last {lookback}d) for observed IPs…"):
+            with console.status(f"Scanning events (last {lookback}d) for observed IPs..."):
                 rows = search_events(
                     client,
                     "src_ip:*",
@@ -255,7 +351,7 @@ def expand(
                 observed_ips = _parse_grouped_rows(rows)
 
         verb = "[yellow][dry-run][/yellow] Would expand" if dry_run else "Expanding"
-        console.print(f"{verb} {len(coarse)} COARSE zone(s) to /24 granularity…")
+        console.print(f"{verb} {len(targets)} zone(s) to /24 granularity...")
 
         summary = expand_zones(
             client,
@@ -308,7 +404,7 @@ def autofix(
     lookback: Annotated[int, typer.Option("--lookback", help="Days of traffic to scan")] = 7,
     threshold: Annotated[int, typer.Option(
         "--threshold",
-        help="Min distinct IPs in a zone to qualify for expansion",
+        help="Min distinct IPs in a COARSE zone to qualify for expansion",
     )] = 500,
     limit: Annotated[int, typer.Option("--limit", help="Max IPs fetched from search")] = 50_000,
     max_zones: Annotated[int, typer.Option(
@@ -328,15 +424,16 @@ def autofix(
 ) -> None:
     """Analyze, scan, and expand all hot key zones in one step.
 
-    Chains: analyze -> scan -> expand (COARSE + HOT_KEY_RISK zones only).
+    CRITICAL zones (/8-/16) are always expanded without a scan check.
+    COARSE zones (/17-/23) require HOT_KEY_RISK confirmation from scan.
     Writes a rollback manifest before every change.
     Safe to schedule -- non-interactive, exits non-zero on any failure.
     """
-    import json
+    import json as _json
     import sys
 
     from rich.console import Console as _Console
-    from rich.table import Table
+    from rich.table import Table as _Table
 
     from exa.hotkey.analyze import analyze_zones
     from exa.hotkey.expand import expand_zones
@@ -348,7 +445,7 @@ def autofix(
 
     client = _make_client(tenant)
     try:
-        # Phase 1 — Analyze
+        # Phase 1 - Analyze
         err.print("  [1/3] Analyzing Network Zones table...", style="dim")
         try:
             zones = analyze_zones(client, ip_field=ip_field, name_field=name_field)
@@ -356,41 +453,55 @@ def autofix(
             err.print(f"FAIL: {e}", style="red")
             raise typer.Exit(1)
 
+        critical = [z for z in zones if z.risk == "CRITICAL"]
         coarse = [z for z in zones if z.risk == "COARSE"]
-        if not coarse:
-            err.print("No COARSE zones found. Nothing to do.", style="green")
+
+        if not critical and not coarse:
+            err.print("No CRITICAL or COARSE zones found. Nothing to do.", style="green")
             raise typer.Exit(0)
 
-        # Phase 2 — Scan
-        err.print(
-            f"  [2/3] Scanning {len(coarse)} COARSE zone(s) for active traffic...",
-            style="dim",
-        )
-        scans = scan_zones(
-            client, zones, lookback_days=lookback, threshold=threshold, limit=limit
-        )
-        hot = [s for s in scans if s.risk == "HOT_KEY_RISK"]
-
-        if not hot:
+        # Phase 2 - Scan (COARSE only; CRITICAL zones qualify without traffic confirmation)
+        hot_coarse: list = []
+        if critical and not coarse:
             err.print(
-                f"No HOT_KEY_RISK zones detected above threshold={threshold}.",
+                f"  [2/3] {len(critical)} CRITICAL zone(s) auto-flagged - scan not required.",
+                style="dim",
+            )
+        else:
+            scan_label = (
+                f"{len(critical)} CRITICAL auto-flagged; scanning {len(coarse)} COARSE zone(s)..."
+                if critical
+                else f"Scanning {len(coarse)} COARSE zone(s) for active traffic..."
+            )
+            err.print(f"  [2/3] {scan_label}", style="dim")
+            scans = scan_zones(
+                client, coarse, lookback_days=lookback, threshold=threshold, limit=limit
+            )
+            hot_coarse = [s for s in scans if s.risk == "HOT_KEY_RISK"]
+
+        total_qualifying = len(critical) + len(hot_coarse)
+
+        if total_qualifying == 0:
+            err.print(
+                f"No zones require expansion (0 CRITICAL, COARSE below threshold={threshold}).",
                 style="green",
             )
             raise typer.Exit(0)
 
-        # Safety cap
-        if len(hot) > max_zones:
-            err.print(
-                f"FAIL: {len(hot)} zones qualify for expansion but --max-zones={max_zones}.\n"
-                f"  Re-run with --max-zones {len(hot)} to proceed, or use "
-                f"'exa hotkey expand --zone NAME' to fix individually.",
-                style="red",
+        # Safety cap applies to total qualifying (CRITICAL + HOT_KEY_RISK COARSE)
+        if total_qualifying > max_zones:
+            cap_msg = (
+                f"FAIL: {total_qualifying} zones qualify but --max-zones={max_zones}. "
+                f"Re-run with --max-zones {total_qualifying} to proceed, "
+                f"or use 'exa hotkey expand --zone NAME' to fix individually."
+            )
+            err.print(cap_msg, style="red",
             )
             raise typer.Exit(1)
 
-        # Phase 3 — Expand
+        # Phase 3 - Expand CRITICAL + hot COARSE zones
         verb = "[DRY RUN] Would expand" if dry_run else "Expanding"
-        err.print(f"  [3/3] {verb} {len(hot)} zone(s) to /24 granularity...", style="dim")
+        err.print(f"  [3/3] {verb} {total_qualifying} zone(s) to /24 granularity...", style="dim")
 
         # Fetch observed IPs for targeted /24 selection (re-query; scan only stores counts)
         observed_ips: list[str] | None = None
@@ -405,10 +516,10 @@ def autofix(
             )
             observed_ips = _parse_grouped_rows(rows)
 
-        # Expand only COARSE zones confirmed HOT_KEY_RISK by scan
-        hot_names = {s.zone_name for s in hot}
-        target_zones = [
-            z for z in zones if z.entry.zone_name in hot_names and z.risk == "COARSE"
+        # CRITICAL always qualifies; add COARSE zones confirmed HOT_KEY_RISK by scan
+        hot_coarse_names = {s.zone_name for s in hot_coarse}
+        target_zones = critical + [
+            z for z in coarse if z.entry.zone_name in hot_coarse_names
         ]
 
         results = expand_zones(
@@ -430,7 +541,7 @@ def autofix(
 
     if as_json:
         for r in results:
-            sys.stdout.write(json.dumps({
+            sys.stdout.write(_json.dumps({
                 "zone": r["zone_name"],
                 "old_key": r["old_key"],
                 "new_entries": r["new_key_count"],
@@ -438,7 +549,7 @@ def autofix(
             }) + "\n")
         return
 
-    tbl = Table(title="Autofix Results", show_lines=False)
+    tbl = _Table(title="Autofix Results", show_lines=False)
     tbl.add_column("Zone", style="white", no_wrap=True)
     tbl.add_column("Old Key", style="dim")
     tbl.add_column("New /24 Entries", justify="right")
@@ -457,7 +568,7 @@ def autofix(
 
     if not dry_run and results:
         console.print(
-            f"\n{len(results)} zone(s) expanded · rollback manifests at "
+            f"\n{len(results)} zone(s) expanded - rollback manifests at "
             f"[dim]~/.exa/hotkey-rollback/{tenant or 'default'}/[/dim]"
         )
 
@@ -516,7 +627,7 @@ def rollback(
 
     client = _make_client(tenant)
     try:
-        with console.status("Applying rollback…"):
+        with console.status("Applying rollback..."):
             apply_rollback(client, m, table_id=m.table_id)
     except Exception as e:
         console.print(f"FAIL: Rollback failed: {e}", style="red")

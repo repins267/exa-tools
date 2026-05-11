@@ -18,9 +18,9 @@ if TYPE_CHECKING:
 from exa.context.tables import get_all_records, get_table, get_tables
 
 NETWORK_ZONES_TABLE = "Network Zones"
-_COARSE_PREFIX_MAX = 16  # prefix_len ≤ 16 → COARSE (≥65k addresses)
-_MEDIUM_PREFIX_MAX = 24  # 17 ≤ prefix_len ≤ 24 → MEDIUM; note /17–/23 are
-# conservative (still 32k–8k IPs). scan can still flag them as HOT_KEY_RISK.
+_CRITICAL_PREFIX_MAX = 16  # prefix_len ≤ 16 → CRITICAL (auto-flag: guaranteed hot key)
+_COARSE_PREFIX_MAX = 23    # 17 ≤ prefix_len ≤ 23 → COARSE (needs scan to confirm)
+# prefix_len ≥ 24 → FINE (acceptable granularity; /24 is the expand target itself)
 
 
 @dataclass
@@ -37,7 +37,7 @@ class ZoneEntry:
 @dataclass
 class ZoneRisk:
     entry: ZoneEntry
-    risk: str                # "COARSE" | "MEDIUM" | "FINE" | "UNKNOWN"
+    risk: str                # "CRITICAL" | "COARSE" | "FINE" | "UNKNOWN"
     prefix_len: int | None   # e.g. 8, 16, 24, 32; None for non-CIDR keys
     cardinality: int | None  # net.num_addresses; None for non-CIDR keys
 
@@ -166,15 +166,20 @@ def _classify_zone(key: str) -> tuple[str, int | None, int | None]:
     """Return (risk, prefix_len, cardinality) for a zone key string.
 
     Parses key as a CIDR network. Returns UNKNOWN for non-CIDR strings.
+
+    Risk tiers:
+      CRITICAL  ≤/16 — guaranteed hot key; auto-flag regardless of traffic
+      COARSE  /17-/23 — may cause hot key; confirm with scan
+      FINE      ≥/24 — acceptable granularity; /24 is the expand target itself
     """
     try:
         net = ipaddress.ip_network(key, strict=False)
         prefix_len = net.prefixlen
         cardinality = net.num_addresses
-        if prefix_len <= _COARSE_PREFIX_MAX:
+        if prefix_len <= _CRITICAL_PREFIX_MAX:
+            return "CRITICAL", prefix_len, cardinality
+        elif prefix_len <= _COARSE_PREFIX_MAX:
             return "COARSE", prefix_len, cardinality
-        elif prefix_len <= _MEDIUM_PREFIX_MAX:
-            return "MEDIUM", prefix_len, cardinality
         else:
             return "FINE", prefix_len, cardinality
     except ValueError:
