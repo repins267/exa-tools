@@ -221,13 +221,18 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
     for field_name, reason in blocked:
         warnings.append(f"Stripped field '{field_name}': {reason}")
 
-    # Attempt RGXi compression when EQL is too long and conditions exist
+    # Attempt RGXi compression + context table substitution when EQL is too long
     eql_api_limit = 1024
     overflowed_tables: list[dict[str, Any]] = []
     _compress_warnings: list[str] = []
-    if compress and has_conditions and len(eql_query) > eql_api_limit:
-        from exa.splunk.compress import compress_overflow as _compress_overflow
+    if compress and len(eql_query) > eql_api_limit:
+        from exa.splunk.compress import (
+            apply_table_substitutions as _apply_tables,
+            compress_overflow as _compress_overflow,
+        )
         _cr = _compress_overflow(sigma_dict, title)
+
+        # Step 1: RGXi for wildcard fields (requires re-running sigma converter)
         if _cr.compressed_fields:
             _comp = _sigma_convert(_cr.sigma_dict)
             _comp_eql: str = _comp["eql_query"]
@@ -241,9 +246,28 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
                     _compress_warnings.append(
                         f"Compressed field '{_f}' wildcard list -> RGXi to fit API limit"
                     )
+
+        # Step 2: context table substitution for exact-value fields (patches EQL string)
+        if _cr.table_candidates and len(eql_query) > eql_api_limit:
+            _patched = _apply_tables(eql_query, _cr.table_candidates)
+            if len(_patched) <= eql_api_limit:
+                eql_query = _patched
+                for _tc in _cr.table_candidates:
+                    _compress_warnings.append(
+                        f"Moved field '{_tc.field}' exact-value list -> "
+                        f'context table "{_tc.table_name}"'
+                    )
+
+        # Always record table candidates for .tables.json export
         if _cr.table_candidates:
             overflowed_tables = [
-                {"field": tc.field, "table_name": tc.table_name, "values": tc.values}
+                {
+                    "field": tc.field,
+                    "field_eql": tc.field_eql,
+                    "table_name": tc.table_name,
+                    "values": tc.values,
+                    "negated": tc.negated,
+                }
                 for tc in _cr.table_candidates
             ]
 
@@ -264,7 +288,8 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
         deploy_ready = "EQL too long"
         all_warnings.append(
             f"EQL query is {len(eql_query)} chars (API limit: {eql_api_limit}) — "
-            "too large even after RGXi compression; split into multiple rules"
+            "too large even after RGXi compression and context table substitution; "
+            "split into multiple rules"
         )
     elif blocked:
         deploy_ready = "No"

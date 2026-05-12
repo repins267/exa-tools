@@ -1,18 +1,17 @@
 """EQL overflow compression for SPL-converted correlation rules.
 
 When generated EQL exceeds Exabeam's 1024-char API limit, compresses large
-wildcard value lists into compact RGXi() alternations.
+value lists using two strategies:
 
-Strategy:
-  - Groups sigma detection selection entries by base field name
-  - For fields with >= MIN_VALUES total values across all modifiers:
-    collapses N WLDi()/exact terms into one RGXi("alt1|alt2|...") term
-  - Exact-value fields (no wildcards) are recorded as TableCandidate
-    and written to .tables.json for reference — NOTE: Exabeam EQL has no
-    supported LOOKUP/membership syntax for correlation rules (confirmed live
-    2026-05-12, see EXA-LOOKUP-UNSUPPORTED in CLAUDE.md). The only fix for
-    oversized exact-value lists is splitting into multiple rules.
-  - Never touches the filter/negation block
+  Wildcard lists  → RGXi alternation (field|re with combined regex)
+  Exact-value lists → context table substitution (field IN "TableName")
+
+The IN "TableName" syntax is confirmed live against sademodev22 (2026-05-12)
+and matches the Exabeam Search Guide § "Query by Context Table".
+Max 2 context table references per rule (Exabeam limit).
+
+Filter/negation blocks are also scanned: large exact-value lists there become
+NOT field IN "TableName" candidates.
 """
 from __future__ import annotations
 
@@ -22,21 +21,30 @@ from typing import Any
 
 
 _MIN_VALUES = 5  # fields with >= this many values are candidates for compression
+_MAX_TABLE_REFS = 2  # Exabeam hard limit: max 2 context tables per EQL query
 
 
 @dataclass
 class TableCandidate:
-    """A large exact-value list that could live in a context table."""
-    field: str
-    table_name: str
-    values: list[str]
+    """A large exact-value list that belongs in a context table."""
+    field: str          # sigma detection key (e.g. "SourceIp", "User")
+    field_eql: str      # CIM2 field name as it appears in EQL (e.g. "src_ip")
+    table_name: str     # display name for the context table
+    values: list[str]   # exact values (no wildcards)
+    negated: bool = False   # True when this comes from the filter/negation block
 
 
 @dataclass
 class CompressResult:
     sigma_dict: dict[str, Any]          # modified sigma dict (or original if unchanged)
-    compressed_fields: list[str]        # base field names that were collapsed to RGXi
-    table_candidates: list[TableCandidate]  # exact-value fields suitable for a table
+    compressed_fields: list[str]        # base field names collapsed to RGXi
+    table_candidates: list[TableCandidate]  # exact-value fields for context table substitution
+
+
+def _get_eql_field(sigma_field: str) -> str:
+    """Return the CIM2/EQL field name for a sigma detection key."""
+    from exa.sigma.converter import CIM2_FIELD_MAP
+    return CIM2_FIELD_MAP.get(sigma_field, sigma_field)
 
 
 def _parse_modifier(key: str) -> tuple[str, str | None]:
@@ -48,34 +56,23 @@ def _parse_modifier(key: str) -> tuple[str, str | None]:
 
 
 def _val_to_regex_part(modifier: str | None, val: str) -> str:
-    """Convert a sigma field value + modifier to a regex fragment.
-
-    modifier: "startswith" | "endswith" | "contains" | "re" | None
-    val: stripped sigma value (leading/trailing * already removed by _wildcard_key)
-    """
+    """Convert a sigma field value + modifier to a regex fragment."""
     if modifier == "re":
-        return val  # already a regex pattern
+        return val
 
     def _glob_to_inner(s: str) -> str:
-        """Convert a string (possibly with embedded *) to a regex fragment."""
         parts = s.split("*")
         return ".*".join(re.escape(p) for p in parts)
 
     if modifier == "startswith":
         return "^" + _glob_to_inner(val)
-
     if modifier == "endswith":
         return _glob_to_inner(val) + "$"
-
     if modifier == "contains":
         return _glob_to_inner(val)
 
-    # No modifier (exact match from sigma) — val may have * in middle if
-    # _wildcard_key could not classify it (star not at start or end of value)
     if "*" in val:
-        inner = _glob_to_inner(val)
-        return f"^{inner}$"
-
+        return f"^{_glob_to_inner(val)}$"
     return f"^{re.escape(val)}$"
 
 
@@ -85,13 +82,8 @@ def compress_sigma_selection(
 ) -> tuple[dict[str, Any], list[str], list[TableCandidate]]:
     """Compress large value lists in a sigma selection block.
 
-    Groups sigma keys by base field name (stripping modifiers).  Fields with
-    >= min_values total values are compressed:
-      - wildcard/mixed lists → single ``field|re`` key with regex alternation
-      - all-exact lists      → left unchanged but recorded as TableCandidate
-
     Returns:
-        (compressed_selection, compressed_field_names, table_candidates)
+        (compressed_selection, rGXi_compressed_field_names, table_candidates)
     """
     from collections import defaultdict
 
@@ -115,7 +107,6 @@ def compress_sigma_selection(
                 compressed[key] = vals
             continue
 
-        # Determine if all values are exact (no wildcards, no modifiers)
         all_exact = all(
             mod is None and "*" not in v
             for mod, vals in mod_val_pairs
@@ -123,19 +114,19 @@ def compress_sigma_selection(
         )
 
         if all_exact:
-            # Exact-value list — keep as-is; record as table candidate
             exact_vals: list[str] = [v for _, vals in mod_val_pairs for v in vals]
             for mod, vals in mod_val_pairs:
                 key = f"{base_field}|{mod}" if mod else base_field
                 compressed[key] = vals
             table_candidates.append(TableCandidate(
                 field=base_field,
-                table_name=f"{base_field} Values",  # caller fills in rule_name prefix
+                field_eql=_get_eql_field(base_field),
+                table_name=f"{base_field} Values",
                 values=exact_vals,
+                negated=False,
             ))
             continue
 
-        # Wildcard / mixed list → collapse to a single RGXi alternation
         regex_parts: list[str] = []
         for mod, vals in mod_val_pairs:
             for v in vals:
@@ -150,49 +141,116 @@ def compress_sigma_selection(
     return compressed, compressed_fields, table_candidates
 
 
+def _extract_filter_candidates(
+    filter_dict: dict[str, Any],
+    min_values: int = _MIN_VALUES,
+) -> list[TableCandidate]:
+    """Extract table candidates from a sigma filter (negation) block.
+
+    The filter block contains fields that are negated in the EQL (NOT ...).
+    Large exact-value lists here can be replaced with NOT field IN "TableName".
+    """
+    candidates: list[TableCandidate] = []
+    for sigma_field, values in filter_dict.items():
+        if not isinstance(values, list):
+            values = [values]
+        if len(values) < min_values:
+            continue
+        if all("*" not in str(v) for v in values):
+            candidates.append(TableCandidate(
+                field=sigma_field,
+                field_eql=_get_eql_field(sigma_field),
+                table_name=f"{sigma_field} Values",
+                values=[str(v) for v in values],
+                negated=True,
+            ))
+    return candidates
+
+
+def apply_table_substitutions(eql: str, candidates: list[TableCandidate]) -> str:
+    """Replace OR-lists with field IN "TableName" for each table candidate.
+
+    For negated candidates, replaces (field:"v1" OR field:"v2" OR ...) with
+    field IN "TableName" — the preceding NOT in the EQL stays intact, giving
+    NOT field IN "TableName".
+
+    Returns the patched EQL. If an OR-list is not found verbatim (e.g. due to
+    field mapping mismatch), that candidate is skipped silently.
+    """
+    for tc in candidates:
+        field = tc.field_eql
+        # Build the exact OR-list string as the sigma converter emits it
+        if len(tc.values) == 1:
+            or_list = f'{field}:"{tc.values[0]}"'
+        else:
+            terms = " OR ".join(f'{field}:"{v}"' for v in tc.values)
+            or_list = f"({terms})"
+        replacement = f'{field} IN "{tc.table_name}"'
+        eql = eql.replace(or_list, replacement)
+    return eql
+
+
 def compress_overflow(
     sigma_dict: dict[str, Any],
     rule_name: str,
     min_values: int = _MIN_VALUES,
 ) -> CompressResult:
-    """Compress a sigma dict's selection block to reduce generated EQL length.
+    """Compress a sigma dict's selection and filter blocks to reduce EQL length.
 
-    Only modifies the ``detection.selection`` block (never the filter/negation
-    block).  Returns a new sigma dict with the selection replaced, plus lists
-    of which fields were compressed and which are context table candidates.
+    Selection block:
+      - wildcard/mixed fields → single RGXi alternation (modifies sigma dict)
+      - all-exact fields      → recorded as TableCandidate (sigma dict unchanged;
+                                  caller patches EQL via apply_table_substitutions)
+
+    Filter/negation block:
+      - all-exact fields      → recorded as negated TableCandidate
+                                  (EQL patched via apply_table_substitutions)
 
     Returns the original sigma_dict unchanged if there is nothing to compress.
+    Enforces the 2-table-reference limit: candidates beyond the first 2 are dropped.
     """
     det = sigma_dict.get("detection", {})
     selection = det.get("selection", {})
+    filter_block = det.get("filter", {})
 
-    if not selection or set(selection.keys()) == {"_empty"}:
-        return CompressResult(
-            sigma_dict=sigma_dict,
-            compressed_fields=[],
-            table_candidates=[],
+    sel_empty = not selection or set(selection.keys()) == {"_empty"}
+
+    # Selection compression
+    if not sel_empty:
+        comp_sel, comp_fields, sel_table_cands = compress_sigma_selection(
+            selection, min_values=min_values
         )
+    else:
+        comp_sel = selection
+        comp_fields = []
+        sel_table_cands = []
 
-    comp_sel, comp_fields, table_cands = compress_sigma_selection(
-        selection, min_values=min_values
-    )
+    # Filter block table candidates (exact-value negation lists)
+    filter_table_cands = _extract_filter_candidates(filter_block, min_values=min_values)
 
-    # Attach rule name to table candidate names
-    for tc in table_cands:
+    all_table_cands = sel_table_cands + filter_table_cands
+
+    # Apply rule name prefix and enforce max-2-tables limit
+    for tc in all_table_cands:
         tc.table_name = f"{rule_name} - {tc.field} Values"
+    if len(all_table_cands) > _MAX_TABLE_REFS:
+        all_table_cands = all_table_cands[:_MAX_TABLE_REFS]
 
-    if not comp_fields and not table_cands:
+    if not comp_fields and not all_table_cands:
         return CompressResult(
             sigma_dict=sigma_dict,
             compressed_fields=[],
             table_candidates=[],
         )
 
-    new_detection = {**det, "selection": comp_sel}
-    new_sigma = {**sigma_dict, "detection": new_detection}
+    if comp_fields or sel_table_cands:
+        new_detection = {**det, "selection": comp_sel}
+        new_sigma = {**sigma_dict, "detection": new_detection}
+    else:
+        new_sigma = sigma_dict
 
     return CompressResult(
         sigma_dict=new_sigma,
         compressed_fields=comp_fields,
-        table_candidates=table_cands,
+        table_candidates=all_table_cands,
     )

@@ -408,3 +408,112 @@ def deploy_cmd(
         parts.append(f"Invalid EQL: {invalid}")
     parts.append(f"Failed: {failed}")
     console.print(f"  {' | '.join(parts)}")
+
+
+# ── create-tables ─────────────────────────────────────────────────────────────
+
+
+@splunk_app.command("create-tables")
+def create_tables_cmd(
+    tables_file: Annotated[
+        Path,
+        typer.Argument(help=".tables.json file produced by 'exa splunk convert'"),
+    ],
+    operation: Annotated[
+        str,
+        typer.Option(
+            "--operation",
+            help="Record write mode: replace (default) or append [default: replace]",
+        ),
+    ] = "replace",
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run/--no-dry-run", help="Preview without writing to Exabeam [default: no-dry-run]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Create context tables on Exabeam from values extracted during SPL conversion.
+
+    Reads the .tables.json file produced by 'exa splunk convert' and creates a
+    context table for each entry, uploading all values as records.  The table
+    name matches the IN "TableName" reference already embedded in the converted
+    EQL — deploy the rules after running this command.
+
+    Tables that already exist (matched by display name) are updated with a
+    replace operation rather than duplicated.
+
+    Typical workflow:
+
+      exa splunk convert searches.xlsx         # generates .converted.json + .tables.json
+      exa splunk create-tables searches.tables.json --tenant mytenantname
+      exa splunk deploy searches.converted.json --tenant mytenantname
+    """
+    import json as _json
+
+    if not tables_file.exists():
+        console.print(f"[red]File not found: {tables_file}[/red]")
+        raise typer.Exit(1)
+
+    try:
+        bundles = _json.loads(tables_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        console.print(f"[red]Failed to read tables file: {e}[/red]")
+        raise typer.Exit(1)
+
+    total_tables = sum(len(b.get("tables", [])) for b in bundles)
+    total_values = sum(
+        len(t.get("values", []))
+        for b in bundles
+        for t in b.get("tables", [])
+    )
+
+    prefix = "[DRY RUN] " if dry_run else ""
+    console.rule(f"{prefix}Create Splunk Context Tables -> Exabeam")
+    console.print(f"  Tables to create: {total_tables}")
+    console.print(f"  Total values:     {total_values:,}")
+    console.print()
+
+    if dry_run:
+        for bundle in bundles:
+            console.print(f"  Rule: [cyan]{bundle.get('rule')}[/cyan]")
+            for t in bundle.get("tables", []):
+                neg = " (negated)" if t.get("negated") else ""
+                console.print(
+                    f"    Table: {t['table_name']}  "
+                    f"({len(t.get('values', []))} values){neg}",
+                    style="dim",
+                )
+        console.print("\n  [dim]Dry run - no API calls made.[/dim]")
+        return
+
+    from exa.splunk.table_push import push_splunk_tables
+
+    client = _make_client(tenant)
+    try:
+        results = push_splunk_tables(client, tables_file, operation=operation)
+    finally:
+        client.close()
+
+    ok = [r for r in results if not r["error"]]
+    errors = [r for r in results if r["error"]]
+
+    for r in ok:
+        action = "Created" if r["created"] else "Updated"
+        console.print(
+            f"  [green]+[/green] {action}: {r['table_name']}  "
+            f"({r['records']:,} records, id: {r['table_id']})"
+        )
+    for r in errors:
+        console.print(f"  [red]x[/red] {r['table_name']}: {r['error']}")
+
+    console.rule("Done", style="green" if not errors else "red")
+    console.print(f"  Tables written: {len(ok)} | Errors: {len(errors)}")
+    if ok:
+        console.print(
+            "\n  Deploy rules with:  [bold]exa splunk deploy[/bold] "
+            + str(tables_file).replace(".tables.json", ".converted.json"),
+            style="dim",
+        )
