@@ -277,7 +277,15 @@ def export_api_payloads(
     Returns:
         Resolved output path.
     """
-    payloads = [to_api_payload(r, enabled=enabled) for r in results]
+    # Expand split rules inline: replace parent with its parts in the payload list
+    flat_results: list[dict[str, Any]] = []
+    for r in results:
+        if r.get("split_rules"):
+            flat_results.extend(r["split_rules"])
+        else:
+            flat_results.append(r)
+
+    payloads = [to_api_payload(r, enabled=enabled) for r in flat_results]
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -287,7 +295,7 @@ def export_api_payloads(
 
     table_bundles = [
         {"rule": r["name"], "tables": r["overflowed_tables"]}
-        for r in results
+        for r in flat_results
         if r.get("overflowed_tables")
     ]
     if table_bundles:
@@ -308,6 +316,7 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
     context_tables_needed: set[str] = set()
     dropped_stages: dict[str, int] = {}
     compressed: int = 0
+    split: int = 0
 
     for r in results:
         idx = r.get("index", "unknown")
@@ -327,6 +336,9 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
         ):
             compressed += 1
 
+        if r.get("split_rules"):
+            split += 1
+
     return {
         "total": total,
         "by_index": by_index,
@@ -334,4 +346,5 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
         "context_tables_needed": sorted(context_tables_needed),
         "dropped_stages": dropped_stages,
         "compressed": compressed,
+        "split": split,
     }

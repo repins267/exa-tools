@@ -128,9 +128,12 @@ def convert_cmd(
         name = r["name"].replace("[Splunk] ", "")
         eql_preview = r["eql_query"][:37] + "…" if len(r["eql_query"]) > 40 else r["eql_query"]
         warn_count = len(r["warnings"])
-        if r["deploy_ready"] == "Needs review":
+        ready = r["deploy_ready"]
+        if ready == "Needs review":
             ready_style = "yellow"
-        elif r["deploy_ready"] == "EQL too long":
+        elif ready.startswith("Split"):
+            ready_style = "cyan"
+        elif ready == "EQL too long":
             ready_style = "bold red"
         else:
             ready_style = "red"
@@ -141,8 +144,23 @@ def convert_cmd(
             r.get("activity_type_hint") or "-",
             eql_preview,
             str(warn_count),
-            f"[{ready_style}]{r['deploy_ready']}[/{ready_style}]",
+            f"[{ready_style}]{ready}[/{ready_style}]",
         )
+        # Show split part names indented below the parent row
+        for part in r.get("split_rules", []):
+            part_name = part["name"].replace("[Splunk] ", "")
+            part_eql = part["eql_query"][:37] + "…" if len(part["eql_query"]) > 40 else part["eql_query"]
+            part_ready = part["deploy_ready"]
+            part_style = "yellow" if part_ready == "Needs review" else "red"
+            tbl.add_row(
+                "",
+                f"  [dim]+-[/dim] {part_name}",
+                "",
+                "",
+                part_eql,
+                "",
+                f"[{part_style}]{part_ready}[/{part_style}]",
+            )
 
     console.print(tbl)
 
@@ -155,6 +173,11 @@ def convert_cmd(
     if summary.get("compressed"):
         console.print(
             f"  Compressed (RGXi):  {summary['compressed']}",
+            style="cyan",
+        )
+    if summary.get("split"):
+        console.print(
+            f"  Split (too long):   {summary['split']}",
             style="cyan",
         )
     if summary["context_tables_needed"]:

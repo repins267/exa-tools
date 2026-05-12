@@ -221,6 +221,9 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
     for field_name, reason in blocked:
         warnings.append(f"Stripped field '{field_name}': {reason}")
 
+    # Oracle passthrough check (needed early for split-rule deploy_ready)
+    _oracle_available = (Path.home() / ".exa" / "cache" / "field_oracle.json").exists()
+
     # Attempt RGXi compression + context table substitution when EQL is too long
     eql_api_limit = 1024
     overflowed_tables: list[dict[str, Any]] = []
@@ -271,25 +274,73 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
                 for tc in _cr.table_candidates
             ]
 
+        # Step 3: split across multiple rules when EQL is still too long
+        if len(eql_query) > eql_api_limit and has_conditions:
+            from exa.splunk.compress import split_sigma_selection as _split_sigma
+            _split_dicts = _split_sigma(sigma_dict, title, limit=eql_api_limit)
+            if len(_split_dicts) > 1:
+                _n = len(_split_dicts)
+                _split_rules: list[dict[str, Any]] = []
+                for _idx, _sd in enumerate(_split_dicts, 1):
+                    _part_title = f"{title} ({_idx}/{_n})"
+                    _scr = _compress_overflow(_sd, _part_title)
+                    _scomp = _sigma_convert(_scr.sigma_dict)
+                    _part_eql: str = _scomp["eql_query"]
+                    if activity_type and not sigma_activity:
+                        _part_eql = f'activity_type:"{activity_type}" AND {_part_eql}'
+                    _part_deploy = (
+                        "EQL too long" if len(_part_eql) > eql_api_limit
+                        else ("No" if (blocked or (has_oracle_passthrough := _oracle_available and any(
+                            m.get("confidence") == "passthrough"
+                            for m in _scomp["field_mappings"]
+                        ))) else "Needs review")
+                    )
+                    _split_rules.append({
+                        "name": f"[Splunk] {_part_title}",
+                        "description": f"Split part {_idx}/{_n}",  # back-filled after _build_description
+                        "severity": "medium",
+                        "eql_query": _part_eql,
+                        "field_mappings": _scomp["field_mappings"],
+                        "warnings": _scomp["warnings"] + [
+                            f"Compressed field '{_f}' wildcard list -> RGXi to fit API limit"
+                            for _f in _scr.compressed_fields
+                        ],
+                        "deploy_ready": _part_deploy,
+                        "overflowed_tables": [],
+                    })
+                _compress_warnings.append(
+                    f"EQL too long — split into {_n} rules covering subsets of"
+                    f" the largest field"
+                )
+                eql_query = _split_rules[0]["eql_query"]  # representative for display
+                field_mappings = _split_rules[0]["field_mappings"]
+
     # Sigma warnings first (field-level), then Splunk-level; deduplicate both
     all_warnings = _dedup_warnings(sigma_warnings + warnings + _compress_warnings)
 
     description = _build_description(title, parsed, activity_type, context_tables)
 
-    # Oracle passthrough: if the oracle cache is present and any converted field
-    # has passthrough confidence, Exabeam's parser schema doesn't recognise it —
-    # the UI would reject the rule with "Field 'x' is unknown".
-    _oracle_available = (Path.home() / ".exa" / "cache" / "field_oracle.json").exists()
+    # Back-fill description into split rules (built before description was available)
+    for _sr in locals().get("_split_rules", []):
+        if _sr.get("description", "").startswith("Split part"):
+            _sr["description"] = description
+
+    # Oracle passthrough: if any converted field has passthrough confidence,
+    # Exabeam's parser schema doesn't recognise it — the UI rejects the rule.
     has_oracle_passthrough = _oracle_available and any(
         m.get("confidence") == "passthrough" for m in field_mappings
     )
 
-    if len(eql_query) > eql_api_limit:
+    split_rules: list[dict[str, Any]] = locals().get("_split_rules", [])
+
+    if split_rules and all(r["deploy_ready"] != "EQL too long" for r in split_rules):
+        deploy_ready = f"Split ({len(split_rules)} parts)"
+    elif len(eql_query) > eql_api_limit:
         deploy_ready = "EQL too long"
         all_warnings.append(
             f"EQL query is {len(eql_query)} chars (API limit: {eql_api_limit}) — "
-            "too large even after RGXi compression and context table substitution; "
-            "split into multiple rules"
+            "too large even after RGXi compression, context table substitution, "
+            "and splitting; manual rewrite required"
         )
     elif blocked:
         deploy_ready = "No"
@@ -313,6 +364,7 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
         "deploy_ready": deploy_ready,
         "sigma_yaml": spl_to_sigma_yaml(parsed, title),
         "overflowed_tables": overflowed_tables,
+        "split_rules": split_rules,
     }
 
 

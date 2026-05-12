@@ -12,9 +12,19 @@ Max 2 context table references per rule (Exabeam limit).
 
 Filter/negation blocks are also scanned: large exact-value lists there become
 NOT field IN "TableName" candidates.
+
+When compression alone cannot bring EQL under the limit, split_sigma_selection()
+splits the largest field's values across N sigma dicts, each independently
+convertable to EQL <= limit. Semantically equivalent: OR-ing N subsets of the
+split field covers the same event space as the original full list.
+
+Context table wildcards NOT supported (confirmed live 2026-05-12): stored values
+are exact-match only. Wildcard and regex patterns in table values are not
+expanded at rule evaluation time.
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field as dc_field
 from typing import Any
@@ -254,3 +264,119 @@ def compress_overflow(
         compressed_fields=comp_fields,
         table_candidates=all_table_cands,
     )
+
+
+# ── Rule splitting ────────────────────────────────────────────────────────────
+
+
+def _field_group_values(selection: dict[str, Any], base_field: str) -> list[str]:
+    """Collect all values across all modifier variants of a base field."""
+    vals: list[str] = []
+    for key, v in selection.items():
+        if key.split("|")[0] == base_field:
+            vals.extend(v if isinstance(v, list) else [v])
+    return vals
+
+
+def _slice_selection(
+    selection: dict[str, Any],
+    base_field: str,
+    keep: set[str],
+) -> dict[str, Any]:
+    """Return a copy of selection with only `keep` values for `base_field`."""
+    result: dict[str, Any] = {}
+    for key, vals in selection.items():
+        if key.split("|")[0] == base_field:
+            filtered = [v for v in (vals if isinstance(vals, list) else [vals]) if v in keep]
+            if filtered:
+                result[key] = filtered
+        else:
+            result[key] = vals
+    return result
+
+
+def split_sigma_selection(
+    sigma_dict: dict[str, Any],
+    title: str,
+    limit: int = 1024,
+) -> list[dict[str, Any]]:
+    """Split a sigma dict into N dicts each producing compressed EQL <= limit.
+
+    Finds the field with the most values, splits its values into equal chunks,
+    and returns one sigma dict per chunk with all other conditions preserved.
+    Applies RGXi compression per-chunk to measure fit.
+
+    Returns [sigma_dict] unchanged when no split is needed or possible.
+
+    Semantically equivalent to original: since the split field's values are
+    OR-ed in EQL, N chunks covering all values matches the same event space.
+    """
+    from exa.sigma.converter import convert_to_exa_rule as _sigma_convert
+
+    det = sigma_dict.get("detection", {})
+    sel = det.get("selection", {})
+
+    if not sel or set(sel.keys()) == {"_empty"}:
+        return [sigma_dict]
+
+    # Collect total values per base field
+    field_totals: dict[str, int] = {}
+    for key, vals in sel.items():
+        base = key.split("|")[0]
+        n = len(vals) if isinstance(vals, list) else 1
+        field_totals[base] = field_totals.get(base, 0) + n
+
+    # Split the field with the most values — it drives EQL length
+    split_base = max(field_totals, key=lambda f: field_totals[f])
+    all_vals = _field_group_values(sel, split_base)
+
+    if len(all_vals) < 2:
+        return [sigma_dict]
+
+    # Measure current compressed EQL length (without split)
+    try:
+        _cr0 = compress_overflow(sigma_dict, title)
+        _eql0 = _sigma_convert(_cr0.sigma_dict)["eql_query"]
+        current_len = len(_eql0)
+    except Exception:
+        current_len = limit * 4
+
+    if current_len <= limit:
+        return [sigma_dict]
+
+    # Try increasing chunk counts until every chunk fits
+    start_n = max(2, math.ceil(current_len / limit))
+    for n_chunks in range(start_n, len(all_vals) + 1):
+        chunk_size = math.ceil(len(all_vals) / n_chunks)
+        chunks = [
+            all_vals[i : i + chunk_size]
+            for i in range(0, len(all_vals), chunk_size)
+        ]
+
+        all_fit = True
+        for chunk in chunks:
+            chunk_sel = _slice_selection(sel, split_base, set(chunk))
+            chunk_sigma = {**sigma_dict, "detection": {**det, "selection": chunk_sel}}
+            _cr = compress_overflow(chunk_sigma, title)
+            try:
+                _eql = _sigma_convert(_cr.sigma_dict)["eql_query"]
+                if len(_eql) > limit:
+                    all_fit = False
+                    break
+            except Exception:
+                all_fit = False
+                break
+
+        if all_fit:
+            return [
+                {
+                    **sigma_dict,
+                    "detection": {
+                        **det,
+                        "selection": _slice_selection(sel, split_base, set(chunk)),
+                    },
+                }
+                for chunk in chunks
+            ]
+
+    return [sigma_dict]  # give up — caller will keep deploy_ready="EQL too long"
