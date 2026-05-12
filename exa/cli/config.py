@@ -110,7 +110,7 @@ def config_tenants() -> None:
     table.add_column("Default", justify="center")
 
     for nickname, entry in sorted(tenants.items()):
-        is_default = "✓" if nickname == default else ""
+        is_default = "yes" if nickname == default else ""
         table.add_row(
             nickname,
             entry.get("fqdn", f"{nickname}.exabeam.cloud"),
