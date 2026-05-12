@@ -374,19 +374,22 @@ def detection_diff(
 def detection_snapshot(
     table: Annotated[
         str,
-        typer.Argument(help="Context table name (substring) or exact table ID"),
+        typer.Argument(help="Context table name (creates if not found) or exact table ID"),
     ],
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Snapshot all analytics rules into a context table (full replace)."""
+    """Snapshot all analytics rules into a context table (full replace).
+
+    Creates the table with the correct column schema if it does not exist.
+    """
     from exa.detection.snapshot import snapshot_rules_to_table
 
     client = _make_client(tenant)
     try:
-        table_id, display_name = _resolve_table(client, table)
+        table_id, display_name = _resolve_or_create_snapshot_table(client, table)
         result = snapshot_rules_to_table(client, table_id)
         console.print(
             f"Wrote {result['written']} rules to context table '{display_name}'",
@@ -396,9 +399,10 @@ def detection_snapshot(
         client.close()
 
 
-def _resolve_table(client, name_or_id: str) -> tuple[str, str]:
-    """Return (table_id, display_name) for a given table name substring or exact ID."""
+def _resolve_or_create_snapshot_table(client, name_or_id: str) -> tuple[str, str]:
+    """Return (table_id, display_name), creating the table if name is not found."""
     from exa.context.tables import get_tables
+    from exa.detection.snapshot import create_snapshot_table
 
     tables = get_tables(client)
 
@@ -423,6 +427,9 @@ def _resolve_table(client, name_or_id: str) -> tuple[str, str]:
             f"Ambiguous table name '{name_or_id}' — matches: {names}."
             " Use a more specific name or the table ID."
         )
-    raise typer.BadParameter(
-        f"Table '{name_or_id}' not found. Check the name with: exa context list"
-    )
+
+    # Not found — create with the snapshot column schema
+    console.print(f"Table '{name_or_id}' not found — creating with snapshot schema...", style="dim")
+    table_id = create_snapshot_table(client, name_or_id)
+    console.print(f"Created table '{name_or_id}' (id: {table_id})", style="dim")
+    return table_id, name_or_id
