@@ -200,9 +200,23 @@ exa splunk convert searches.xlsx --verbose
 
 # Custom output file
 exa splunk convert searches.xlsx --output rules.json
+
+# Skip RGXi auto-compression (see below)
+exa splunk convert searches.xlsx --no-compress
 ```
 
 Outputs a rich table showing each rule's index, activity type, EQL preview, warning count, and deploy status. Saves an API-ready JSON file of all payloads.
+
+#### EQL Overflow Auto-Compression
+
+Exabeam's correlation rule API enforces a **1024-character EQL limit**. SPL searches with large wildcard value lists (e.g. 40 `file-name=UBR*.py` conditions) routinely exceed this. Rather than silently marking these rules `EQL too long`, the converter automatically compresses them:
+
+- **Wildcard lists** (`file-name=Foo*`, `file-path=*bar*`): collapsed into a single `RGXi("a|b|c")` alternation per field. Each sigma modifier is preserved — `startswith` → `^prefix`, `endswith` → `suffix$`, `contains` → inner fragment, middle-glob → `^foo.*bar$`.
+- **Exact-value lists** (no wildcards): recorded as context table candidates and written to `<output>.tables.json` alongside the main JSON for future deployment.
+
+If compression brings the EQL under 1024 chars the rule is promoted to `Needs review` with a warning such as `Compressed field 'file_name' wildcard list → RGXi to fit API limit`. If the compressed EQL still exceeds the limit (pathological cases with hundreds of values), the rule remains `EQL too long`.
+
+Use `--no-compress` to skip compression and see the raw unmodified EQL.
 
 ### `exa splunk one`
 
@@ -467,10 +481,11 @@ This means compliance queries automatically adapt to each customer's log sources
 
 ## Splunk Converter
 
-The SPL→Sigma→EQL pipeline is covered in [How It Works](#how-it-works) above. Two operational notes specific to Splunk conversion:
+The SPL→Sigma→EQL pipeline is covered in [How It Works](#how-it-works) above. Operational notes:
 
 - The intermediate Sigma YAML is preserved in the output file for audit and review
 - All converted rules land as `deploy_ready: Needs review` — SPL→EQL is lossy by design and requires human sign-off before enabling
+- Rules with EQL > 1024 chars are **auto-compressed** via RGXi alternation before being flagged `EQL too long` — see [EQL Overflow Auto-Compression](#eql-overflow-auto-compression)
 
 ### Supported Indexes
 
