@@ -212,4 +212,9 @@ def install(
         f"  Installed '[bold]{server_name}[/bold]' → {config_path}",
         style="green",
     )
+    if not docs:
+        console.print(
+            "  Prerequisite: run [bold]exa auth[/bold] first to cache credentials in keyring.",
+            style="yellow",
+        )
     console.print("  Restart Claude Desktop for changes to take effect.", style="dim")
