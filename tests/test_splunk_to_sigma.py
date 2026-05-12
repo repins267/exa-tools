@@ -102,9 +102,18 @@ def test_regex_condition_to_sigma():
 
 
 def test_unknown_field_passes_through():
-    parsed = parse_spl('index=c42 risk.severity="HIGH"', "t")
-    sigma = spl_to_sigma_dict(parsed, "t")
-    assert "risk.severity" in sigma["detection"]["selection"]
+    # Nested-path fields (containing '.') are blocked — not valid EQL syntax.
+    # Flat unknown fields (no dots) still pass through to the Sigma selection dict.
+    parsed_nested = parse_spl('index=c42 risk.severity="HIGH"', "t")
+    blocked: list[tuple[str, str]] = []
+    sigma = spl_to_sigma_dict(parsed_nested, "t", blocked_out=blocked)
+    assert "risk.severity" not in sigma["detection"]["selection"]
+    assert any("risk.severity" in field for field, _ in blocked)
+
+    # Flat unknown field passes through unchanged
+    parsed_flat = parse_spl('index=c42 customField="value"', "t")
+    sigma_flat = spl_to_sigma_dict(parsed_flat, "t")
+    assert "customField" in sigma_flat["detection"]["selection"]
 
 
 def test_spl_variant_dest_ip_mapped():

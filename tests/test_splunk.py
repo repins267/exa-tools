@@ -286,3 +286,69 @@ class TestRealSearchConversions:
         # Must be JSON-serialisable
         json_str = json.dumps(payload)
         assert len(json_str) > 0
+
+
+# ── Invalid field / null value blocklist tests ────────────────────────────────
+
+class TestInvalidFieldBlocking:
+    """SPL fields that are always invalid in Exabeam EQL must be stripped."""
+
+    def test_raw_regex_not_in_eql(self):
+        # The customer's SPL uses "| regex _raw=..." form which the parser extracts
+        rule = convert_spl_to_exa_rule("Test", 'index=ad | regex _raw=".*mimikatz.*"')
+        assert "_raw" not in rule["eql_query"]
+
+    def test_raw_regex_sets_deploy_ready_no(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=ad | regex _raw=".*mimikatz.*"')
+        assert rule["deploy_ready"] == "No"
+
+    def test_raw_regex_warning_present(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=ad | regex _raw=".*mimikatz.*"')
+        assert any("_raw" in w for w in rule["warnings"])
+
+    def test_distinguished_name_not_in_eql(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=ad distinguishedName="CN=*"')
+        assert "distinguishedName" not in rule["eql_query"]
+
+    def test_distinguished_name_sets_deploy_ready_no(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=ad distinguishedName="CN=*"')
+        assert rule["deploy_ready"] == "No"
+
+    def test_distinguished_name_warning_present(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=ad distinguishedName="CN=*"')
+        assert any("distinguishedName" in w for w in rule["warnings"])
+
+    def test_nested_field_not_in_eql(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 risk_indicators.name="Acquired from Cesium"')
+        assert "risk_indicators.name" not in rule["eql_query"]
+        assert " {} " not in rule["eql_query"]
+
+    def test_nested_field_sets_deploy_ready_no(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 risk_indicators.name="Acquired from Cesium"')
+        assert rule["deploy_ready"] == "No"
+
+    def test_nested_field_warning_present(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 risk_indicators.name="Acquired from Cesium"')
+        assert any("risk_indicators" in w for w in rule["warnings"])
+
+    def test_null_value_not_in_eql(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 url=null')
+        assert ':"null"' not in rule["eql_query"]
+
+    def test_null_value_sets_deploy_ready_no(self):
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 url=null')
+        assert rule["deploy_ready"] == "No"
+
+    def test_valid_field_alongside_invalid_still_appears(self):
+        """Valid conditions should remain in EQL even when invalid ones are stripped."""
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 severity="High" | regex _raw=".*bad.*"')
+        assert "_raw" not in rule["eql_query"]
+        assert 'severity:"High"' in rule["eql_query"]
+        assert rule["deploy_ready"] == "No"
+
+    def test_mapped_dotted_spl_field_not_blocked(self):
+        """Fields with dots that ARE in SPL_TO_SIGMA_FIELD mapping should pass through."""
+        # "destination.tabs{}.url" maps to "c-uri" → should not be blocked
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 destination.tabs{}.url!="null"')
+        # url condition blocked due to null value; no crash
+        assert rule["deploy_ready"] == "No"

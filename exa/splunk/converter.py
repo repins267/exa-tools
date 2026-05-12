@@ -135,9 +135,17 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
     warnings: list[str] = []
     parsed = parse_spl(spl, title=title)
 
-    sigma_dict = spl_to_sigma_dict(parsed, title)
+    blocked: list[tuple[str, str]] = []
+    sigma_dict = spl_to_sigma_dict(parsed, title, blocked_out=blocked)
 
-    has_conditions = bool(parsed.field_conditions or parsed.regex_conditions)
+    # has_conditions: True if any non-blocked conditions remain (selection or negation filter)
+    det = sigma_dict.get("detection", {})
+    det_selection = det.get("selection", {})
+    det_filter = det.get("filter", {})
+    has_conditions = (
+        (bool(det_selection) and set(det_selection.keys()) != {"_empty"})
+        or bool(det_filter)
+    )
 
     if has_conditions:
         sigma_result = _sigma_convert(sigma_dict)
@@ -206,6 +214,10 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
             "fields must be pre-parsed by the Exabeam parser"
         )
 
+    # Warnings for stripped invalid fields
+    for field_name, reason in blocked:
+        warnings.append(f"Stripped field '{field_name}': {reason}")
+
     # Sigma warnings first (field-level), then Splunk-level; deduplicate both
     all_warnings = _dedup_warnings(sigma_warnings + warnings)
 
@@ -219,6 +231,8 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
             "shorten by moving long value lists to a context table, "
             "or split into multiple rules"
         )
+    elif blocked:
+        deploy_ready = "No"
     else:
         deploy_ready = "Needs review"
 

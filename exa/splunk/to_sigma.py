@@ -17,6 +17,21 @@ from typing import Any
 from exa.splunk.parser import ParsedSPL
 
 # ---------------------------------------------------------------------------
+# Fields that are always invalid in Exabeam EQL — no CIM2 equivalent exists.
+# Stripped from both field_conditions and regex_conditions before conversion.
+# ---------------------------------------------------------------------------
+_KNOWN_INVALID_EQL_FIELDS: frozenset[str] = frozenset({
+    "_raw",            # Splunk internal meta-field; Exabeam: "unknown/invalid column of type null"
+    "distinguishedName",  # LDAP attribute; no CIM2 equivalent; Exabeam rejects as unknown field
+})
+
+
+def _is_nested_path(field: str) -> bool:
+    """Return True if field uses dot or curly-bracket nested object syntax invalid in EQL."""
+    return "." in field or "{" in field
+
+
+# ---------------------------------------------------------------------------
 # SPL field name → Sigma-canonical field name
 # Keys: names as they appear in SPL search-head conditions
 # Values: keys that exa/sigma/converter.py's CIM2_FIELD_MAP recognises
@@ -144,13 +159,20 @@ def _wildcard_key(sigma_field: str, value: str) -> tuple[str, str]:
     return sigma_field, value
 
 
-def spl_to_sigma_dict(parsed: ParsedSPL, title: str) -> dict[str, Any]:
+def spl_to_sigma_dict(
+    parsed: ParsedSPL,
+    title: str,
+    *,
+    blocked_out: list[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
     """Build a Sigma rule dict from a ParsedSPL.
 
     The returned dict is shaped so exa.sigma.converter.convert_to_exa_rule()
     can consume it directly without a YAML round-trip.
 
     All detection values are lists (required by _build_selection_eql).
+    Known-invalid EQL fields (_raw, distinguishedName, nested paths) are
+    stripped with reasons appended to blocked_out if provided.
     Unknown SPL fields pass through as-is; the Sigma converter will emit
     EXA-UNVERIFIED warnings for any field not in its CIM2_FIELD_MAP.
     """
@@ -160,7 +182,19 @@ def spl_to_sigma_dict(parsed: ParsedSPL, title: str) -> dict[str, Any]:
     negation: dict[str, list[str]] = {}
 
     for field_name, op, value in parsed.field_conditions:
+        if field_name in _KNOWN_INVALID_EQL_FIELDS:
+            if blocked_out is not None:
+                blocked_out.append((field_name, "no CIM2 equivalent; Exabeam rejects as unknown field"))
+            continue
+        if value.strip().lower() == "null":
+            if blocked_out is not None:
+                blocked_out.append((field_name, 'value is literal "null" — no EQL equivalent'))
+            continue
         sigma_field = _map_field(field_name)
+        if _is_nested_path(sigma_field):
+            if blocked_out is not None:
+                blocked_out.append((field_name, f"nested path '{sigma_field}' not valid EQL syntax"))
+            continue
         if "*" in value:
             key, stripped = _wildcard_key(sigma_field, value)
         else:
@@ -170,7 +204,15 @@ def spl_to_sigma_dict(parsed: ParsedSPL, title: str) -> dict[str, Any]:
         target.setdefault(key, []).append(stripped)
 
     for reg_field, pattern in parsed.regex_conditions:
+        if reg_field in _KNOWN_INVALID_EQL_FIELDS:
+            if blocked_out is not None:
+                blocked_out.append((reg_field, "no CIM2 equivalent; Exabeam rejects as unknown field"))
+            continue
         sigma_field = _map_field(reg_field)
+        if _is_nested_path(sigma_field):
+            if blocked_out is not None:
+                blocked_out.append((reg_field, f"nested path '{sigma_field}' not valid EQL syntax"))
+            continue
         selection.setdefault(f"{sigma_field}|re", []).append(pattern)
 
     detection: dict[str, Any] = {}
