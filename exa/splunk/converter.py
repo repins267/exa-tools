@@ -117,7 +117,7 @@ def _dedup_warnings(warnings: list[str]) -> list[str]:
     return result
 
 
-def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
+def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> dict[str, Any]:
     """Convert a single Splunk SPL search to an Exabeam correlation rule dict.
 
     Returns a dict with:
@@ -221,8 +221,34 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
     for field_name, reason in blocked:
         warnings.append(f"Stripped field '{field_name}': {reason}")
 
+    # Attempt RGXi compression when EQL is too long and conditions exist
+    eql_api_limit = 1024
+    overflowed_tables: list[dict[str, Any]] = []
+    _compress_warnings: list[str] = []
+    if compress and has_conditions and len(eql_query) > eql_api_limit:
+        from exa.splunk.compress import compress_overflow as _compress_overflow
+        _cr = _compress_overflow(sigma_dict, title)
+        if _cr.compressed_fields:
+            _comp = _sigma_convert(_cr.sigma_dict)
+            _comp_eql: str = _comp["eql_query"]
+            if activity_type and not sigma_activity:
+                _comp_eql = f'activity_type:"{activity_type}" AND {_comp_eql}'
+            if len(_comp_eql) <= eql_api_limit:
+                eql_query = _comp_eql
+                field_mappings = _comp["field_mappings"]
+                sigma_warnings = _comp["warnings"]
+                for _f in _cr.compressed_fields:
+                    _compress_warnings.append(
+                        f"Compressed field '{_f}' wildcard list → RGXi to fit API limit"
+                    )
+        if _cr.table_candidates:
+            overflowed_tables = [
+                {"field": tc.field, "table_name": tc.table_name, "values": tc.values}
+                for tc in _cr.table_candidates
+            ]
+
     # Sigma warnings first (field-level), then Splunk-level; deduplicate both
-    all_warnings = _dedup_warnings(sigma_warnings + warnings)
+    all_warnings = _dedup_warnings(sigma_warnings + warnings + _compress_warnings)
 
     description = _build_description(title, parsed, activity_type, context_tables)
 
@@ -234,13 +260,11 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
         m.get("confidence") == "passthrough" for m in field_mappings
     )
 
-    eql_api_limit = 1024
     if len(eql_query) > eql_api_limit:
         deploy_ready = "EQL too long"
         all_warnings.append(
             f"EQL query is {len(eql_query)} chars (API limit: {eql_api_limit}) — "
-            "shorten by moving long value lists to a context table, "
-            "or split into multiple rules"
+            "too large even after RGXi compression; split into multiple rules"
         )
     elif blocked:
         deploy_ready = "No"
@@ -263,6 +287,7 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
         "warnings": all_warnings,
         "deploy_ready": deploy_ready,
         "sigma_yaml": spl_to_sigma_yaml(parsed, title),
+        "overflowed_tables": overflowed_tables,
     }
 
 

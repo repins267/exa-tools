@@ -42,6 +42,7 @@ def convert_file(
     sheet: str = "in",
     title_col: str = "title",
     search_col: str = "search",
+    compress: bool = True,
 ) -> list[dict[str, Any]]:
     """Auto-detect file format and convert SPL searches to Exabeam rules.
 
@@ -55,6 +56,7 @@ def convert_file(
         sheet: Sheet name for Excel files (default: "in"). Ignored for CSV/conf.
         title_col: Column name for rule titles in Excel/CSV (default: "title").
         search_col: Column name for SPL searches in Excel/CSV (default: "search").
+        compress: Auto-compress oversized EQL with RGXi (default: True).
 
     Returns:
         List of converted rule dicts.
@@ -63,11 +65,13 @@ def convert_file(
     suffix = path.suffix.lower()
 
     if suffix in (".xlsx", ".xls"):
-        return convert_excel(path, sheet=sheet, title_col=title_col, search_col=search_col)
+        return convert_excel(
+            path, sheet=sheet, title_col=title_col, search_col=search_col, compress=compress
+        )
     elif suffix == ".csv":
-        return convert_csv(path, title_col=title_col, search_col=search_col)
+        return convert_csv(path, title_col=title_col, search_col=search_col, compress=compress)
     elif suffix == ".conf" or path.name == "savedsearches.conf":
-        return convert_savedsearches_conf(path)
+        return convert_savedsearches_conf(path, compress=compress)
     else:
         raise ValueError(
             f"Unsupported file format: '{suffix}'. "
@@ -84,6 +88,7 @@ def convert_excel(
     sheet: str = "in",
     title_col: str = "title",
     search_col: str = "search",
+    compress: bool = True,
 ) -> list[dict[str, Any]]:
     """Read SPL searches from an Excel file and convert each to an Exabeam rule.
 
@@ -92,6 +97,7 @@ def convert_excel(
         sheet: Sheet name to read (default: "in").
         title_col: Column name for rule titles.
         search_col: Column name for SPL searches.
+        compress: Auto-compress oversized EQL with RGXi (default: True).
 
     Returns:
         List of converted rule dicts.
@@ -107,7 +113,7 @@ def convert_excel(
 
     path = Path(path)
     df = pd.read_excel(path, sheet_name=sheet, dtype=str)
-    return _convert_dataframe(df, title_col=title_col, search_col=search_col)
+    return _convert_dataframe(df, title_col=title_col, search_col=search_col, compress=compress)
 
 
 # ── CSV ----------------------------------------------------------------------
@@ -119,6 +125,7 @@ def convert_csv(
     title_col: str = "title",
     search_col: str = "search",
     encoding: str = "utf-8-sig",
+    compress: bool = True,
 ) -> list[dict[str, Any]]:
     """Read SPL searches from a CSV file and convert each to an Exabeam rule.
 
@@ -130,6 +137,7 @@ def convert_csv(
         title_col: Column name for rule titles (default: "title").
         search_col: Column name for SPL searches (default: "search").
         encoding: File encoding (default: "utf-8-sig" handles BOM).
+        compress: Auto-compress oversized EQL with RGXi (default: True).
 
     Returns:
         List of converted rule dicts.
@@ -145,7 +153,7 @@ def convert_csv(
 
     path = Path(path)
     df = pd.read_csv(path, dtype=str, encoding=encoding)
-    return _convert_dataframe(df, title_col=title_col, search_col=search_col)
+    return _convert_dataframe(df, title_col=title_col, search_col=search_col, compress=compress)
 
 
 def _convert_dataframe(
@@ -153,6 +161,7 @@ def _convert_dataframe(
     *,
     title_col: str,
     search_col: str,
+    compress: bool = True,
 ) -> list[dict[str, Any]]:
     """Shared conversion logic for Excel and CSV dataframes."""
     try:
@@ -182,7 +191,7 @@ def _convert_dataframe(
         if not title or title == "nan" or not search or search == "nan":
             continue
 
-        rule = convert_spl_to_exa_rule(title, search)
+        rule = convert_spl_to_exa_rule(title, search, compress=compress)
         results.append(rule)
 
     return results
@@ -193,6 +202,8 @@ def _convert_dataframe(
 
 def convert_savedsearches_conf(
     path: str | Path,
+    *,
+    compress: bool = True,
 ) -> list[dict[str, Any]]:
     """Read SPL searches from a Splunk savedsearches.conf file.
 
@@ -238,7 +249,7 @@ def convert_savedsearches_conf(
         # Use stanza name as title, strip common Splunk prefixes/suffixes
         title = section.strip()
 
-        rule = convert_spl_to_exa_rule(title, search)
+        rule = convert_spl_to_exa_rule(title, search, compress=compress)
         results.append(rule)
 
     return results
@@ -255,6 +266,9 @@ def export_api_payloads(
 ) -> Path:
     """Write API-ready payloads to a JSON file.
 
+    When any rule has overflowed context table candidates, also writes a
+    parallel ``<name>.tables.json`` file containing the table data.
+
     Args:
         results: Output of any convert_* function.
         output_path: Destination .json file path.
@@ -270,6 +284,19 @@ def export_api_payloads(
         json.dumps(payloads, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
+
+    table_bundles = [
+        {"rule": r["name"], "tables": r["overflowed_tables"]}
+        for r in results
+        if r.get("overflowed_tables")
+    ]
+    if table_bundles:
+        tables_path = output_path.with_suffix("").with_suffix(".tables.json")
+        tables_path.write_text(
+            json.dumps(table_bundles, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
     return output_path
 
 
@@ -280,6 +307,7 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
     with_warnings: int = 0
     context_tables_needed: set[str] = set()
     dropped_stages: dict[str, int] = {}
+    compressed: int = 0
 
     for r in results:
         idx = r.get("index", "unknown")
@@ -294,10 +322,16 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
         for stage in r.get("dropped_stages", []):
             dropped_stages[stage] = dropped_stages.get(stage, 0) + 1
 
+        if r.get("overflowed_tables") or any(
+            "→ RGXi" in w for w in r.get("warnings", [])
+        ):
+            compressed += 1
+
     return {
         "total": total,
         "by_index": by_index,
         "rules_with_warnings": with_warnings,
         "context_tables_needed": sorted(context_tables_needed),
         "dropped_stages": dropped_stages,
+        "compressed": compressed,
     }

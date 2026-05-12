@@ -54,6 +54,13 @@ def convert_cmd(
         bool,
         typer.Option("--verbose", "-v", help="Show full warnings for each rule"),
     ] = False,
+    compress: Annotated[
+        bool,
+        typer.Option(
+            "--compress/--no-compress",
+            help="Auto-compress oversized EQL with RGXi alternation [default: compress]",
+        ),
+    ] = True,
 ) -> None:
     """Convert Splunk SPL searches to Exabeam correlation rules.
 
@@ -98,7 +105,7 @@ def convert_cmd(
     console.print()
 
     try:
-        results = convert_file(excel_file, sheet=sheet)
+        results = convert_file(excel_file, sheet=sheet, compress=compress)
     except Exception as e:
         console.print(f"[red]Failed to read Excel file: {e}[/red]")
         raise typer.Exit(1)
@@ -145,6 +152,11 @@ def convert_cmd(
     console.rule("Summary", style="dim")
     console.print(f"  Rules converted:    {summary['total']}")
     console.print(f"  With warnings:      {summary['rules_with_warnings']}")
+    if summary.get("compressed"):
+        console.print(
+            f"  Compressed (RGXi):  {summary['compressed']}",
+            style="cyan",
+        )
     if summary["context_tables_needed"]:
         console.print(
             f"  Context tables needed: {', '.join(summary['context_tables_needed'])}",
