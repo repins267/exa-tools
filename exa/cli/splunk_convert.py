@@ -327,7 +327,7 @@ def deploy_cmd(
         console.print("\n  [dim]Dry run — no API calls made.[/dim]")
         return
 
-    from exa.correlation import create_correlation_rule
+    from exa.correlation import create_rule as create_correlation_rule
 
     client = _make_client(tenant)
     created = 0
