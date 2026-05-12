@@ -121,7 +121,12 @@ def convert_cmd(
         name = r["name"].replace("[Splunk] ", "")
         eql_preview = r["eql_query"][:37] + "…" if len(r["eql_query"]) > 40 else r["eql_query"]
         warn_count = len(r["warnings"])
-        ready_style = "yellow" if r["deploy_ready"] == "Needs review" else "red"
+        if r["deploy_ready"] == "Needs review":
+            ready_style = "yellow"
+        elif r["deploy_ready"] == "EQL too long":
+            ready_style = "bold red"
+        else:
+            ready_style = "red"
         tbl.add_row(
             str(i),
             name,

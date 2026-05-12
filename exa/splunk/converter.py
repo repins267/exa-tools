@@ -211,6 +211,17 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
 
     description = _build_description(title, parsed, activity_type, context_tables)
 
+    eql_api_limit = 1024
+    if len(eql_query) > eql_api_limit:
+        deploy_ready = "EQL too long"
+        all_warnings.append(
+            f"EQL query is {len(eql_query)} chars (API limit: {eql_api_limit}) — "
+            "shorten by moving long value lists to a context table, "
+            "or split into multiple rules"
+        )
+    else:
+        deploy_ready = "Needs review"
+
     return {
         "name": f"[Splunk] {title}",
         "description": description,
@@ -223,7 +234,7 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
         "field_mappings": field_mappings,
         "dropped_stages": sorted(set(parsed.dropped_stages)),
         "warnings": all_warnings,
-        "deploy_ready": "Needs review",
+        "deploy_ready": deploy_ready,
         "sigma_yaml": spl_to_sigma_yaml(parsed, title),
     }
 
