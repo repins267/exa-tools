@@ -352,3 +352,35 @@ class TestInvalidFieldBlocking:
         rule = convert_spl_to_exa_rule("Test", 'index=c42 destination.tabs{}.url!="null"')
         # url condition blocked due to null value; no crash
         assert rule["deploy_ready"] == "No"
+
+
+# ── Oracle passthrough → deploy_ready ────────────────────────────────────────
+
+class TestOraclePassthrough:
+    """When the Field Oracle is present and a field resolves as passthrough,
+    deploy_ready must be "No" to block deployment of unrecognised fields."""
+
+    def test_oracle_passthrough_sets_deploy_ready_no(self, tmp_path, monkeypatch):
+        """Oracle present + passthrough field → deploy_ready must be 'No'."""
+        oracle = {
+            "by_activity_type": {},
+            "by_vendor": {},
+            "raw_to_cim2": {},
+            "built_at": "2026-01-01",
+            "stats": {},
+        }
+        oracle_path = tmp_path / ".exa" / "cache" / "field_oracle.json"
+        oracle_path.parent.mkdir(parents=True)
+        oracle_path.write_text(json.dumps(oracle))
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        # unknownSplunkField has no CIM2 mapping → sigma converter will mark it passthrough
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 unknownSplunkField="value"')
+        assert rule["deploy_ready"] == "No"
+
+    def test_no_oracle_keeps_needs_review(self, tmp_path, monkeypatch):
+        """When oracle file is absent, passthrough fields don't block deployment."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        # Ensure no oracle file exists under tmp_path
+        rule = convert_spl_to_exa_rule("Test", 'index=c42 unknownSplunkField="value"')
+        assert rule["deploy_ready"] == "Needs review"

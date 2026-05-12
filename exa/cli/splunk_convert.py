@@ -293,6 +293,13 @@ def deploy_cmd(
         bool,
         typer.Option("--dry-run", help="Preview without writing to Exabeam"),
     ] = False,
+    validate: Annotated[
+        bool,
+        typer.Option(
+            "--validate/--no-validate",
+            help="Validate EQL against live tenant before deploying [default: validate]",
+        ),
+    ] = True,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
@@ -305,6 +312,12 @@ def deploy_cmd(
     default — use --enabled to activate immediately (not recommended).
 
     Use --dry-run to see what would be deployed without making API calls.
+
+    EQL validation (--validate, default on) calls POST /search/v2/events
+    with each EQL before creating the rule.  Rules with unknown fields or
+    syntax errors are skipped with Exabeam's own error message — no more
+    discovering broken rules in the UI after deployment.
+    Use --no-validate to skip validation and deploy unconditionally.
     """
     import json
 
@@ -322,6 +335,8 @@ def deploy_cmd(
     console.rule(f"{prefix}Deploy Splunk Rules -> Exabeam")
     console.print(f"  Rules to deploy: {len(payloads)}")
     console.print(f"  Enabled on create: {enabled}")
+    if not dry_run:
+        console.print(f"  EQL validation:   {'on' if validate else 'off (--no-validate)'}")
     console.print()
 
     if dry_run:
@@ -329,10 +344,12 @@ def deploy_cmd(
             console.print(f"  {i:>2}. {p['name']}", style="cyan")
             eql_preview = p['sequencesConfig']['sequences'][0]['query'][:80]
             console.print(f"      EQL: {eql_preview}", style="dim")
-        console.print("\n  [dim]Dry run - no API calls made.[/dim]")
+        if validate:
+            console.print("\n  [dim]Validation will run against the live tenant at deploy time.[/dim]")
+        console.print("  [dim]Dry run - no API calls made.[/dim]")
         return
 
-    from exa.correlation import create_rule as create_correlation_rule
+    from exa.correlation import create_rule as create_correlation_rule, validate_eql
 
     eql_limit = 1024
 
@@ -340,6 +357,7 @@ def deploy_cmd(
     created = 0
     failed = 0
     skipped = 0
+    invalid = 0
     try:
         for p in payloads:
             name = p["name"]
@@ -352,6 +370,12 @@ def deploy_cmd(
                 )
                 skipped += 1
                 continue
+            if validate:
+                errors = validate_eql(client, eql)
+                if errors:
+                    console.print(f"  [red]x[/red] {name}: EQL invalid - {errors[0]}")
+                    invalid += 1
+                    continue
             p["enabled"] = enabled
             try:
                 resp = create_correlation_rule(client, p)
@@ -365,6 +389,10 @@ def deploy_cmd(
     finally:
         client.close()
 
-    style = "green" if not failed else "red"
+    style = "green" if not (failed or invalid) else "red"
     console.rule("Deploy Complete", style=style)
-    console.print(f"  Created: {created} | Skipped (EQL too long): {skipped} | Failed: {failed}")
+    parts = [f"Created: {created}", f"Skipped (EQL too long): {skipped}"]
+    if validate:
+        parts.append(f"Invalid EQL: {invalid}")
+    parts.append(f"Failed: {failed}")
+    console.print(f"  {' | '.join(parts)}")

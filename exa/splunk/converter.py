@@ -10,11 +10,14 @@ construction.  Pipeline:
         → EQL + metadata     (exa.sigma.converter)
         → Splunk-augmented   (this module)
 
-All Splunk conversions are deploy_ready="Needs review" by design —
-SPL→EQL is lossy (stats/lookups/eval dropped) and requires human sign-off.
+Splunk conversions require human sign-off (deploy_ready="Needs review") but
+escalate to "No" when the Field Oracle is present and a converted field has
+passthrough confidence — meaning Exabeam's parser definitions don't recognise
+it and the UI would reject the rule with "Field 'x' is unknown".
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from exa.sigma.converter import convert_to_exa_rule as _sigma_convert
@@ -223,6 +226,14 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
 
     description = _build_description(title, parsed, activity_type, context_tables)
 
+    # Oracle passthrough: if the oracle cache is present and any converted field
+    # has passthrough confidence, Exabeam's parser schema doesn't recognise it —
+    # the UI would reject the rule with "Field 'x' is unknown".
+    _oracle_available = (Path.home() / ".exa" / "cache" / "field_oracle.json").exists()
+    has_oracle_passthrough = _oracle_available and any(
+        m.get("confidence") == "passthrough" for m in field_mappings
+    )
+
     eql_api_limit = 1024
     if len(eql_query) > eql_api_limit:
         deploy_ready = "EQL too long"
@@ -232,6 +243,8 @@ def convert_spl_to_exa_rule(title: str, spl: str) -> dict[str, Any]:
             "or split into multiple rules"
         )
     elif blocked:
+        deploy_ready = "No"
+    elif has_oracle_passthrough:
         deploy_ready = "No"
     else:
         deploy_ready = "Needs review"

@@ -8,6 +8,7 @@ from exa.correlation.rules import (
     set_rule_state,
     update_rule,
 )
+from exa.correlation.validate import validate_eql
 
 __all__ = [
     "create_rule",
@@ -16,4 +17,5 @@ __all__ = [
     "get_rules",
     "set_rule_state",
     "update_rule",
+    "validate_eql",
 ]
