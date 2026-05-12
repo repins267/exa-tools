@@ -123,8 +123,23 @@ def serve(
         str,
         typer.Option("--name", help="Server name reported to MCP client [default: exabeam]"),
     ] = "exabeam",
+    port: Annotated[
+        int | None,
+        typer.Option(
+            "--port",
+            help="Run as HTTP/SSE server on this port instead of stdio [default: stdio]",
+        ),
+    ] = None,
+    host: Annotated[
+        str,
+        typer.Option("--host", help="Host to bind when using --port [default: 127.0.0.1]"),
+    ] = "127.0.0.1",
 ) -> None:
-    """Start a stdio MCP server. Claude Desktop spawns this as a subprocess.
+    """Start the Exabeam MCP server.
+
+    Default (no --port): stdio mode — Claude Desktop spawns this as a subprocess.
+    With --port: HTTP/SSE mode — add http://HOST:PORT/sse as a custom connector
+    in Claude Desktop settings.
 
     Exposes 9 tools: search_alerts, get_alert, search_cases, get_case,
     search_events, create_case, update_case, update_alert, add_case_note.
@@ -133,12 +148,27 @@ def serve(
     import asyncio
 
     from exa.client import ExaClient
-    from exa.mcp.server import run_server
 
     client = ExaClient(tenant=tenant)
     client.authenticate()
     try:
-        asyncio.run(run_server(client, server_name=name))
+        if port is not None:
+            from exa.mcp.server import run_sse_server
+
+            console.print(
+                f"  Exabeam MCP server listening on [bold]http://{host}:{port}/sse[/bold]",
+                style="green",
+            )
+            console.print(
+                f"  Add [bold]http://{host}:{port}/sse[/bold] as a custom connector "
+                "in Claude Desktop settings.",
+                style="dim",
+            )
+            asyncio.run(run_sse_server(client, server_name=name, host=host, port=port))
+        else:
+            from exa.mcp.server import run_server
+
+            asyncio.run(run_server(client, server_name=name))
     finally:
         client.close()
 

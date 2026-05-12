@@ -1,4 +1,4 @@
-"""MCP stdio server entry point.
+"""MCP server entry points — stdio and HTTP/SSE transports.
 
 Manages a single ExaClient for the process lifetime; token refresh is handled
 automatically by ExaClient on every request (60s before expiry).
@@ -12,14 +12,9 @@ if TYPE_CHECKING:
     from exa.client import ExaClient
 
 
-async def run_server(client: ExaClient, server_name: str = "exabeam") -> None:
-    """Run the Exabeam MCP server over stdio.
-
-    This is a blocking async coroutine — call via asyncio.run().
-    Claude Desktop spawns this process and communicates over stdin/stdout.
-    """
+def _build_mcp_server(client: ExaClient, server_name: str):
+    """Construct and return a configured mcp.server.Server instance."""
     from mcp.server import Server
-    from mcp.server.stdio import stdio_server
 
     from exa.mcp.tools import TOOL_DEFS, dispatch_tool
 
@@ -33,9 +28,54 @@ async def run_server(client: ExaClient, server_name: str = "exabeam") -> None:
     async def handle_call_tool(name: str, arguments: dict):
         return await dispatch_tool(client, name, arguments or {})
 
+    return server
+
+
+async def run_server(client: ExaClient, server_name: str = "exabeam") -> None:
+    """Run the Exabeam MCP server over stdio (Claude Desktop subprocess mode)."""
+    from mcp.server.stdio import stdio_server
+
+    server = _build_mcp_server(client, server_name)
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
             write_stream,
             server.create_initialization_options(),
         )
+
+
+async def run_sse_server(
+    client: ExaClient,
+    server_name: str = "exabeam",
+    host: str = "127.0.0.1",
+    port: int = 8765,
+) -> None:
+    """Run the Exabeam MCP server over HTTP/SSE (remote connector mode).
+
+    Exposes:
+      GET  /sse        — SSE connection endpoint (add this URL to Claude Desktop)
+      POST /messages/  — message ingestion endpoint
+    """
+    import uvicorn
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+
+    server = _build_mcp_server(client, server_name)
+    sse = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await server.run(*streams, server.create_initialization_options())
+
+    starlette_app = Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Mount("/messages/", app=sse.handle_post_message),
+        ]
+    )
+
+    config = uvicorn.Config(starlette_app, host=host, port=port, log_level="warning")
+    await uvicorn.Server(config).serve()
