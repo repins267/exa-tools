@@ -88,7 +88,7 @@ def convert_cmd(
         console.print(f"[red]File not found: {excel_file}[/red]")
         raise typer.Exit(1)
 
-    console.rule("[bold cyan]Splunk → Exabeam Rule Conversion[/bold cyan]")
+    console.rule("[bold cyan]Splunk -> Exabeam Rule Conversion[/bold cyan]")
     console.print(f"  Input: {excel_file}", style="dim")
     suffix = excel_file.suffix.lower()
     if suffix in (".xlsx", ".xls"):
@@ -130,8 +130,8 @@ def convert_cmd(
         tbl.add_row(
             str(i),
             name,
-            r["index"] or "—",
-            r.get("activity_type_hint") or "—",
+            r["index"] or "-",
+            r.get("activity_type_hint") or "-",
             eql_preview,
             str(warn_count),
             f"[{ready_style}]{r['deploy_ready']}[/{ready_style}]",
@@ -163,7 +163,7 @@ def convert_cmd(
             if r["warnings"]:
                 console.print(f"\n  [cyan]{r['name']}[/cyan]")
                 for w in r["warnings"]:
-                    console.print(f"    [yellow]⚠[/yellow] {w}")
+                    console.print(f"    [yellow]![/yellow] {w}")
 
     # ── Export ────────────────────────────────────────────────────────────
     if output is None:
@@ -171,13 +171,13 @@ def convert_cmd(
 
     try:
         saved = export_api_payloads(results, output)
-        console.print(f"\n  [green]✓[/green] Saved {len(results)} payloads → {saved}")
+        console.print(f"\n  [green]+[/green] Saved {len(results)} payloads -> {saved}")
     except Exception as e:
-        console.print(f"  [red]✗[/red] Failed to save output: {e}")
+        console.print(f"  [red]x[/red] Failed to save output: {e}")
         raise typer.Exit(1)
 
     console.print(
-        "\n  All rules marked [yellow]Needs review[/yellow] — "
+        "\n  All rules marked [yellow]Needs review[/yellow] - "
         "validate EQL before deploying.",
         style="dim",
     )
@@ -235,10 +235,10 @@ def one_cmd(
             output.write_text(_json.dumps([payload], indent=2), encoding="utf-8")
         return
 
-    console.rule("[bold cyan]SPL → Exabeam Conversion[/bold cyan]")
+    console.rule("[bold cyan]SPL -> Exabeam Conversion[/bold cyan]")
     console.print(f"  [bold]Rule:[/bold]  {rule['name']}")
-    console.print(f"  [bold]Index:[/bold] {rule['index'] or '—'}  |  "
-                  f"[bold]Activity Type:[/bold] {rule['activity_type_hint'] or '—'}")
+    console.print(f"  [bold]Index:[/bold] {rule['index'] or '-'}  |  "
+                  f"[bold]Activity Type:[/bold] {rule['activity_type_hint'] or '-'}")
     console.print()
 
     console.print("[bold]EQL Query:[/bold]")
@@ -262,18 +262,18 @@ def one_cmd(
     if rule["warnings"]:
         console.print("[bold]Warnings:[/bold]")
         for w in rule["warnings"]:
-            console.print(f"  [yellow]⚠[/yellow] {w}")
+            console.print(f"  [yellow]![/yellow] {w}")
         console.print()
 
     console.print(
-        f"  [yellow]deploy_ready: {rule['deploy_ready']}[/yellow] — "
+        f"  [yellow]deploy_ready: {rule['deploy_ready']}[/yellow] - "
         "review EQL before deploying",
         style="dim",
     )
 
     if output:
         output.write_text(_json.dumps([payload], indent=2), encoding="utf-8")
-        console.print(f"\n  [green]✓[/green] Payload saved → {output}")
+        console.print(f"\n  [green]+[/green] Payload saved -> {output}")
 
 
 # ── deploy ────────────────────────────────────────────────────────────────────
@@ -319,7 +319,7 @@ def deploy_cmd(
         raise typer.Exit(1)
 
     prefix = "[DRY RUN] " if dry_run else ""
-    console.rule(f"{prefix}Deploy Splunk Rules → Exabeam")
+    console.rule(f"{prefix}Deploy Splunk Rules -> Exabeam")
     console.print(f"  Rules to deploy: {len(payloads)}")
     console.print(f"  Enabled on create: {enabled}")
     console.print()
@@ -329,7 +329,7 @@ def deploy_cmd(
             console.print(f"  {i:>2}. {p['name']}", style="cyan")
             eql_preview = p['sequencesConfig']['sequences'][0]['query'][:80]
             console.print(f"      EQL: {eql_preview}", style="dim")
-        console.print("\n  [dim]Dry run — no API calls made.[/dim]")
+        console.print("\n  [dim]Dry run - no API calls made.[/dim]")
         return
 
     from exa.correlation import create_rule as create_correlation_rule
@@ -346,8 +346,8 @@ def deploy_cmd(
             eql = p.get("sequencesConfig", {}).get("sequences", [{}])[0].get("query", "")
             if len(eql) > eql_limit:
                 console.print(
-                    f"  [yellow]–[/yellow] {name}: EQL too long"
-                    f" ({len(eql)} chars, limit {eql_limit}) — skipped",
+                    f"  [yellow]-[/yellow] {name}: EQL too long"
+                    f" ({len(eql)} chars, limit {eql_limit}) - skipped",
                     style="yellow",
                 )
                 skipped += 1
@@ -356,10 +356,10 @@ def deploy_cmd(
             try:
                 resp = create_correlation_rule(client, p)
                 rule_id = resp.get("id", "?") if isinstance(resp, dict) else str(resp)
-                console.print(f"  [green]✓[/green] {name} ({rule_id})")
+                console.print(f"  [green]+[/green] {name} ({rule_id})")
                 created += 1
             except Exception as e:
-                console.print(f"  [red]✗[/red] {name}: {e}")
+                console.print(f"  [red]x[/red] {name}: {e}")
                 failed += 1
             client.batch_write_sleep()
     finally:
