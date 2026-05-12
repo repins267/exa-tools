@@ -22,12 +22,8 @@ from exa.context.tables import add_records, create_table, get_tables
 _KEY_COL = "value"          # attribute id for the key column in all splunk tables
 _SLEEP_BETWEEN = 1.0        # seconds between table writes (rate-limit headroom)
 
-# CIM2 field → context_type mapping for sensible table categorisation
+# CIM2 field -> context_type mapping (valid API values: "User", "Other")
 _FIELD_CONTEXT_TYPE: dict[str, str] = {
-    "src_ip": "TI_ips",
-    "dest_ip": "TI_ips",
-    "src_host": "Device",
-    "dest_host": "Device",
     "user": "User",
     "src_user": "User",
     "dest_user": "User",
@@ -35,7 +31,7 @@ _FIELD_CONTEXT_TYPE: dict[str, str] = {
 
 
 def _context_type_for_field(field_eql: str) -> str:
-    return _FIELD_CONTEXT_TYPE.get(field_eql, "Other")
+    return _FIELD_CONTEXT_TYPE.get(field_eql, "Other")  # "Other" is the safe default
 
 
 def _find_existing_table(client: ExaClient, display_name: str) -> str | None:
