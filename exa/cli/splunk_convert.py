@@ -48,7 +48,7 @@ def convert_cmd(
     ] = None,
     sheet: Annotated[
         str,
-        typer.Option("--sheet", help="Sheet name (Excel only, default: in)"),
+        typer.Option("--sheet", help="Sheet name (Excel only) [default: in]"),
     ] = "in",
     verbose: Annotated[
         bool,
@@ -65,7 +65,22 @@ def convert_cmd(
     lossy (stats/lookups/eval are dropped) and require human sign-off
     before deployment.
 
-    To deploy, use:  exa splunk deploy <output.json>
+    \b
+    Usage pattern:
+      exa splunk convert FILE [OPTIONS]
+      FILE must come before any options. Quote paths that contain spaces.
+
+    \b
+    Examples:
+      exa splunk convert searches.xlsx
+      exa splunk convert searches.xlsx --sheet Enabled
+      exa splunk convert "My Searches.xlsx" --sheet Enabled
+      exa splunk convert "C:\\path\\to\\My Searches.xlsx" --sheet Enabled -o out.json
+      exa splunk convert searches.csv --verbose
+      exa splunk convert savedsearches.conf
+
+    To deploy converted rules:
+      exa splunk deploy <output.json>
     """
     from exa.splunk.batch import conversion_summary, convert_file, export_api_payloads
 
