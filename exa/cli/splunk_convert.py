@@ -329,22 +329,37 @@ def deploy_cmd(
 
     from exa.correlation import create_rule as create_correlation_rule
 
+    eql_limit = 1024
+
     client = _make_client(tenant)
     created = 0
     failed = 0
+    skipped = 0
     try:
         for p in payloads:
+            name = p["name"]
+            eql = p.get("sequencesConfig", {}).get("sequences", [{}])[0].get("query", "")
+            if len(eql) > eql_limit:
+                console.print(
+                    f"  [yellow]–[/yellow] {name}: EQL too long"
+                    f" ({len(eql)} chars, limit {eql_limit}) — skipped",
+                    style="yellow",
+                )
+                skipped += 1
+                continue
             p["enabled"] = enabled
             try:
-                rule_id = create_correlation_rule(client, p)
-                console.print(f"  [green]✓[/green] {p['name']} ({rule_id})")
+                resp = create_correlation_rule(client, p)
+                rule_id = resp.get("id", "?") if isinstance(resp, dict) else str(resp)
+                console.print(f"  [green]✓[/green] {name} ({rule_id})")
                 created += 1
             except Exception as e:
-                console.print(f"  [red]✗[/red] {p['name']}: {e}")
+                console.print(f"  [red]✗[/red] {name}: {e}")
                 failed += 1
             client.batch_write_sleep()
     finally:
         client.close()
 
-    console.rule("Deploy Complete", style="green" if not failed else "red")
-    console.print(f"  Created: {created} | Failed: {failed}")
+    style = "green" if not failed else "red"
+    console.rule("Deploy Complete", style=style)
+    console.print(f"  Created: {created} | Skipped (EQL too long): {skipped} | Failed: {failed}")
