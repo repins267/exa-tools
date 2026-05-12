@@ -478,6 +478,13 @@ from exa.cli.compliance import compliance_app  # noqa: E402
 app.add_typer(compliance_app)
 
 
+# -- MCP ---------------------------------------------------------------------
+
+from exa.cli.mcp import mcp_app  # noqa: E402
+
+app.add_typer(mcp_app)
+
+
 # -- HotKey -------------------------------------------------------------------
 
 from exa.cli.hotkey import hotkey_app  # noqa: E402
