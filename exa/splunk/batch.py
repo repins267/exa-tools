@@ -323,7 +323,7 @@ def conversion_summary(results: list[dict[str, Any]]) -> dict[str, Any]:
             dropped_stages[stage] = dropped_stages.get(stage, 0) + 1
 
         if r.get("overflowed_tables") or any(
-            "→ RGXi" in w for w in r.get("warnings", [])
+            "-> RGXi" in w for w in r.get("warnings", [])
         ):
             compressed += 1
 

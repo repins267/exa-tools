@@ -239,7 +239,7 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
                 sigma_warnings = _comp["warnings"]
                 for _f in _cr.compressed_fields:
                     _compress_warnings.append(
-                        f"Compressed field '{_f}' wildcard list → RGXi to fit API limit"
+                        f"Compressed field '{_f}' wildcard list -> RGXi to fit API limit"
                     )
         if _cr.table_candidates:
             overflowed_tables = [

@@ -8,7 +8,10 @@ Strategy:
   - For fields with >= MIN_VALUES total values across all modifiers:
     collapses N WLDi()/exact terms into one RGXi("alt1|alt2|...") term
   - Exact-value fields (no wildcards) are recorded as TableCandidate
-    for future context table extraction (LOOKUP syntax pending verification)
+    and written to .tables.json for reference — NOTE: Exabeam EQL has no
+    supported LOOKUP/membership syntax for correlation rules (confirmed live
+    2026-05-12, see EXA-LOOKUP-UNSUPPORTED in CLAUDE.md). The only fix for
+    oversized exact-value lists is splitting into multiple rules.
   - Never touches the filter/negation block
 """
 from __future__ import annotations
