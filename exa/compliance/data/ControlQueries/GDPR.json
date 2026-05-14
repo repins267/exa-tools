@@ -1,3 +1,274 @@
 {
-  "queries": {}
+    "_framework": "GDPR",
+    "_version": "2016/679",
+    "_description": "SIEM evidence queries for GDPR controls relating to security of processing, data protection, and breach detection",
+    "queries": {
+        "Art.5.1f": {
+            "name": "Integrity and Confidentiality of Personal Data",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication logs demonstrate security controls protecting personal data from unauthorized access"
+                },
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "action"],
+                    "evidenceDescription": "Network session monitoring demonstrates controls for integrity and confidentiality of data in transit"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "NETWORK_TRAFFIC"]
+        },
+        "Art.5.2": {
+            "name": "Accountability and Compliance Demonstration",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit records demonstrate controller accountability and ability to evidence compliance with data protection principles"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "Art.17": {
+            "name": "Right to Erasure - Data Deletion Monitoring",
+            "queries": [
+                {
+                    "name": "File Deletion Events",
+                    "filter": "activity_type:\"file-delete\"",
+                    "fields": ["user", "src_ip", "dest_host", "file_name", "file_path"],
+                    "evidenceDescription": "File deletion events demonstrate monitoring and logging of data erasure operations for right-to-be-forgotten compliance"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["FILE_ACTIVITY"]
+        },
+        "Art.25": {
+            "name": "Data Protection by Design and by Default",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication and access control events demonstrate data protection by design and default principles are implemented"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "Art.25.1": {
+            "name": "Data Protection by Design - Technical Measures",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate technical measures such as access controls and pseudonymization are in place"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS"]
+        },
+        "Art.25.2": {
+            "name": "Data Protection by Default - Data Minimization",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Access control audit records demonstrate only necessary personal data is processed by default"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "PERMISSION_CHANGE"]
+        },
+        "Art.30.1": {
+            "name": "Controller Records of Processing Activities",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit records with user and system identifiers support maintenance of processing activity records"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "Art.30.2": {
+            "name": "Processor Records of Processing Activities",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit records support processor accountability through comprehensive processing activity logging"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "Art.32": {
+            "name": "Security of Personal Data Processing",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication and access control monitoring demonstrates appropriate technical security measures for personal data processing"
+                },
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "action"],
+                    "evidenceDescription": "Network security monitoring demonstrates measures to ensure confidentiality and integrity of processing"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "NETWORK_TRAFFIC"]
+        },
+        "Art.32.1a": {
+            "name": "Pseudonymization and Encryption Controls",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Encrypted network session records demonstrate pseudonymization and encryption of personal data in transit"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "Art.32.1b": {
+            "name": "Confidentiality Integrity Availability of Processing Systems",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection rule triggers demonstrate ongoing monitoring for threats to CIA of personal data processing systems"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "Art.32.1c": {
+            "name": "Restoration of Availability and Access",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication monitoring demonstrates ability to restore access to personal data in a timely manner after incidents"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "INCIDENT_RESPONSE"]
+        },
+        "Art.32.1d": {
+            "name": "Regular Testing and Evaluation of Security Measures",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection alerts demonstrate regular testing and evaluation of the effectiveness of security measures"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE", "VULNERABILITY_EVENT"]
+        },
+        "Art.32.2": {
+            "name": "Risk-Based Security Level Assessment",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection events demonstrate identification and assessment of risks to personal data including unauthorized destruction and disclosure"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE", "VULNERABILITY_EVENT"]
+        },
+        "Art.33": {
+            "name": "Personal Data Breach Notification",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate breach detection capabilities enabling timely supervisory authority notification"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "Art.33.1": {
+            "name": "72-Hour Breach Notification Capability",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection alerts with timestamps demonstrate capability to identify breaches and notify supervisory authority within 72 hours"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "Art.33.3": {
+            "name": "Breach Notification Content Documentation",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection event records with contextual data support notification content requirements: nature of breach, affected data subjects, and remediation measures"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        }
+    }
 }

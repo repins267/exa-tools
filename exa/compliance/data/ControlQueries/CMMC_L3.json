@@ -1,3 +1,247 @@
 {
-  "queries": {}
+    "_framework": "CMMC_L3",
+    "_version": "Final",
+    "_description": "SIEM evidence queries for CMMC Level 3 enhanced controls (NIST SP 800-172)",
+    "queries": {
+        "3.1.1e": {
+            "name": "Dual Authorization Monitoring",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate monitoring of access control mechanisms supporting dual-authorization workflows"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "PRIVILEGED_ACCESS"]
+        },
+        "3.1.2e": {
+            "name": "Organizational Device Access Restriction",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication records demonstrate enforcement of access restrictions to organization-owned systems only"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "3.5.1e": {
+            "name": "Bidirectional Cryptographic Authentication",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session records demonstrate bidirectional authentication between systems and components"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "NETWORK_TRAFFIC"]
+        },
+        "3.5.2e": {
+            "name": "Automated Password Management",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication events demonstrate automated credential management mechanisms are active"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "ACCOUNT_MANAGEMENT"]
+        },
+        "3.5.3e": {
+            "name": "Device Authentication Before Network Connection",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "action"],
+                    "evidenceDescription": "Network session records demonstrate device authentication enforcement before connections are permitted"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "NETWORK_TRAFFIC"]
+        },
+        "3.6.1e": {
+            "name": "Security Operations Center Capability",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate an operational SOC monitoring capability is active"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.6.2e": {
+            "name": "Cyber Incident Response Team",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection alerts demonstrate an active incident response team capability for identification and response"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.11.2e": {
+            "name": "Cyber Threat Hunting",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection alerts demonstrate active threat hunting to identify indicators of compromise"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE", "VULNERABILITY_EVENT"]
+        },
+        "3.11.3e": {
+            "name": "Advanced Analytics for Threat Detection",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection rule triggers demonstrate advanced automation and analytics capabilities for threat prediction and identification"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.13.1e": {
+            "name": "System Component Diversity",
+            "queries": [
+                {
+                    "name": "Process Creation Events",
+                    "filter": "activity_type:\"process-create\"",
+                    "fields": ["dest_host", "process_name"],
+                    "evidenceDescription": "Process creation events demonstrate diversity in system components to reduce malicious code propagation"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ENDPOINT_ACTIVITY", "PROCESS_EXECUTION"]
+        },
+        "3.13.3e": {
+            "name": "Adversary Deception Techniques",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection triggers demonstrate active deception and misdirection capabilities to confuse adversaries"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.13.4e": {
+            "name": "Physical and Logical Isolation",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "action"],
+                    "evidenceDescription": "Network session monitoring demonstrates enforcement of physical and logical isolation between security domains"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.13.5e": {
+            "name": "Moving Target Defense - Function Distribution",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session records demonstrate distribution and relocation of system functions to reduce adversary targeting"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.14.2e": {
+            "name": "Anomalous Behavior Monitoring",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate ongoing monitoring for anomalous or suspicious behavior"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE", "ENDPOINT_ACTIVITY"]
+        },
+        "3.14.6e": {
+            "name": "Threat Intelligence-Driven Intrusion Detection",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection triggers demonstrate use of threat indicator information to guide intrusion detection"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.14.7e": {
+            "name": "Security-Critical Software Integrity Verification",
+            "queries": [
+                {
+                    "name": "Process Creation Events",
+                    "filter": "activity_type:\"process-create\"",
+                    "fields": ["dest_host", "process_name", "file_hash"],
+                    "evidenceDescription": "Process creation events with file hash values demonstrate integrity verification of security-critical software"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ENDPOINT_ACTIVITY", "PROCESS_EXECUTION"]
+        }
+    }
 }

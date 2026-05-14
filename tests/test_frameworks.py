@@ -24,7 +24,7 @@ class TestLoadFramework:
         fw = load_framework("NIST_CSF")
         assert fw.name == "NIST CSF v2.0"
         assert len(fw.leaf_controls) > 0
-        assert len(fw.testable_controls) > 0
+        assert len(fw.testable_controls()) > 0
         assert len(fw.manual_controls) > 0
         assert len(fw.header_controls) > 0
 

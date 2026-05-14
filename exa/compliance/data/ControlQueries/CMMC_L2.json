@@ -1,3 +1,514 @@
 {
-  "queries": {}
+    "_framework": "CMMC_L2",
+    "_version": "Rev 2, Update 1",
+    "_description": "SIEM evidence queries for CMMC Level 2 controls (NIST SP 800-171r2)",
+    "queries": {
+        "3.1.1": {
+            "name": "System Access - Authentication Events",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate access control monitoring for authorized users"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "3.1.2": {
+            "name": "Access to Permitted Functions",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication logs demonstrate enforcement of access restrictions to permitted transactions"
+                },
+                {
+                    "name": "Application Activity",
+                    "filter": "activity_type:\"app-activity\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Application activity logs show enforcement of authorized function access"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PERMISSION_CHANGE", "AUTH_SUCCESS"]
+        },
+        "3.1.5": {
+            "name": "Least Privilege - Privileged Account Monitoring",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events for privileged accounts demonstrate least-privilege enforcement monitoring"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PRIVILEGED_ACCESS", "AUTH_SUCCESS"]
+        },
+        "3.1.6": {
+            "name": "Non-Privileged Account Use for Non-Security Functions",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events show separation between privileged and non-privileged account usage"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PRIVILEGED_ACCESS", "AUTH_SUCCESS"]
+        },
+        "3.1.7": {
+            "name": "Privileged Function Execution Audit",
+            "queries": [
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit policy modification events demonstrate logging of privileged function execution"
+                },
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events confirm privileged access is being tracked in audit logs"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG", "PRIVILEGED_ACCESS"]
+        },
+        "3.1.8": {
+            "name": "Unsuccessful Logon Attempt Monitoring",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication events demonstrate monitoring of logon attempts including failures"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_FAILURE"]
+        },
+        "3.1.12": {
+            "name": "Remote Access Session Monitoring",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["user", "src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session logs demonstrate monitoring and control of remote access connections"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC", "AUTH_SUCCESS"]
+        },
+        "3.1.13": {
+            "name": "Cryptographic Mechanisms for Remote Access",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["user", "src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session records demonstrate cryptographic mechanisms are in place for remote access"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.1.17": {
+            "name": "Wireless Access Protection",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["user", "src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session logs demonstrate monitoring of wireless access with authentication controls"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC", "AUTH_SUCCESS"]
+        },
+        "3.3.1": {
+            "name": "Audit Log Creation and Retention",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Presence of authentication audit records demonstrates system audit logging is operational"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "3.3.2": {
+            "name": "User Action Traceability",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit records with user identifiers demonstrate traceability of user actions"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "3.3.5": {
+            "name": "Audit Record Correlation and Analysis",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication audit records available for correlation and analysis across organizational systems"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "3.3.6": {
+            "name": "Audit Record Reduction and Reporting",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Audit records are available for reduction, analysis, and reporting requirements"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUDIT_LOG"]
+        },
+        "3.4.1": {
+            "name": "Baseline Configuration Management",
+            "queries": [
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Configuration change events demonstrate baseline configuration management activity"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["CONFIG_CHANGE"]
+        },
+        "3.4.2": {
+            "name": "Security Configuration Settings Enforcement",
+            "queries": [
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Configuration modification events demonstrate enforcement of security configuration settings"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["CONFIG_CHANGE"]
+        },
+        "3.4.3": {
+            "name": "Change Tracking and Approval Audit",
+            "queries": [
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Configuration change audit records demonstrate change tracking and approval logging"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["CONFIG_CHANGE", "AUDIT_LOG"]
+        },
+        "3.4.5": {
+            "name": "Access Restrictions for Change",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate access restriction enforcement for system changes"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PERMISSION_CHANGE"]
+        },
+        "3.5.1": {
+            "name": "User and Device Identification",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication records with user identifiers demonstrate identification of system users and devices"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ACCOUNT_MANAGEMENT", "AUTH_SUCCESS"]
+        },
+        "3.5.2": {
+            "name": "User and Device Authentication",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate authentication controls are active before access is granted"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "3.5.3": {
+            "name": "Multi-Factor Authentication",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate MFA enforcement for local and network access"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "3.6.1": {
+            "name": "Operational Incident Handling Capability",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection rule triggers demonstrate an operational incident detection and handling capability"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.6.2": {
+            "name": "Incident Tracking and Reporting",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection rule triggers demonstrate operational tracking and reporting of security incidents"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.10.1": {
+            "name": "Physical Access Controls",
+            "queries": [
+                {
+                    "name": "Physical Location Access Events",
+                    "filter": "activity_type:\"physical_location-access\"",
+                    "fields": ["user", "src_ip"],
+                    "evidenceDescription": "Physical access events demonstrate monitoring of physical access controls for CUI systems"
+                }
+            ],
+            "contextTables": ["Compliance - Network Security Systems"],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["PHYSICAL_ACCESS"]
+        },
+        "3.10.2": {
+            "name": "Physical Facility and Infrastructure Monitoring",
+            "queries": [
+                {
+                    "name": "Physical Location Access Events",
+                    "filter": "activity_type:\"physical_location-access\"",
+                    "fields": ["user", "src_ip"],
+                    "evidenceDescription": "Physical location access events demonstrate monitoring of physical facilities and supporting infrastructure"
+                }
+            ],
+            "contextTables": ["Compliance - Network Security Systems"],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["PHYSICAL_ACCESS"]
+        },
+        "3.11.2": {
+            "name": "Vulnerability Scanning",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate vulnerability scanning and detection capabilities are active"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["VULNERABILITY_EVENT"]
+        },
+        "3.11.3": {
+            "name": "Vulnerability Remediation",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name"],
+                    "evidenceDescription": "Detection alerts demonstrate identification of vulnerabilities requiring risk-based remediation"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["VULNERABILITY_EVENT"]
+        },
+        "3.13.1": {
+            "name": "Communications Boundary Monitoring",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port", "action"],
+                    "evidenceDescription": "Network session logs demonstrate monitoring and control of communications at external system boundaries"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.13.5": {
+            "name": "Publicly Accessible Component Subnetworks",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session logs demonstrate boundary monitoring between publicly accessible and internal subnetworks"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.13.7": {
+            "name": "Split Tunneling Prevention",
+            "queries": [
+                {
+                    "name": "Network Sessions",
+                    "filter": "activity_type:\"network-session\"",
+                    "fields": ["src_ip", "dest_ip", "src_port", "dest_port"],
+                    "evidenceDescription": "Network session logs demonstrate monitoring to prevent simultaneous remote and non-remote connections"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["NETWORK_TRAFFIC"]
+        },
+        "3.14.2": {
+            "name": "Malicious Code Protection",
+            "queries": [
+                {
+                    "name": "Process Creation Events",
+                    "filter": "activity_type:\"process-create\"",
+                    "fields": ["user", "dest_host", "process_name", "process_command_line"],
+                    "evidenceDescription": "Process creation events demonstrate endpoint monitoring for malicious code execution"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ENDPOINT_ACTIVITY", "PROCESS_EXECUTION"]
+        },
+        "3.14.4": {
+            "name": "Malicious Code Protection Mechanism Updates",
+            "queries": [
+                {
+                    "name": "Process Creation Events",
+                    "filter": "activity_type:\"process-create\"",
+                    "fields": ["user", "dest_host", "process_name"],
+                    "evidenceDescription": "Process creation events demonstrate active endpoint protection mechanisms are operational"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ENDPOINT_ACTIVITY"]
+        },
+        "3.14.6": {
+            "name": "Attack and Intrusion Detection Monitoring",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate active monitoring for attacks and indicators of compromise"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        },
+        "3.14.7": {
+            "name": "Unauthorized System Use Identification",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Authentication audit records enable identification of unauthorized system access and usage patterns"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_FAILURE", "AUDIT_LOG"]
+        }
+    }
 }

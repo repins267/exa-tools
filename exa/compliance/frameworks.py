@@ -57,9 +57,10 @@ class Framework:
     def leaf_controls(self) -> list[Control]:
         return [c for c in self.controls if c.is_leaf]
 
-    @property
-    def testable_controls(self) -> list[Control]:
-        return [c for c in self.leaf_controls if c.siem_validatable]
+    def testable_controls(self, query_ids: set[str] | None = None) -> list[Control]:
+        if query_ids is not None:
+            return [c for c in self.controls if c.siem_validatable and c.control_id in query_ids]
+        return [c for c in self.controls if c.siem_validatable]
 
     @property
     def manual_controls(self) -> list[Control]:

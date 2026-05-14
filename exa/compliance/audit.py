@@ -96,7 +96,7 @@ def run_compliance_audit(
     # Load framework and queries
     fw = load_framework(framework_id)
     queries = load_control_queries(framework_id)
-    testable = fw.testable_controls
+    testable = fw.testable_controls(set(queries.keys()))
     manual = fw.manual_controls
 
     console.rule(f"Compliance Audit: {fw.name}")

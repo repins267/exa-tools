@@ -1,3 +1,148 @@
 {
-  "queries": {}
+    "_framework": "SOX",
+    "_version": "2002",
+    "_description": "SIEM evidence queries for SOX IT General Controls (ITGC) supporting financial reporting integrity",
+    "queries": {
+        "ITGC.1.1": {
+            "name": "User Access Provisioning",
+            "queries": [
+                {
+                    "name": "Account Management Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication logs demonstrate monitoring of user access provisioning to financial applications and data"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ACCOUNT_MANAGEMENT", "AUTH_SUCCESS"]
+        },
+        "ITGC.1.2": {
+            "name": "Periodic Access Reviews",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication audit records support periodic review and recertification of user access rights to financial systems"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["ACCOUNT_MANAGEMENT", "AUTH_SUCCESS"]
+        },
+        "ITGC.1.3": {
+            "name": "Privileged Access Management",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate restriction and monitoring of administrative and elevated access to financial systems"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PRIVILEGED_ACCESS", "AUTH_SUCCESS"]
+        },
+        "ITGC.1.4": {
+            "name": "Authentication Controls",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication events demonstrate enforcement of password policies, MFA, and session management for financial systems"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["AUTH_SUCCESS", "AUTH_FAILURE"]
+        },
+        "ITGC.1.5": {
+            "name": "Segregation of Duties",
+            "queries": [
+                {
+                    "name": "Authentication Events",
+                    "filter": "activity_type:\"authentication\"",
+                    "fields": ["user", "src_ip", "dest_host", "logon_type"],
+                    "evidenceDescription": "Authentication and privilege records demonstrate prevention of conflicting access rights that could enable financial fraud"
+                },
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Configuration change events demonstrate enforcement of segregation of duties across financial systems"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PRIVILEGED_ACCESS", "PERMISSION_CHANGE"]
+        },
+        "ITGC.2.1": {
+            "name": "Change Authorization for Financial Applications",
+            "queries": [
+                {
+                    "name": "Audit Policy Modifications",
+                    "filter": "activity_type:\"audit_policy-modify\"",
+                    "fields": ["user", "src_ip", "dest_host"],
+                    "evidenceDescription": "Configuration change events demonstrate a formal approval process for changes to applications and infrastructure supporting financial reporting"
+                }
+            ],
+            "contextTables": ["Compliance - Privileged Users"],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["CONFIG_CHANGE", "AUDIT_LOG"]
+        },
+        "ITGC.3.1": {
+            "name": "Job Scheduling and Batch Processing Monitoring",
+            "queries": [
+                {
+                    "name": "Process Creation Events",
+                    "filter": "activity_type:\"process-create\"",
+                    "fields": ["user", "dest_host", "process_name", "process_command_line"],
+                    "evidenceDescription": "Process creation events demonstrate monitoring of batch processing and automated jobs for financial data"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 10,
+            "sharedQueryGroup": null,
+            "concepts": ["PROCESS_EXECUTION", "ENDPOINT_ACTIVITY"]
+        },
+        "ITGC.3.2": {
+            "name": "Backup and Recovery of Financial Data",
+            "queries": [
+                {
+                    "name": "File Write Events",
+                    "filter": "activity_type:\"file-write\"",
+                    "fields": ["user", "dest_host", "file_name", "file_path"],
+                    "evidenceDescription": "File write events demonstrate backup activity for financial data and systems with auditable recovery procedures"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["FILE_ACTIVITY"]
+        },
+        "ITGC.3.3": {
+            "name": "IT Incident Management for Financial Systems",
+            "queries": [
+                {
+                    "name": "Detection Rule Triggers",
+                    "filter": "activity_type:\"rule-trigger\"",
+                    "fields": ["user", "src_ip", "dest_host", "alert_name", "alert_severity"],
+                    "evidenceDescription": "Detection rule triggers demonstrate an active incident identification, logging, and escalation process for IT incidents affecting financial systems"
+                }
+            ],
+            "contextTables": [],
+            "minimumEvidence": 5,
+            "sharedQueryGroup": null,
+            "concepts": ["INCIDENT_RESPONSE"]
+        }
+    }
 }

@@ -454,13 +454,15 @@ def frameworks() -> None:
     """List available compliance frameworks."""
     from exa.compliance.frameworks import (
         AVAILABLE_FRAMEWORKS,
+        load_control_queries,
         load_framework,
     )
 
     for fw_id in AVAILABLE_FRAMEWORKS:
         try:
             fw = load_framework(fw_id)
-            testable = len(fw.testable_controls)
+            queries = load_control_queries(fw_id)
+            testable = len(fw.testable_controls(set(queries.keys())))
             console.print(
                 f"  {fw_id:<20} {fw.name:<35} "
                 f"({testable} testable controls)",
