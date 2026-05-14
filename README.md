@@ -124,39 +124,48 @@ exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
 
 Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (Known customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
 
+```bash
+# Classify all zones by hot key risk (CRITICAL / COARSE / FINE)
+exa hotkey analyze --tenant csnafusion
+exa hotkey analyze --csv --tenant csnafusion > zones.csv      # Excel-compatible CRLF
+exa hotkey analyze --json --tenant csnafusion
+
+# Scan recent events for active source IPs per zone; flag HOT_KEY_RISK
+exa hotkey scan --tenant csnafusion
+exa hotkey scan --lookback 3 --tenant csnafusion
+exa hotkey scan --lookback 3 --threshold 1000 --tenant csnafusion
+exa hotkey scan --csv --lookback 3 --tenant csnafusion > scan.csv
+
+# Expand coarse zones to /24 granularity (writes rollback manifest first)
+exa hotkey expand --dry-run --tenant csnafusion               # preview without writing
+exa hotkey expand --zone "US-Denver" --dry-run --tenant csnafusion
+exa hotkey expand --tenant csnafusion
+
+# Full pipeline: analyze → scan → expand in one step
+exa hotkey autofix --dry-run --tenant csnafusion
+exa hotkey autofix --critical-only --dry-run --tenant csnafusion   # skip scan, CRITICAL only
+exa hotkey autofix --max-zones 20 --tenant csnafusion
+exa hotkey autofix --json --tenant csnafusion                      # pipeable; progress to stderr
+
+# Undo the last expand
+exa hotkey rollback --tenant csnafusion                       # preview diff, no changes
+exa hotkey rollback --confirm --tenant csnafusion             # apply rollback
+exa hotkey rollback --manifest ~/.exa/hotkey-rollback/csnafusion/2026-05-14.json --confirm
 ```
-exa hotkey analyze [--ip-field COL] [--name-field COL]
-                   [--json] [--csv] [--tenant TENANT]
-  Classify Network Zones table entries by Dataflow hot key risk.
-  COARSE = /8 or /16 (high risk). MEDIUM = /24 (acceptable). FINE = /32.
 
-exa hotkey scan [--lookback N] [--threshold N] [--limit N]
-                [--ip-field COL] [--name-field COL]
-                [--json] [--csv] [--tenant TENANT]
-  Scan recent events for active source IPs per zone.
-  Flags zones with >N distinct IPs as HOT_KEY_RISK (default threshold: 500).
+**Key flags:**
 
-exa hotkey expand [--zone ZONE] [--lookback N] [--enumerate]
-                  [--dry-run] [--limit N]
-                  [--ip-field COL] [--name-field COL] [--tenant TENANT]
-  Expand COARSE zone(s) from /8 or /16 to /24-granularity entries.
-  Writes a rollback manifest to ~/.exa/hotkey-rollback/ before any change.
-  --zone       Target a single zone by name (default: all COARSE zones)
-  --enumerate  Create all /24 subnets in range (default: observed IPs only)
-  --dry-run    Print planned changes without writing anything
-
-exa hotkey autofix [--lookback N] [--threshold N] [--max-zones N]
-                   [--enumerate] [--dry-run] [--json] [--tenant TENANT]
-  Full automated pipeline: analyze → scan → expand in one command.
-  --max-zones  Safety cap (default 10). Refuses to expand more zones
-               than this in a single run.
-  Safe to schedule — non-interactive, exits non-zero on any failure.
-
-exa hotkey rollback [--manifest PATH] [--confirm] [--tenant TENANT]
-  Restore Network Zones table from the most recent rollback manifest.
-  Use --manifest to specify an older manifest by path.
-  Requires --confirm to apply (shows diff first without it).
-```
+| Command | Flag | Default | Effect |
+|---|---|---|---|
+| `analyze` | `--csv` | off | Excel-compatible CSV with CRLF line endings |
+| `scan` | `--lookback N` | 7 | Days of events to search |
+| `scan` | `--threshold N` | 500 | Distinct IPs per zone to flag HOT_KEY_RISK |
+| `expand` | `--zone NAME` | all flagged | Target a single zone by name |
+| `expand` | `--dry-run` | off | Preview changes without writing |
+| `expand` | `--enumerate` | off | Enumerate all /24s; default uses observed IPs only |
+| `autofix` | `--critical-only` | off | Skip traffic scan; expand CRITICAL zones directly |
+| `autofix` | `--max-zones N` | 10 | Safety cap — refuse to expand more than N zones |
+| `rollback` | `--confirm` | off | Required to apply; shows diff without it |
 
 ### `exa sigma convert`
 
