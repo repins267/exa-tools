@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import csv
-import io
 import json
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -75,9 +75,16 @@ def analyze(
         typer.Option("--name-field", help="Column id holding the zone name"),
     ] = None,
     as_json: Annotated[bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]")] = False,
-    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Output as CSV [default: no-csv]")] = False,
+    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Write results to CSV (Excel-compatible, UTF-8 with CRLF line endings) [default: no-csv]")] = False,
 ) -> None:
-    """Classify Network Zones table entries by hot key risk (CRITICAL/COARSE/FINE)."""
+    """Classify Network Zones table entries by hot key risk (CRITICAL/COARSE/FINE).
+
+    \b
+    Examples:
+      uv run exa hotkey analyze --tenant csnafusion
+      uv run exa hotkey analyze --csv --tenant csnafusion > zones.csv
+      uv run exa hotkey analyze --json --tenant csnafusion
+    """
     from exa.hotkey.analyze import analyze_zones
 
     client = _make_client(tenant)
@@ -90,31 +97,33 @@ def analyze(
     finally:
         client.close()
 
-    rows = [
-        {
-            "zone_name": z.entry.zone_name,
-            "key": z.entry.key,
-            "prefix_len": z.prefix_len,
-            "cardinality": z.cardinality,
-            "risk": z.risk,
-            "recommendation": _analyze_rec(z.risk, tenant),
-        }
-        for z in zones
-    ]
-
     if as_json:
+        rows = [
+            {
+                "zone_name": z.entry.zone_name,
+                "key": z.entry.key,
+                "prefix_len": z.prefix_len,
+                "cardinality": z.cardinality,
+                "risk": z.risk,
+                "recommendation": _analyze_rec(z.risk, tenant),
+            }
+            for z in zones
+        ]
         console.print(json.dumps(rows, indent=2))
         return
 
     if as_csv:
-        buf = io.StringIO()
-        writer = csv.DictWriter(
-            buf,
-            fieldnames=["zone_name", "key", "prefix_len", "cardinality", "risk", "recommendation"],
-        )
-        writer.writeheader()
-        writer.writerows(rows)
-        console.print(buf.getvalue(), end="")
+        writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
+        writer.writerow(["zone_name", "cidr", "prefix_len", "cardinality", "risk", "recommendation"])
+        for z in zones:
+            writer.writerow([
+                z.entry.zone_name or "",
+                z.entry.key or "",
+                z.prefix_len if z.prefix_len is not None else "",
+                z.cardinality if z.cardinality is not None else "",
+                z.risk or "",
+                _analyze_rec(z.risk, tenant),
+            ])
         return
 
     n_critical = sum(1 for z in zones if z.risk == "CRITICAL")
@@ -185,13 +194,18 @@ def scan(
     ip_field: Annotated[str | None, typer.Option("--ip-field", help="Column name holding IP/subnet in Network Zones table (auto-detected if omitted)")] = None,
     name_field: Annotated[str | None, typer.Option("--name-field", help="Column name holding zone name in Network Zones table (auto-detected if omitted)")] = None,
     as_json: Annotated[bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]")] = False,
-    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Output as CSV [default: no-csv]")] = False,
+    as_csv: Annotated[bool, typer.Option("--csv/--no-csv", help="Write results to CSV (Excel-compatible, UTF-8 with CRLF line endings) [default: no-csv]")] = False,
 ) -> None:
     """Scan recent events for active source IPs per zone; flag HOT_KEY_RISK zones.
 
     CRITICAL zones (/8-/16) are shown with ip_count=-- because they qualify for
     expansion regardless of observed traffic. Only COARSE zones (/17-/23) are
     traffic-scanned to determine HOT_KEY_RISK status.
+
+    \b
+    Examples:
+      uv run exa hotkey scan --lookback 3 --tenant csnafusion
+      uv run exa hotkey scan --csv --lookback 3 --threshold 1000 --tenant csnafusion > scan.csv
     """
     from exa.hotkey.analyze import analyze_zones
     from exa.hotkey.scan import scan_zones
@@ -230,24 +244,30 @@ def scan(
         return
 
     if as_csv:
-        buf = io.StringIO()
-        writer = csv.DictWriter(buf, fieldnames=["zone_name", "ip_count", "risk", "recommendation"])
-        writer.writeheader()
+        zone_lookup = {z.entry.zone_name: z for z in coarse}
+        writer = csv.writer(sys.stdout, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
+        writer.writerow(["zone_name", "cidr", "prefix_len", "cardinality", "risk", "ip_count", "status"])
         for z in sorted(critical, key=lambda z: z.entry.zone_name):
-            writer.writerow({
-                "zone_name": z.entry.zone_name,
-                "ip_count": "--",
-                "risk": "CRITICAL",
-                "recommendation": _scan_rec("CRITICAL", "CRITICAL", tenant),
-            })
+            writer.writerow([
+                z.entry.zone_name or "",
+                z.entry.key or "",
+                z.prefix_len if z.prefix_len is not None else "",
+                z.cardinality if z.cardinality is not None else "",
+                "CRITICAL",
+                "--",
+                _scan_rec("CRITICAL", "CRITICAL", tenant),
+            ])
         for r in scan_results:
-            writer.writerow({
-                "zone_name": r.zone_name,
-                "ip_count": r.ip_count,
-                "risk": r.risk,
-                "recommendation": _scan_rec("COARSE", r.risk, tenant),
-            })
-        console.print(buf.getvalue(), end="")
+            z = zone_lookup.get(r.zone_name)
+            writer.writerow([
+                r.zone_name or "",
+                (z.entry.key if z else "") or "",
+                z.prefix_len if z and z.prefix_len is not None else "",
+                z.cardinality if z and z.cardinality is not None else "",
+                r.risk or "",
+                r.ip_count if r.ip_count is not None else "",
+                _scan_rec("COARSE", r.risk, tenant),
+            ])
         return
 
     hot_coarse = sum(1 for r in scan_results if r.risk == "HOT_KEY_RISK")
@@ -310,7 +330,7 @@ def expand(
     ] = 7,
     enumerate_all: Annotated[
         bool,
-        typer.Option("--enumerate/--no-enumerate", help="Enumerate all /24s (not just observed)"),
+        typer.Option("--enumerate/--no-enumerate", help="Enumerate all /24s (not just observed) [default: no-enumerate]"),
     ] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run/--no-dry-run", help="Preview changes without writing to the table [default: no-dry-run]")] = False,
     limit: Annotated[int, typer.Option("--limit", help="Max IPs to collect from event search [default: 50000]")] = 50_000,
@@ -322,6 +342,11 @@ def expand(
     Writes a rollback manifest to ~/.exa/hotkey-rollback/ before making changes.
     Use --dry-run to preview without writing anything.
     Targets CRITICAL (/8-/16) and COARSE (/17-/23) zones.
+
+    \b
+    Examples:
+      uv run exa hotkey expand --dry-run --tenant csnafusion
+      uv run exa hotkey expand --zone "US-Denver" --dry-run --tenant csnafusion
     """
     from exa.hotkey.analyze import analyze_zones
     from exa.hotkey.expand import expand_zones
@@ -416,13 +441,26 @@ def autofix(
         "--max-zones",
         help="Safety cap: refuse to expand more than N zones in one run [default: 10]",
     )] = 10,
+    critical_only: Annotated[bool, typer.Option(
+        "--critical-only/--no-critical-only",
+        help="Expand CRITICAL zones only, skipping the traffic scan phase [default: no-critical-only]",
+    )] = False,
     enumerate_all: Annotated[bool, typer.Option(
         "--enumerate/--no-enumerate",
-        help="Enumerate all /24s in range (not just observed IPs)",
+        help="Enumerate all /24s in range (not just observed IPs) [default: no-enumerate]",
     )] = False,
-    dry_run: Annotated[bool, typer.Option("--dry-run/--no-dry-run")] = False,
-    ip_field: Annotated[str | None, typer.Option("--ip-field")] = None,
-    name_field: Annotated[str | None, typer.Option("--name-field")] = None,
+    dry_run: Annotated[bool, typer.Option(
+        "--dry-run/--no-dry-run",
+        help="Preview changes without writing to the table [default: no-dry-run]",
+    )] = False,
+    ip_field: Annotated[str | None, typer.Option(
+        "--ip-field",
+        help="Column name holding IP/subnet in Network Zones table (auto-detected if omitted)",
+    )] = None,
+    name_field: Annotated[str | None, typer.Option(
+        "--name-field",
+        help="Column name holding zone name in Network Zones table (auto-detected if omitted)",
+    )] = None,
     as_json: Annotated[
         bool, typer.Option("--json/--no-json", help="Machine-readable output; progress to stderr [default: no-json]")
     ] = False,
@@ -433,9 +471,14 @@ def autofix(
     COARSE zones (/17-/23) require HOT_KEY_RISK confirmation from scan.
     Writes a rollback manifest before every change.
     Safe to schedule -- non-interactive, exits non-zero on any failure.
+
+    \b
+    Examples:
+      uv run exa hotkey autofix --dry-run --tenant csnafusion
+      uv run exa hotkey autofix --critical-only --dry-run --tenant csnafusion
+      uv run exa hotkey autofix --max-zones 67 --tenant csnafusion
     """
     import json as _json
-    import sys
 
     from rich.console import Console as _Console
     from rich.table import Table as _Table
@@ -467,7 +510,12 @@ def autofix(
 
         # Phase 2 - Scan (COARSE only; CRITICAL zones qualify without traffic confirmation)
         hot_coarse: list = []
-        if critical and not coarse:
+        if critical_only:
+            err.print(
+                "Critical-only mode: skipping traffic scan, expanding CRITICAL zones only",
+                style="dim",
+            )
+        elif critical and not coarse:
             err.print(
                 f"  [2/3] {len(critical)} CRITICAL zone(s) auto-flagged - scan not required.",
                 style="dim",
@@ -500,8 +548,7 @@ def autofix(
                 f"Re-run with --max-zones {total_qualifying} to proceed, "
                 f"or use 'exa hotkey expand --zone NAME' to fix individually."
             )
-            err.print(cap_msg, style="red",
-            )
+            err.print(cap_msg, style="red")
             raise typer.Exit(1)
 
         # Phase 3 - Expand CRITICAL + hot COARSE zones
@@ -590,12 +637,18 @@ def rollback(
     ] = None,
     confirm: Annotated[
         bool,
-        typer.Option("--confirm/--no-confirm", help="Apply the rollback (required to write)"),
+        typer.Option("--confirm/--no-confirm", help="Apply the rollback (required to write) [default: no-confirm]"),
     ] = False,
 ) -> None:
     """Restore Network Zones from a rollback manifest written by expand.
 
     Shows a diff of changes and requires --confirm to apply.
+
+    \b
+    Examples:
+      uv run exa hotkey rollback --tenant csnafusion
+      uv run exa hotkey rollback --confirm --tenant csnafusion
+      uv run exa hotkey rollback --manifest ~/.exa/hotkey-rollback/csnafusion/2026-05-14.json --confirm
     """
     from exa.hotkey.rollback import apply_rollback, latest_manifest, load_manifest
 
