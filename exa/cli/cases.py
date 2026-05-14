@@ -30,7 +30,7 @@ alerts_app = typer.Typer(
 
 console = Console()
 
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 _PRIORITY_VALUES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 
@@ -69,7 +69,19 @@ def cases_list(
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """List Threat Center cases."""
+    """List and search Threat Center cases.
+
+    Returns the most recent cases matching the optional EQL filter, ordered
+    by creation timestamp descending. Use --filter for targeted queries or
+    leave it empty to list all recent cases.
+
+    \b
+    Examples:
+      uv run exa cases list
+      uv run exa cases list --filter 'priority:"HIGH"' --lookback 7
+      uv run exa cases list --filter 'NOT stage:"CLOSED"' --limit 25
+      uv run exa cases list --json --tenant csnafusion
+    """
     from exa.case import search_cases
 
     client = _make_client(tenant)
@@ -137,7 +149,17 @@ def cases_get(
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Get details for a specific case."""
+    """Get full details and Nova threat summary for a case by UUID.
+
+    Retrieves the case record including stage, priority, assigned queue,
+    risk score, associated users/endpoints, and the Nova AI threat summary.
+
+    \b
+    Examples:
+      uv run exa cases get <case-uuid>
+      uv run exa cases get <case-uuid> --json
+      uv run exa cases get <case-uuid> --tenant csnafusion
+    """
     import json
 
     from exa.case import get_case
@@ -222,7 +244,21 @@ def cases_update(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Update attributes of a case."""
+    """Update one or more attributes of a Threat Center case.
+
+    Supply any combination of --name, --stage, --priority, --queue,
+    --assignee, and --tags. Stage transitions to CLOSED require
+    --closed-reason. Tags are a replacement list (all existing tags removed).
+
+    Valid stages: OPEN, IN PROGRESS, CLOSED
+    Valid priorities: LOW, MEDIUM, HIGH, CRITICAL
+
+    \b
+    Examples:
+      uv run exa cases update <case-uuid> --stage "IN PROGRESS" --assignee alice@example.com
+      uv run exa cases update <case-uuid> --stage CLOSED --closed-reason "False Positive"
+      uv run exa cases update <case-uuid> --priority HIGH --tags "escalated,reviewed"
+    """
     from exa.case import update_case
 
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
@@ -283,7 +319,19 @@ def alerts_list(
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """List Threat Center alerts."""
+    """List and search Threat Center alerts.
+
+    Returns the most recent alerts matching the optional EQL filter. Alerts
+    differ from cases: they have no stage/queue/assignee; use --filter with
+    priority or alertId fields. Promote an alert to a case via the UI.
+
+    \b
+    Examples:
+      uv run exa alerts list
+      uv run exa alerts list --filter 'priority:"CRITICAL"' --lookback 1
+      uv run exa alerts list --filter 'priority:"HIGH"' --limit 100 --json
+      uv run exa alerts list --tenant csnafusion
+    """
     from exa.case import search_alerts
 
     client = _make_client(tenant)
@@ -347,7 +395,19 @@ def alerts_get(
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Get details for a specific alert."""
+    """Get full details and Nova threat summary for a specific alert by UUID.
+
+    Retrieves the alert record including priority, risk score, associated
+    users, and the Nova AI threat summary. Note: the per-alert GET endpoint
+    has a known defect on some tenants; this command falls back to a filtered
+    search automatically.
+
+    \b
+    Examples:
+      uv run exa alerts get <alert-uuid>
+      uv run exa alerts get <alert-uuid> --json
+      uv run exa alerts get <alert-uuid> --tenant csnafusion
+    """
     import json
 
     from exa.case import get_alert
@@ -408,7 +468,20 @@ def alerts_update(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Update attributes of an alert."""
+    """Update one or more attributes of a Threat Center alert.
+
+    Supply any combination of --name, --priority, and --tags. Alerts do not
+    have stage, queue, or assignee — those belong to cases. Tags are a
+    replacement list (all existing tags removed and replaced).
+
+    Valid priorities: LOW, MEDIUM, HIGH, CRITICAL
+
+    \b
+    Examples:
+      uv run exa alerts update <alert-uuid> --priority HIGH
+      uv run exa alerts update <alert-uuid> --tags "reviewed,escalated"
+      uv run exa alerts update <alert-uuid> --name "Renamed Alert" --tenant csnafusion
+    """
     from exa.case import update_alert
 
     tag_list = [t.strip() for t in tags.split(",")] if tags else None

@@ -60,20 +60,37 @@ def sync_ootb(
     framework: Annotated[
         str,
         typer.Option("--framework", "-f",
-                     help="Framework ID or name [default: NIST_CSF] — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, ISO_27001, FedRAMP, CJIS, CMMC_L2, CMMC_L3"),
+                     help="Framework ID or name — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, "
+                          "ISO_27001, FedRAMP_Moderate, CJIS, CMMC_L2, CMMC_L3 [default: NIST_CSF]"),
     ] = "NIST_CSF",
     dry_run: Annotated[
         bool,
         typer.Option("--dry-run/--no-dry-run",
-                     help="Report without writing"),
+                     help="Preview changes without writing to tables [default: no-dry-run]"),
     ] = False,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t",
-                     help="Tenant profile"),
+                     help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Sync framework controls to a compliance context table."""
+    """Sync framework controls and rule-to-control mapping to context tables.
+
+    Creates or updates two tables per framework:
+      'Compliance - <Framework Name> Controls' — all leaf controls with family,
+      description, SIEM-testable flag, and MITRE technique coverage.
+      'Compliance - <Framework Name> Mapping' — correlation rules cross-referenced
+      to the controls they satisfy, extracted from rule descriptions.
+
+    Both tables use replace semantics — re-running is safe and idempotent.
+
+    \b
+    Examples:
+      uv run exa compliance sync-ootb
+      uv run exa compliance sync-ootb --framework HIPAA
+      uv run exa compliance sync-ootb --framework PCI_DSS --dry-run
+      uv run exa compliance sync-ootb --framework CMMC_L2 --tenant csnafusion
+    """
     from exa.compliance.ootb import sync_ootb_tables
 
     fw_id = _resolve_framework_id(framework)
@@ -135,57 +152,86 @@ def sync_ootb(
 def sync_identity(
     source_privileged: Annotated[
         str | None,
-        typer.Option(help="Source table → 'Compliance - Privileged Users'"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - Privileged Users'"),
     ] = None,
     source_service_accounts: Annotated[
         str | None,
-        typer.Option(help="Source table → 'Compliance - System & Service Accounts'"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - System & Service Accounts'"),
     ] = None,
     source_network_systems: Annotated[
         str | None,
-        typer.Option(help="Source table → 'Compliance - Network Security Systems'"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - Network Security Systems'"),
     ] = None,
     source_shared_accounts: Annotated[
         str | None,
-        typer.Option(help="Source table → 'Compliance - Shared Accounts'"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - Shared Accounts'"),
     ] = None,
     source_third_party: Annotated[
         str | None,
-        typer.Option(help="Source table → 'Compliance - Third-Party Users'"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - Third-Party Users'"),
     ] = None,
     in_scope_systems_list: Annotated[
         str | None,
-        typer.Option(help="Comma-separated in-scope system names"),
+        typer.Option(help="Comma-separated hostnames/IPs to populate 'Compliance - In-Scope Data Systems'"),
     ] = None,
     in_scope_systems_source: Annotated[
         str | None,
-        typer.Option(help="Source table for in-scope systems"),
+        typer.Option(help="[DirectMap] Source table to copy into 'Compliance - In-Scope Data Systems'"),
     ] = None,
     network_system_list: Annotated[
         str | None,
-        typer.Option(help="Comma-separated network system names"),
+        typer.Option(help="Comma-separated hostnames/IPs to populate 'Compliance - Network Security Systems'"),
     ] = None,
     filter_mode: Annotated[
         bool,
         typer.Option("--filter-mode/--no-filter-mode",
-                     help="Classify from a single source table"),
+                     help="Auto-classify records from --source-table into 4 target tables by naming patterns [default: no-filter-mode]"),
     ] = False,
     source_table: Annotated[
         str | None,
-        typer.Option(help="Source table when using --filter-mode"),
+        typer.Option(help="[FilterMode] Source table to classify records from"),
     ] = None,
     force: Annotated[
         bool,
         typer.Option("--force/--no-force",
-                     help="Replace instead of append"),
+                     help="Replace existing records instead of appending [default: no-force]"),
     ] = False,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t",
-                     help="Tenant profile"),
+                     help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Sync compliance identity context tables."""
+    """Populate the 6 compliance identity context tables from source data.
+
+    Two modes:
+
+    DirectMap (default) — supply one or more --source-* options; each source
+    table is copied directly into its named compliance target table.
+    The 6 target tables are:
+      Compliance - Privileged Users
+      Compliance - System & Service Accounts
+      Compliance - Shared Accounts
+      Compliance - Third-Party Users
+      Compliance - In-Scope Data Systems
+      Compliance - Network Security Systems
+
+    FilterMode (--filter-mode) — supply a single --source-table; records are
+    auto-classified into 4 tables (Privileged Users, Service Accounts, Shared
+    Accounts, Third-Party Users) by matching against known naming patterns.
+    Systems tables must be supplied via --in-scope-systems-source/list and
+    --network-system-list separately.
+
+    \b
+    Examples:
+      # DirectMap: push from named source tables
+      uv run exa compliance sync-identity --source-privileged "AD Admin Users"
+      uv run exa compliance sync-identity --source-privileged "Admins" --source-service-accounts "SvcAccts" --force
+
+      # FilterMode: auto-classify from a single source table
+      uv run exa compliance sync-identity --filter-mode --source-table "All Users"
+      uv run exa compliance sync-identity --filter-mode --source-table "AD Users" --tenant csnafusion
+    """
     from exa.client import ExaClient
     from exa.compliance.identity import sync_compliance_identity_tables
 
@@ -252,10 +298,20 @@ def status(
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t",
-                     help="Tenant profile"),
+                     help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Show compliance identity table status."""
+    """Show record counts and health for all 6 compliance identity tables.
+
+    Displays a summary table covering: Privileged Users, Shared Accounts,
+    Third-Party Users, System & Service Accounts, In-Scope Data Systems, and
+    Network Security Systems. Empty tables are highlighted in yellow.
+
+    \b
+    Examples:
+      uv run exa compliance status
+      uv run exa compliance status --tenant csnafusion
+    """
     from exa.client import ExaClient
 
     client = ExaClient(tenant=tenant)
@@ -308,7 +364,8 @@ def audit(
     framework: Annotated[
         str,
         typer.Option("--framework", "-f",
-                     help="Framework ID or name [default: NIST_CSF] — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, ISO_27001, FedRAMP, CJIS, CMMC_L2, CMMC_L3"),
+                     help="Framework ID or name — NIST_CSF, HIPAA, PCI_DSS, SOX, CIS_V8, GDPR, "
+                          "ISO_27001, FedRAMP_Moderate, CJIS, CMMC_L2, CMMC_L3 [default: NIST_CSF]"),
     ] = "NIST_CSF",
     lookback_days: Annotated[
         int,
@@ -318,48 +375,66 @@ def audit(
     min_evidence: Annotated[
         int,
         typer.Option("--min-evidence",
-                     help="Minimum events required to mark a control PASS [default: 10]"),
+                     help="Minimum events required to score a control PASS [default: 10]"),
     ] = 10,
     output_json: Annotated[
         str | None,
         typer.Option("--output-json", "-o",
-                     help="Save JSON report to file"),
+                     help="Save full JSON report to file [default: none]"),
     ] = None,
     output_html: Annotated[
         str | None,
         typer.Option(
             "--output-html",
-            help="Path for HTML report (default: reports/<tenant>-<fw>-<date>.html)",
+            help="HTML report path (default: reports/<tenant>-<fw>-<date>.html)",
         ),
     ] = None,
     output_pdf: Annotated[
         bool,
         typer.Option(
             "--output-pdf/--no-output-pdf",
-            help="Render HTML report to PDF (auto-path in reports/) [default: no-output-pdf]",
+            help="Render HTML report to PDF via Edge headless, saved alongside HTML [default: no-output-pdf]",
         ),
     ] = False,
     pdf_path: Annotated[
         str | None,
         typer.Option(
             "--pdf-path",
-            help="Explicit PDF output path (implies --output-pdf)",
+            help="Explicit PDF output path; implies --output-pdf [default: none]",
         ),
     ] = None,
     tenant_aware: Annotated[
         bool,
         typer.Option(
             "--tenant-aware/--no-tenant-aware",
-            help="Discover active activity types and resolve queries via Field Oracle",
+            help="Discover active activity types and resolve queries via Field Oracle [default: tenant-aware]",
         ),
     ] = True,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t",
-                     help="Tenant profile"),
+                     help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Run a compliance framework gap analysis audit."""
+    """Run a compliance framework gap analysis and produce an HTML/PDF report.
+
+    Queries the SIEM for evidence events matching each SIEM-testable control in
+    the selected framework. Controls with at least --min-evidence events in the
+    lookback window are scored PASS; those below threshold are scored FAIL or
+    INSUFFICIENT. Results are written to an HTML report (auto-named in reports/)
+    and optionally rendered to PDF via Edge headless.
+
+    Use --no-tenant-aware to skip Field Oracle discovery and run static EQL
+    filters directly from ControlQueries JSON (faster, less accurate).
+
+    \b
+    Examples:
+      uv run exa compliance audit
+      uv run exa compliance audit --framework HIPAA --lookback 90
+      uv run exa compliance audit --framework PCI_DSS --output-html reports/pci.html
+      uv run exa compliance audit --framework NIST_CSF --output-pdf --tenant csnafusion
+      uv run exa compliance audit --no-tenant-aware --min-evidence 5
+    """
     from exa.client import ExaClient
     from exa.compliance.audit import run_compliance_audit
 

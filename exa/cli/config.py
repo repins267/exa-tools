@@ -21,7 +21,17 @@ def config_set(
     key: Annotated[str, typer.Argument(help="Config key (e.g. sigma.rules-dir)")],
     value: Annotated[str, typer.Argument(help="Config value")],
 ) -> None:
-    """Set a configuration value."""
+    """Set a configuration value in ~/.exa/config.json.
+
+    Settable keys: default_tenant, sigma.rules-dir, sigma.deploy-tenant.
+    The key default_tenant sets which tenant profile is used when --tenant
+    is omitted. Run 'exa config show' to see all current values.
+
+    \b
+    Examples:
+      uv run exa config set default_tenant csnafusion
+      uv run exa config set sigma.rules-dir ~/sigma/rules/windows
+    """
     from exa.config import (
         _INTERNAL_KEYS,
         _SPECIAL_KEYS,
@@ -50,7 +60,13 @@ def config_set(
 def config_get(
     key: Annotated[str, typer.Argument(help="Config key to read")],
 ) -> None:
-    """Get a configuration value."""
+    """Get a single configuration value by key.
+
+    \b
+    Examples:
+      uv run exa config get default_tenant
+      uv run exa config get sigma.rules-dir
+    """
     from exa.config import _SPECIAL_KEYS, load_config
 
     canonical = _SPECIAL_KEYS.get(key, key)
@@ -63,7 +79,12 @@ def config_get(
 
 @config_app.command("show")
 def config_show() -> None:
-    """Show all current configuration values."""
+    """Show all current configuration values from ~/.exa/config.json.
+
+    \b
+    Examples:
+      uv run exa config show
+    """
     from exa.config import list_config
 
     items = list_config()
@@ -88,7 +109,16 @@ def config_show() -> None:
 
 @config_app.command("tenants")
 def config_tenants() -> None:
-    """List all configured tenant profiles (no secrets shown)."""
+    """List all configured tenant profiles (no secrets shown).
+
+    Displays nickname, FQDN, region, API server, and which tenant is the
+    default. Credentials are stored in the OS credential store and never
+    shown here.
+
+    \b
+    Examples:
+      uv run exa config tenants
+    """
     from exa.config import _read_config_file
 
     config = _read_config_file()

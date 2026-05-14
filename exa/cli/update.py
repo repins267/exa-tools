@@ -24,7 +24,18 @@ def update(
         typer.Option("--check", help="Show current state without pulling"),
     ] = False,
 ) -> None:
-    """Download or update CIM2 and Content Hub reference data."""
+    """Download or update CIM2 and Content Hub reference data.
+
+    Clones or pulls ExabeamLabs/CIMLibrary and ExabeamLabs/Content-Library-CIM2
+    into ~/.exa/cache/. Also updates the local Sigma rule index. Required for
+    EQL field verification and Sigma conversion. Use --check to inspect current
+    state without pulling.
+
+    \b
+    Examples:
+      uv run exa update
+      uv run exa update --check
+    """
     if ctx.invoked_subcommand is not None:
         return
 
@@ -73,10 +84,20 @@ def _find_repo_root() -> "Path | None":
 def update_self(
     branch: Annotated[
         str,
-        typer.Option("--branch", "-b", help="Branch to pull (default: current branch)"),
+        typer.Option("--branch", "-b", help="Branch to pull [default: current branch]"),
     ] = "",
 ) -> None:
-    """Pull the latest exa-tools code from git and sync dependencies."""
+    """Pull the latest exa-tools code from git and sync dependencies.
+
+    Runs 'git pull' in the exa-tools repo root and then 'uv sync' to update
+    Python dependencies. Only works when exa-tools was installed from a git
+    clone (not a pip wheel).
+
+    \b
+    Examples:
+      uv run exa update self
+      uv run exa update self --branch main
+    """
     import subprocess
     from pathlib import Path
 

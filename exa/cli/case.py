@@ -28,7 +28,7 @@ case_app = typer.Typer(
 
 console = Console()
 
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 _VERDICT_STYLES = {
     "SUSPECTED_INCIDENT": ("red", "⚠"),
@@ -79,7 +79,19 @@ def qualify(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Run full qualification analysis on a case. Outputs structured triage report."""
+    """Run full qualification analysis on a case.
+
+    Fetches the case from Threat Center, identifies the triggering entity and
+    rule, searches prior cases for that entity, pulls event context within the
+    ±window, and emits a structured triage report with a VERDICT and recommended
+    action (SUSPECTED_INCIDENT, LIKELY_FP, LEARNING_PHASE_NOISE, NEEDS_INVESTIGATION).
+
+    \b
+    Examples:
+      uv run exa case qualify 221
+      uv run exa case qualify 221 --lookback 14 --window 60
+      uv run exa case qualify 221 --tenant csnafusion
+    """
     from exa.case.qualify import run_qualification
 
     client = _make_client(tenant)
@@ -177,7 +189,16 @@ def show(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Show case details and Nova threat summary."""
+    """Show details and Nova AI threat summary for a case.
+
+    Looks up the case by number and prints stage, priority, risk score,
+    assignee, associated users/endpoints, and the Nova threat summary panel.
+
+    \b
+    Examples:
+      uv run exa case show 221
+      uv run exa case show 221 --tenant csnafusion
+    """
     from exa.case.cases import search_cases
 
     client = _make_client(tenant)
@@ -233,18 +254,30 @@ def search(
     ] = None,
     lookback: Annotated[
         int,
-        typer.Option("--lookback", help="Days to look back (default 7)"),
+        typer.Option("--lookback", help="Days to look back [default: 7]"),
     ] = 7,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max results (default 20)"),
+        typer.Option("--limit", help="Max cases to return [default: 20]"),
     ] = 20,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Search cases with analyst-friendly filters."""
+    """Search cases with analyst-friendly filters.
+
+    Builds an EQL filter from the provided options and returns a table of
+    matching cases ordered by creation time. Combine --rule, --entity, and
+    --stage for targeted queries; omit all three to list recent cases.
+
+    \b
+    Examples:
+      uv run exa case search
+      uv run exa case search --rule "Brute Force" --lookback 14
+      uv run exa case search --entity alice@example.com --stage OPEN
+      uv run exa case search --stage CLOSED --limit 50 --tenant csnafusion
+    """
     from exa.case.cases import search_cases
 
     # Build EQL filter
@@ -311,7 +344,19 @@ def events(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Pull event context ±window minutes around a case trigger."""
+    """Pull event context ±window minutes around a case trigger.
+
+    Looks up the case by number, identifies the primary entity (first associated
+    user), then searches SIEM events for that entity within the time window
+    around the case creation timestamp. Displays activity type, source/dest IPs,
+    port, and action.
+
+    \b
+    Examples:
+      uv run exa case events 221
+      uv run exa case events 221 --window 60 --limit 200
+      uv run exa case events 221 --tenant csnafusion
+    """
     from datetime import timedelta
 
     from exa.case.cases import search_cases
@@ -391,7 +436,18 @@ def history(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Show all cases for a specific entity in the lookback period."""
+    """Show all prior cases for a user or hostname.
+
+    Searches Threat Center for cases associated with the given entity over the
+    lookback window and displays them in a table with risk scores. Useful for
+    identifying repeat offenders or chronically noisy entities.
+
+    \b
+    Examples:
+      uv run exa case history alice@example.com
+      uv run exa case history workstation01 --lookback 90
+      uv run exa case history alice@example.com --tenant csnafusion
+    """
     from exa.case.entities import get_entity_cases
 
     client = _make_client(tenant)
@@ -443,7 +499,18 @@ def outcome_list(
         bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Table of all logged outcome records."""
+    """List all locally logged case outcome records.
+
+    Reads the outcomes log stored in ~/.exa/ and renders a table of each
+    case with its verdict, risk score, trend, resolved outcome, and closed
+    reason. Use 'exa case outcome resolve' to set outcomes or 'exa case
+    outcome sync' to auto-fill from Threat Center.
+
+    \b
+    Examples:
+      uv run exa case outcome list
+      uv run exa case outcome list --json
+    """
     import json as _json
 
     from exa.case.outcomes import load_outcomes
@@ -508,7 +575,19 @@ def outcome_resolve(
         bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Set the outcome on a logged case record."""
+    """Set the outcome on a locally logged case record.
+
+    Updates the outcome field for the specified case in the local outcomes log
+    (~/.exa/). The outcome drives FP rate calibration in 'exa case baseline'.
+
+    Valid outcomes: tp | fp | noise | duplicate | unknown
+
+    \b
+    Examples:
+      uv run exa case outcome resolve 221 --outcome fp
+      uv run exa case outcome resolve 221 --outcome tp --closed-reason "Confirmed attack"
+      uv run exa case outcome resolve 221 --outcome noise --json
+    """
     import json as _json
 
     from exa.case.outcomes import resolve_outcome
@@ -544,7 +623,18 @@ def outcome_sync(
         bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Auto-fill outcomes for closed cases from Threat Center."""
+    """Auto-fill outcomes for closed cases from Threat Center.
+
+    Fetches recently closed cases from Threat Center and updates the local
+    outcomes log with any matching records that lack an outcome. Useful for
+    keeping the outcomes log current without manual resolve calls.
+
+    \b
+    Examples:
+      uv run exa case outcome sync
+      uv run exa case outcome sync --tenant csnafusion
+      uv run exa case outcome sync --json
+    """
     import json as _json
 
     from exa.case.outcomes import auto_fill_outcomes
@@ -580,7 +670,21 @@ def baseline(
         bool, typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Compute FP rate calibration from closed cases and outcomes log."""
+    """Compute FP rate calibration report from closed cases and outcome log.
+
+    Fetches closed cases from Threat Center over the lookback window, joins
+    them against the local outcomes log, and computes per-rule false-positive
+    rates. The resulting calibration is written to ~/.exa/cache/ and used by
+    'exa case qualify' for VERDICT scoring. Automatically caps lookback to the
+    tenant's LTS retention window.
+
+    \b
+    Examples:
+      uv run exa case baseline
+      uv run exa case baseline --lookback 180
+      uv run exa case baseline --json
+      uv run exa case baseline --tenant csnafusion
+    """
     import dataclasses
     import json as _json
 

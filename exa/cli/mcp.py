@@ -26,7 +26,7 @@ mcp_app = typer.Typer(
 )
 console = Console()
 
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 _DOCS_MCP_URL = "https://developers.exabeam.com/mcp"
 
 
@@ -194,7 +194,18 @@ def config_cmd(
         ),
     ] = False,
 ) -> None:
-    """Print the MCP client config JSON to stdout (paste into Claude Desktop settings)."""
+    """Print the MCP client config JSON to stdout.
+
+    Outputs the JSON block to paste into Claude Desktop settings under
+    'Developer > Model Context Protocol'. Use --docs to get the config for
+    the Exabeam API documentation MCP server instead of the live tenant server.
+
+    \b
+    Examples:
+      uv run exa mcp config
+      uv run exa mcp config --tenant csnafusion
+      uv run exa mcp config --docs
+    """
     if docs:
         docs_name = name if name != "exabeam" else "exabeam-docs"
         cfg = _generate_docs_config(server_name=docs_name)
@@ -225,7 +236,20 @@ def install(
         ),
     ] = False,
 ) -> None:
-    """Install the MCP server config into Claude Desktop (merges with existing config)."""
+    """Install the MCP server config into Claude Desktop.
+
+    Merges the server entry into Claude Desktop's config file (creating the
+    file if it does not exist). Run 'exa auth' first to cache credentials,
+    then restart Claude Desktop after installing. Use --docs to install the
+    Exabeam API documentation server instead of the live tenant server.
+
+    \b
+    Examples:
+      uv run exa mcp install
+      uv run exa mcp install --tenant csnafusion
+      uv run exa mcp install --docs
+      uv run exa mcp install --name my-exa --tenant csnafusion
+    """
     if docs:
         server_name = name if name != "exabeam" else "exabeam-docs"
         cfg_block = _generate_docs_config(server_name=server_name)

@@ -451,7 +451,17 @@ def search(
 
 @app.command()
 def frameworks() -> None:
-    """List available compliance frameworks."""
+    """List all built-in compliance frameworks and their SIEM coverage.
+
+    Shows each framework ID, full name, and the number of SIEM-testable
+    controls (those with evidence queries in ControlQueries JSON). Use
+    framework IDs with 'exa compliance audit --framework <ID>' and
+    'exa compliance sync-ootb --framework <ID>'.
+
+    \b
+    Examples:
+      uv run exa frameworks
+    """
     from exa.compliance.frameworks import (
         AVAILABLE_FRAMEWORKS,
         load_control_queries,

@@ -198,7 +198,25 @@ def browse(
         typer.Option("--search", "-s", help="Search rule titles"),
     ] = None,
 ) -> None:
-    """Browse SigmaHQ community rules from local index."""
+    """Browse SigmaHQ community rules from the local index.
+
+    Reads the cached Sigma rule index (populated by 'exa update') and renders
+    a filterable table of rules. Results are capped at 50 for readability;
+    narrow the search with filters to see more.
+
+    Common --category values: process_creation, network_connection, file_event,
+      registry_event, dns_query, image_load, pipe_created
+    Common --product values: windows, linux, macos, aws, azure, gcp
+    Common --level values: low, medium, high, critical
+
+    \b
+    Examples:
+      uv run exa sigma browse
+      uv run exa sigma browse --category process_creation --level high
+      uv run exa sigma browse --product windows --level critical
+      uv run exa sigma browse --category network_connection --search "C2"
+      uv run exa sigma browse --tag attack.t1059 --product windows
+    """
     from exa.update import load_cim2_cache
 
     try:
@@ -293,10 +311,22 @@ def convert(
     ] = False,
     tenant: Annotated[
         str | None,
-        typer.Option("--tenant", "-t", help="Tenant profile (default: saved default)"),
+        typer.Option("--tenant", "-t", help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Convert Sigma rules to Exabeam EQL correlation rules."""
+    """Convert Sigma YAML rules to Exabeam EQL correlation rules.
+
+    Parses and converts one or more Sigma rules, printing a table showing each
+    rule's EQL query, deploy readiness, and any field-mapping warnings. Use
+    --deploy to push deploy-ready rules to Exabeam in the same step. Rules that
+    cannot be mapped are flagged but do not stop the batch.
+
+    \b
+    Examples:
+      uv run exa sigma convert --rule rules/my_rule.yml
+      uv run exa sigma convert --dir ~/sigma/rules/windows/process_creation
+      uv run exa sigma convert --rule rules/my_rule.yml --deploy --tenant csnafusion
+    """
     files = _collect_rule_files(rule, dir_path)
     results = _convert_files(files)
     _print_conversion_table(results)
@@ -313,10 +343,20 @@ def deploy_cmd(
     ],
     tenant: Annotated[
         str | None,
-        typer.Option("--tenant", "-t", help="Tenant profile (default: saved default)"),
+        typer.Option("--tenant", "-t", help="Tenant nickname or FQDN [default: saved default]"),
     ] = None,
 ) -> None:
-    """Convert a Sigma rule and deploy it to Exabeam in one step."""
+    """Convert a Sigma rule and deploy it to Exabeam in one step.
+
+    Parses and converts the Sigma YAML file then immediately creates the
+    corresponding correlation rule in the Exabeam tenant. Equivalent to
+    running 'sigma convert --deploy' for a single file.
+
+    \b
+    Examples:
+      uv run exa sigma deploy --rule rules/my_rule.yml
+      uv run exa sigma deploy --rule rules/my_rule.yml --tenant csnafusion
+    """
     files = _collect_rule_files(rule, None)
     results = _convert_files(files)
     _print_conversion_table(results)

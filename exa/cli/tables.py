@@ -33,7 +33,7 @@ records_app = typer.Typer(
 tables_app.add_typer(records_app)
 
 console = Console()
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 
 def _make_client(tenant: str | None = None) -> ExaClient:
@@ -146,7 +146,15 @@ def tables_list(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """List context tables."""
+    """List all context tables on the tenant.
+
+    \b
+    Examples:
+      uv run exa tables list
+      uv run exa tables list --name "Compliance"
+      uv run exa tables list --json
+      uv run exa tables list --tenant csnafusion
+    """
     import json as _json
     import sys
 
@@ -226,7 +234,21 @@ def tables_create(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Create a context table, optionally uploading records from a CSV."""
+    """Create a context table, optionally uploading records from a CSV.
+
+    Creates the table with the specified column schema then optionally writes
+    records from a CSV file. When --csv is given, column schema is derived from
+    CSV headers automatically (--columns is ignored).
+
+    Valid --type values: Other, User, TI_ips, TI_domains, Device, Domain, IP
+
+    \b
+    Examples:
+      uv run exa tables create "My Table"
+      uv run exa tables create "My Table" --type User --key username
+      uv run exa tables create "My Table" --csv data.csv --key hostname
+      uv run exa tables create "My Table" --csv data.csv --replace --tenant csnafusion
+    """
     from exa.context import add_records, create_table
 
     if csv_path:
@@ -290,7 +312,17 @@ def tables_delete(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Delete a context table."""
+    """Delete a context table by ID or display name.
+
+    Prompts for confirmation unless --yes is given. OOTB (Exabeam-managed)
+    tables cannot be deleted via this command.
+
+    \b
+    Examples:
+      uv run exa tables delete "My Custom Table"
+      uv run exa tables delete <table-id> --yes
+      uv run exa tables delete "My Table" --purge-attributes --tenant csnafusion
+    """
     from exa.context import delete_table, get_table
 
     client = _make_client(tenant)
@@ -343,7 +375,18 @@ def records_list(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """List records from a context table."""
+    """List records from a context table.
+
+    Fetches up to --limit records starting at --offset and renders them as a
+    table. Use --csv to write records to a file or --json for ndjson output.
+
+    \b
+    Examples:
+      uv run exa tables records list "My Table"
+      uv run exa tables records list <table-id> --limit 100 --offset 200
+      uv run exa tables records list "My Table" --csv output.csv
+      uv run exa tables records list "My Table" --json --tenant csnafusion
+    """
     import csv as _csv
     import json as _json
     import sys
@@ -399,7 +442,7 @@ def records_upload(
     csv_file: Annotated[str, typer.Argument(help="Path to CSV file")],
     replace: Annotated[
         bool,
-        typer.Option("--replace", help="Replace entire table contents (default: append)"),
+        typer.Option("--replace/--no-replace", help="Replace entire table contents [default: no-replace (append)]"),
     ] = False,
     key_col: Annotated[
         str | None,
@@ -410,7 +453,18 @@ def records_upload(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Upload records from a CSV file to a context table."""
+    """Upload records from a CSV file to a context table.
+
+    By default appends to existing records; use --replace to atomically
+    replace the entire table. The first column in the CSV is used as the
+    record key unless --key is specified.
+
+    \b
+    Examples:
+      uv run exa tables records upload "My Table" data.csv
+      uv run exa tables records upload "My Table" data.csv --replace
+      uv run exa tables records upload <table-id> data.csv --key hostname --tenant csnafusion
+    """
     from exa.context import add_records
 
     headers, rows = _parse_csv_file(csv_file)
@@ -459,7 +513,16 @@ def records_export(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Export all records from a context table to a CSV file."""
+    """Export all records from a context table to a CSV file.
+
+    Fetches all pages of records and writes them to the specified CSV path.
+    Use this to back up a table before modifying or deleting it.
+
+    \b
+    Examples:
+      uv run exa tables records export "My Table" backup.csv
+      uv run exa tables records export <table-id> output.csv --tenant csnafusion
+    """
     import csv as _csv
 
     from exa.context.tables import get_all_records

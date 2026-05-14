@@ -21,7 +21,7 @@ aillm_app = typer.Typer(
 )
 console = Console()
 
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 
 def _make_client(tenant: str | None = None):
@@ -57,7 +57,7 @@ def sync_cmd(
         int,
         typer.Option(
             "--lookback",
-            help="Days to look back when discovering domains from logs (default 30)",
+            help="Days to look back when discovering domains from logs [default: 30]",
         ),
     ] = 30,
     tenant: Annotated[
@@ -65,12 +65,19 @@ def sync_cmd(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Sync AI/LLM context tables from reference data.
+    """Sync AI/LLM context tables from bundled reference data.
 
     Populates all 6 Exabeam AI/LLM context tables from the bundled
     reference dataset (596 records). Use --dry-run to preview first.
-    Use --discover-from-logs to augment with domains actively seen in
-    your environment's proxy/web logs.
+    Use --discover-from-logs to augment with AI domains actively seen
+    in your environment's proxy/web logs.
+
+    \b
+    Examples:
+      uv run exa aillm sync
+      uv run exa aillm sync --dry-run
+      uv run exa aillm sync --force
+      uv run exa aillm sync --discover-from-logs --lookback 60 --tenant csnafusion
     """
     from exa.aillm import sync_aillm_context_tables
 
@@ -113,7 +120,7 @@ def sync_ruleset_cmd(
         int,
         typer.Option(
             "--lookback",
-            help="Days to search back for alert names (default 90)",
+            help="Days to search back for alert names [default: 90]",
         ),
     ] = 90,
     keywords: Annotated[
@@ -128,7 +135,7 @@ def sync_ruleset_cmd(
     ] = None,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max alerts to pull from Threat Center (max 3000)"),
+        typer.Option("--limit", help="Max alerts to pull from Threat Center [default: 3000]"),
     ] = 3000,
     dry_run: Annotated[
         bool,
@@ -153,12 +160,13 @@ def sync_ruleset_cmd(
     Run once per tenant after AI/LLM correlation rules are active.
     Use --dry-run to preview what would be added first.
 
-    Example (4 tenants):
-
-      exa aillm sync-ruleset -t tenant1
-      exa aillm sync-ruleset -t tenant2
-      exa aillm sync-ruleset -t tenant3
-      exa aillm sync-ruleset -t tenant4
+    \b
+    Examples:
+      uv run exa aillm sync-ruleset --tenant csnafusion
+      uv run exa aillm sync-ruleset --dry-run --tenant csnafusion
+      uv run exa aillm sync-ruleset --lookback 180 --tenant csnafusion
+      # Multiple tenants
+      uv run exa aillm sync-ruleset -t tenant1 && uv run exa aillm sync-ruleset -t tenant2
     """
     from exa.aillm.ruleset import sync_dlp_ruleset
 
@@ -213,7 +221,17 @@ def status_cmd(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Show live record counts for all 6 AI/LLM context tables."""
+    """Show live record counts for all 6 AI/LLM context tables.
+
+    Fetches the current record counts from Exabeam and displays a status
+    table. Tables showing "-" have not been synced yet — run 'exa aillm sync'
+    to populate them.
+
+    \b
+    Examples:
+      uv run exa aillm status
+      uv run exa aillm status --tenant csnafusion
+    """
     from exa.aillm.status import get_aillm_table_status
 
     client = _make_client(tenant)

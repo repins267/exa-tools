@@ -29,7 +29,7 @@ detection_app = typer.Typer(
 
 console = Console()
 
-_TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
+_TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 
 def _make_client(tenant: str | None = None):
@@ -60,7 +60,7 @@ def detection_list(
     ] = None,
     limit: Annotated[
         int,
-        typer.Option("--limit", help="Max rules to return (default 100; use 0 for all)"),
+        typer.Option("--limit", help="Max rules to return; 0 returns all rules [default: 100]"),
     ] = 100,
     tenant: Annotated[
         str | None,
@@ -68,18 +68,30 @@ def detection_list(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json/--no-json", help="Output as JSON (stdout or --output file)"),
+        typer.Option("--json/--no-json", help="Output as JSON to stdout or --output file [default: no-json]"),
     ] = False,
     csv_out: Annotated[
         bool,
-        typer.Option("--csv/--no-csv", help="Output as CSV (stdout or --output file)"),
+        typer.Option("--csv/--no-csv", help="Output as CSV to stdout or --output file [default: no-csv]"),
     ] = False,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Write output to file instead of stdout"),
     ] = None,
 ) -> None:
-    """List analytics/detection rules with optional JSON or CSV export."""
+    """List analytics/detection rules with optional filters and export.
+
+    Fetches all rules from the API and applies name/status filters client-side.
+    Use --limit 0 to return all rules (default 100). Results can be exported as
+    JSON or CSV with --json/--csv; combine with --output to write to a file.
+
+    \b
+    Examples:
+      uv run exa detection list
+      uv run exa detection list --name "[Sigma]*" --status enabled
+      uv run exa detection list --limit 0 --csv --output rules.csv
+      uv run exa detection list --json --output all-rules.json --tenant csnafusion
+    """
     from exa.detection import get_detection_rules
 
     effective_limit = None if limit == 0 else limit
@@ -172,10 +184,17 @@ def detection_get(
     ] = None,
     json_out: Annotated[
         bool,
-        typer.Option("--json/--no-json", help="Output raw JSON"),
+        typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Get a single detection rule by ID."""
+    """Get full details for a single detection rule by UUID.
+
+    \b
+    Examples:
+      uv run exa detection get <rule-uuid>
+      uv run exa detection get <rule-uuid> --json
+      uv run exa detection get <rule-uuid> --tenant csnafusion
+    """
     from exa.detection import get_detection_rule
 
     client = _make_client(tenant)
@@ -202,7 +221,13 @@ def detection_enable(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Enable a detection rule."""
+    """Enable a detection rule by UUID.
+
+    \b
+    Examples:
+      uv run exa detection enable <rule-uuid>
+      uv run exa detection enable <rule-uuid> --tenant csnafusion
+    """
     from exa.detection import set_detection_rule_state
 
     client = _make_client(tenant)
@@ -221,7 +246,13 @@ def detection_disable(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Disable a detection rule."""
+    """Disable a detection rule by UUID.
+
+    \b
+    Examples:
+      uv run exa detection disable <rule-uuid>
+      uv run exa detection disable <rule-uuid> --tenant csnafusion
+    """
     from exa.detection import set_detection_rule_state
 
     client = _make_client(tenant)
@@ -251,7 +282,19 @@ def detection_export(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Export detection rules to a JSON bundle file."""
+    """Export detection rules to a portable JSON bundle file.
+
+    Omit --id to export all rules (fetches rule list automatically). Use --id
+    once per rule UUID to export a specific subset. The bundle format is
+    compatible with 'exa detection import' and can be diffed with
+    'exa detection diff'.
+
+    \b
+    Examples:
+      uv run exa detection export all-rules.json
+      uv run exa detection export subset.json --id <uuid1> --id <uuid2>
+      uv run exa detection export all-rules.json --tenant csnafusion
+    """
     from exa.detection import export_rules
 
     client = _make_client(tenant)
@@ -276,14 +319,25 @@ def detection_import(
     ],
     overwrite: Annotated[
         bool,
-        typer.Option("--overwrite", help="Overwrite existing rules with same ID"),
+        typer.Option("--overwrite/--no-overwrite", help="Overwrite existing rules with same ID [default: no-overwrite]"),
     ] = False,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Import detection rules from a JSON bundle file."""
+    """Import detection rules from a JSON bundle file.
+
+    The bundle must be in the format produced by 'exa detection export'. By
+    default, rules that already exist (matching ID) are skipped; use
+    --overwrite to replace them.
+
+    \b
+    Examples:
+      uv run exa detection import all-rules.json
+      uv run exa detection import all-rules.json --overwrite
+      uv run exa detection import all-rules.json --tenant csnafusion
+    """
     from exa.detection import import_rules
 
     if not input_file.exists():
@@ -322,10 +376,20 @@ def detection_diff(
     ],
     json_out: Annotated[
         bool,
-        typer.Option("--json/--no-json", help="Output raw JSON diff"),
+        typer.Option("--json/--no-json", help="Output diff as raw JSON [default: no-json]"),
     ] = False,
 ) -> None:
-    """Diff two exported detection rule bundles."""
+    """Diff two exported detection rule bundles.
+
+    Compares two JSON bundles produced by 'exa detection export' and shows
+    rules added, removed, and changed (with field-level deltas). Useful for
+    auditing rule changes between TDM update cycles.
+
+    \b
+    Examples:
+      uv run exa detection diff baseline.json current.json
+      uv run exa detection diff before.json after.json --json
+    """
     from exa.detection import diff_rules
 
     bundle_a = json.loads(file_a.read_text(encoding="utf-8"))
@@ -383,7 +447,17 @@ def detection_snapshot(
 ) -> None:
     """Snapshot all analytics rules into a context table (full replace).
 
-    Creates the table with the correct column schema if it does not exist.
+    Exports all detection rules and writes them into the specified context
+    table, replacing the entire table contents atomically. Creates the table
+    with the correct column schema if it does not already exist. Accepts a
+    table name (substring match) or an exact table UUID. Safe to re-run after
+    TDM updates — idempotent full replace each time.
+
+    \b
+    Examples:
+      uv run exa detection snapshot "Detection Snapshot"
+      uv run exa detection snapshot <table-uuid>
+      uv run exa detection snapshot "Detection Snapshot" --tenant csnafusion
     """
     from exa.detection.snapshot import snapshot_rules_to_table
 
