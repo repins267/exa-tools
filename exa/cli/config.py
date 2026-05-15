@@ -156,3 +156,83 @@ def config_tenants() -> None:
         f"Secrets in Windows Credential Manager",
         style="dim",
     )
+
+
+@config_app.command("remove")
+def config_remove(
+    tenant: Annotated[str, typer.Option("--tenant", "-t", help="Tenant nickname to remove")] = ...,
+    confirm: Annotated[
+        bool,
+        typer.Option(
+            "--confirm/--no-confirm",
+            help="Skip confirmation prompt [default: no-confirm]",
+        ),
+    ] = False,
+) -> None:
+    """Remove a tenant profile and its stored credentials.
+
+    Deletes the keyring credentials and config file entry for the named tenant.
+    If the tenant was the default, clears the default as well.
+
+    \b
+    Examples:
+      uv run exa config remove --tenant csnafusion
+      uv run exa config remove --tenant csnafusion --confirm
+    """
+    import keyring
+    import keyring.errors
+
+    from exa.config import _KEYRING_SERVICE, _read_config_file, _write_config_file
+
+    service = f"{_KEYRING_SERVICE}/{tenant}"
+    config = _read_config_file()
+
+    in_config = tenant in config.get("tenants", {})
+    client_id_exists = keyring.get_password(service, "client_id") is not None
+    client_secret_exists = keyring.get_password(service, "client_secret") is not None
+    in_keyring = client_id_exists or client_secret_exists
+
+    if not in_config and not in_keyring:
+        console.print(f"  Tenant '{tenant}' not found in config or credential store.", style="red")
+        raise typer.Exit(1)
+
+    tenant_entry = config.get("tenants", {}).get(tenant, {})
+    is_default = config.get("default_tenant") == tenant
+
+    if not confirm:
+        console.print(f"\n  Will delete credentials for tenant '[cyan]{tenant}[/cyan]':")
+        if tenant_entry.get("fqdn"):
+            console.print(f"    FQDN:       {tenant_entry['fqdn']}", style="dim")
+        if tenant_entry.get("api_server"):
+            console.print(f"    API server: {tenant_entry['api_server']}", style="dim")
+        if in_keyring:
+            console.print(f"    Keyring:    {service} (client_id, client_secret)", style="dim")
+        if is_default:
+            console.print(
+                f"    Note: '{tenant}' is the current default — will be cleared.",
+                style="yellow",
+            )
+        console.print()
+        proceed = typer.confirm(f"Delete credentials for tenant '{tenant}'?", default=False)
+        if not proceed:
+            console.print("  Aborted.", style="dim")
+            raise typer.Exit(0)
+
+    if client_id_exists:
+        try:
+            keyring.delete_password(service, "client_id")
+        except keyring.errors.PasswordDeleteError:
+            pass
+    if client_secret_exists:
+        try:
+            keyring.delete_password(service, "client_secret")
+        except keyring.errors.PasswordDeleteError:
+            pass
+
+    if in_config:
+        config.get("tenants", {}).pop(tenant, None)
+    if is_default:
+        config.pop("default_tenant", None)
+
+    _write_config_file(config)
+    console.print(f"  Removed tenant '[cyan]{tenant}[/cyan]'.", style="green")

@@ -504,6 +504,13 @@ from exa.cli.hotkey import hotkey_app  # noqa: E402
 app.add_typer(hotkey_app)
 
 
+# -- Zones --------------------------------------------------------------------
+
+from exa.cli.zones import zones_app  # noqa: E402
+
+app.add_typer(zones_app)
+
+
 # -- Config -------------------------------------------------------------------
 
 from exa.cli.config import config_app  # noqa: E402
