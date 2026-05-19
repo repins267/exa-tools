@@ -211,6 +211,196 @@ def sync_ruleset_cmd(
         console.print("\n  Done", style="green")
 
 
+# -- discover -----------------------------------------------------------------
+
+
+@aillm_app.command("discover")
+def discover_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option(
+            "--lookback",
+            help="Days to look back for alerts and proxy events [default: 30]",
+        ),
+    ] = 30,
+    alert_limit: Annotated[
+        int,
+        typer.Option("--alert-limit", help="Max alerts to pull from Threat Center [default: 3000]"),
+    ] = 3000,
+    event_limit: Annotated[
+        int,
+        typer.Option(
+            "--event-limit",
+            help="Max proxy/agent events to pull per product query [default: 10000]",
+        ),
+    ] = 10000,
+    add_rulesets: Annotated[
+        bool,
+        typer.Option(
+            "--add-rulesets/--no-add-rulesets",
+            help="Write matched alert names to AI/LLM DLP Rulesets table [default: no-add-rulesets]",
+        ),
+    ] = False,
+    add_apps: Annotated[
+        bool,
+        typer.Option(
+            "--add-apps/--no-add-apps",
+            help="Write discovered app names to AI/LLM Applications table [default: no-add-apps]",
+        ),
+    ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Discover AI-related activity for context table enrichment.
+
+    Runs two discovery passes and reports new candidates:
+
+    \b
+    Pass 1 -- Threat Center alert names:
+      Pulls recent alerts, filters for AI/LLM keywords, and identifies
+      names not yet in the bundled DLP reference data.
+
+    \b
+    Pass 2 -- AI proxy/agent app names:
+      Queries for SentinelOne Prompt Security events (and similar) and
+      extracts distinct application names actively seen in this environment.
+
+    \b
+    Use --add-rulesets / --add-apps to write candidates to their context tables.
+    For web domain discovery, use: exa aillm sync --discover-from-logs
+
+    \b
+    Examples:
+      uv run exa aillm discover --tenant csnafusion
+      uv run exa aillm discover --lookback 60 --add-apps
+      uv run exa aillm discover --json --tenant csnafusion
+    """
+    import json as json_mod
+
+    from exa.aillm.discover_alerts import discover_ai_activity
+
+    client = _make_client(tenant)
+    try:
+        if not json_output:
+            console.rule("AI/LLM Activity Discovery")
+            console.print(
+                f"  Lookback: {lookback} days | "
+                f"Alert limit: {alert_limit} | "
+                f"Event limit: {event_limit}",
+                style="dim",
+            )
+        result = discover_ai_activity(
+            client,
+            lookback_days=lookback,
+            alert_limit=alert_limit,
+            event_limit=event_limit,
+            add_rulesets=add_rulesets,
+            add_apps=add_apps,
+        )
+    finally:
+        client.close()
+
+    if json_output:
+        import dataclasses
+
+        console.print(json_mod.dumps(dataclasses.asdict(result), indent=2))
+        return
+
+    # -- Threat Center alert names -------------------------------------------
+    console.rule("Pass 1: Threat Center Alert Names", style="dim")
+    console.print(
+        f"  Alerts searched: {result.alerts_searched} | "
+        f"Unique names: {result.alert_names_found} | "
+        f"AI-matched: {len(result.alert_names_matched)}"
+    )
+    if result.alert_names_new:
+        console.print(
+            f"\n  [yellow]{len(result.alert_names_new)} new DLP ruleset candidates[/yellow] "
+            f"(not in bundled reference data):"
+        )
+        for name in result.alert_names_new:
+            prefix = "  + " if add_rulesets else "  * "
+            console.print(f"    {prefix}{name}")
+        if add_rulesets:
+            console.print(
+                f"\n  Written to '{_RULESETS_LABEL}': {result.rulesets_written}",
+                style="green",
+            )
+        else:
+            console.print(
+                "\n  Tip: re-run with --add-rulesets to write these to the DLP Rulesets table.",
+                style="dim",
+            )
+    elif result.alert_names_matched:
+        console.print(
+            f"  All {len(result.alert_names_matched)} matched names already in reference data.",
+            style="dim",
+        )
+    else:
+        console.print(
+            "  No AI/LLM alert names found. Try --lookback 90 or check that "
+            "AI/LLM rules are enabled.",
+            style="yellow",
+        )
+
+    # -- AI proxy/agent app names --------------------------------------------
+    console.rule("Pass 2: AI Proxy/Agent App Names", style="dim")
+    console.print(f"  Proxy/agent events searched: {result.proxy_events_searched}")
+    if result.proxy_events_searched == 0:
+        console.print(
+            "  No SentinelOne Prompt Security events found in this window.\n"
+            "  This pass requires a Prompt Security integration sending events to Exabeam.",
+            style="yellow",
+        )
+    elif result.app_names_found:
+        console.print(f"  App names found: {len(result.app_names_found)}")
+        if result.app_names_new:
+            console.print(
+                f"\n  [yellow]{len(result.app_names_new)} new application candidates[/yellow] "
+                f"(not in bundled reference data):"
+            )
+            for name in result.app_names_new:
+                prefix = "  + " if add_apps else "  * "
+                console.print(f"    {prefix}{name}")
+            if add_apps:
+                console.print(
+                    f"\n  Written to 'AI/LLM Applications': {result.apps_written}",
+                    style="green",
+                )
+            else:
+                console.print(
+                    "\n  Tip: re-run with --add-apps to write these to the Applications table.",
+                    style="dim",
+                )
+        else:
+            console.print(
+                "  All app names already in reference data.",
+                style="dim",
+            )
+    else:
+        console.print(
+            "  Events found but no app names extracted.\n"
+            "  The `app` CIM2 field may not be populated for this data source.",
+            style="yellow",
+        )
+
+    # -- Errors --------------------------------------------------------------
+    if result.errors:
+        console.print()
+        for err in result.errors:
+            console.print(f"  [red]x[/red] {err}")
+        raise typer.Exit(1)
+
+
+_RULESETS_LABEL = "AI/LLM DLP Rulesets"
+
+
 # -- status -------------------------------------------------------------------
 
 

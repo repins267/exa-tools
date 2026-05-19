@@ -1,6 +1,7 @@
 """AI/LLM domain sync for Exabeam context tables."""
 
 from exa.aillm.discover import search_logs_for_ai_domains
+from exa.aillm.discover_alerts import DiscoverResult, discover_ai_activity
 from exa.aillm.merge import merge_aillm_data
 from exa.aillm.reference import load_reference_data
 from exa.aillm.ruleset import SyncRulesetResult, sync_dlp_ruleset
@@ -12,6 +13,8 @@ __all__ = [
     "merge_aillm_data",
     "sync_aillm_context_tables",
     "search_logs_for_ai_domains",
+    "discover_ai_activity",
+    "DiscoverResult",
     "get_aillm_table_status",
     "TableStatus",
     "sync_dlp_ruleset",
