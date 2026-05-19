@@ -471,7 +471,14 @@ class TestSyncPublicDomainsMapping:
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/attributes/Other",
             method="GET",
-            json={"attributes": []},
+            json={"attributes": [
+                {
+                    "displayName": "Risk Level",
+                    "id": "risk_level",
+                    "type": "enum",
+                    "format": "Low|Medium|High",
+                }
+            ]},
         )
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}/records"
@@ -506,6 +513,9 @@ class TestSyncPublicDomainsMapping:
         assert "risk_level" in sample, f"Expected risk_level key, got: {sample}"
         assert "key" not in sample, f"Canonical 'key' leaked into payload: {sample}"
         assert "risk" not in sample, f"Canonical 'risk' leaked into payload: {sample}"
+        assert sample["risk_level"] in {"Low", "Medium", "High"}, (
+            f"risk_level must be title-case enum value, got: {sample['risk_level']!r}"
+        )
 
     def test_risk_level_value_populated(self, exa, mock_auth):
         """Each record's risk_level field is non-empty."""
@@ -520,8 +530,11 @@ class TestSyncPublicDomainsMapping:
             r for r in reqs if "addRecords" in str(r.url) and r.method == "POST"
         )
         body = json.loads(add_req.content)
+        valid_enum = {"Low", "Medium", "High"}
         for rec in body["data"]:
-            assert rec.get("risk_level"), f"Empty risk_level in record: {rec}"
+            assert rec.get("risk_level") in valid_enum, (
+                f"risk_level must be one of {valid_enum}, got: {rec}"
+            )
 
     def test_dedup_uses_aillm_domain_key(self, exa, mock_auth):
         """chatgpt.com already present via aillm_domain field is correctly skipped."""

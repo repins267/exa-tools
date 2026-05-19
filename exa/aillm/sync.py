@@ -221,9 +221,10 @@ def sync_aillm_context_tables(
     # endpoint has a different response structure on some tenants.
     all_tenant_tables = get_tables(client)
     known_attr_ids: dict[str, str] = {}
+    tenant_attrs_all: list[dict[str, Any]] = []
     try:
-        tenant_attrs = get_attributes(client, "Other")
-        for a in tenant_attrs:
+        tenant_attrs_all = get_attributes(client, "Other")
+        for a in tenant_attrs_all:
             if a.get("displayName"):
                 known_attr_ids[a["displayName"]] = a["id"]
     except Exception:
@@ -236,12 +237,26 @@ def sync_aillm_context_tables(
     # (EXA-CONTEXT-SCHEMA-35 — attribute IDs are tenant-specific and opaque)
     pd_key_id = "key"
     pd_risk_id: str | None = None
+    # Maps lowercase risk value → canonical enum value, e.g. {"medium": "Medium"}.
+    # Built from the attribute's format field (e.g. "Low|Medium|High") so that
+    # reference data ("medium") is normalised to the exact enum value the API accepts.
+    pd_risk_value_map: dict[str, str] = {}
     if "public_domains" in sync_buckets and "public_domains" in table_objects:
         pd_key_id, pd_risk_id = _resolve_public_domain_schema(
             table_objects["public_domains"]
         )
+        if pd_risk_id and tenant_attrs_all:
+            for a in tenant_attrs_all:
+                if a.get("id") == pd_risk_id:
+                    for v in a.get("format", "").split("|"):
+                        v = v.strip()
+                        if v:
+                            pd_risk_value_map[v.lower()] = v
+                    break
         console.print(
-            f"  PublicDomains attrs: key={pd_key_id!r} risk={pd_risk_id!r}", style="dim"
+            f"  PublicDomains attrs: key={pd_key_id!r} risk={pd_risk_id!r}"
+            + (f" enum={list(pd_risk_value_map.values())}" if pd_risk_value_map else ""),
+            style="dim",
         )
 
     # Phase 4: Sync each table
@@ -262,7 +277,12 @@ def sync_aillm_context_tables(
                     {
                         pd_key_id: r["key"],
                         **(
-                            {pd_risk_id: r.get("risk", "medium")}
+                            {
+                                pd_risk_id: pd_risk_value_map.get(
+                                    r.get("risk", "medium").lower(),
+                                    r.get("risk", "medium"),
+                                )
+                            }
                             if pd_risk_id
                             else {}
                         ),
