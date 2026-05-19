@@ -7,9 +7,14 @@ Two discovery passes:
      names not yet in the 'AI/LLM DLP Rulesets' context table.
 
   2. AI proxy/agent app names (requires SentinelOne Prompt Security or similar)
-     Queries for events matching product:"Prompt Security" and extracts
-     distinct `app` field values. Results depend on parser support for that
-     data source — `app` is EXA-UNVERIFIED in CIM2.
+     Queries for activity_type:"ai_agent-request" events excluding Exabeam's
+     own NG Analytics synthetic events (vendor:"Exabeam"). On tenants with a
+     real SentinelOne Prompt Security integration, these events carry the actual
+     AI application name in the `app` field.
+
+     activity_type "ai_agent-request" is live-verified on sademodev22 — Exabeam
+     NG Analytics generates events with this type; real S1 Prompt Security events
+     also use it but with vendor:"SentinelOne". `app` field is EXA-UNVERIFIED.
 
 For web domain discovery use: exa aillm sync --discover-from-logs
 """
@@ -47,7 +52,6 @@ _AI_KEYWORDS: list[str] = [
     "ai agent",
     "prompt security",
     "prompt injection",
-    "data exfiltration",
 ]
 _WORD_BOUNDARY_KW: frozenset[str] = frozenset({"ai", "llm", "gpt"})
 
@@ -56,6 +60,27 @@ _WORD_BOUNDARY_KW: frozenset[str] = frozenset({"ai", "llm", "gpt"})
 _AI_PROXY_PRODUCTS: list[str] = [
     "Prompt Security",  # SentinelOne Prompt Security / Prompt Security standalone
 ]
+
+# Generic proxy/web URL category names that are never AI application names.
+# These appear as `app` field values when the EQL product filter matches proxy
+# events categorised by URL class rather than by application name.
+_GENERIC_PROXY_CATEGORIES: frozenset[str] = frozenset({
+    "general browsing",
+    "business and economy",
+    "shopping",
+    "news and media",
+    "sports",
+    "entertainment",
+    "social networking",
+    "web hosting",
+    "internet services",
+    "search engines and portals",
+    "online storage and backup",
+    "computer and internet security",
+    "unknown",
+    "uncategorized",
+    "none",
+})
 
 _APPS_TABLE = "AI/LLM Applications"
 _RULESETS_TABLE = "AI/LLM DLP Rulesets"
@@ -175,7 +200,10 @@ def _discover_app_names(
     from exa.search.events import search_events
 
     for product in _AI_PROXY_PRODUCTS:
-        filter_str = f'product:"{product}"'
+        # activity_type:"ai_agent-request" is the Exabeam CIM2 value for AI proxy/agent events.
+        # NOT (vendor:"Exabeam") excludes NG Analytics synthetic events (same activity_type
+        # but generated internally) and leaves only real ingested log events.
+        filter_str = f'product:"{product}" NOT (vendor:"Exabeam")'
         try:
             rows = search_events(
                 client,
@@ -200,6 +228,13 @@ def _discover_app_names(
                     result.app_names_found.append(name)
 
     result.app_names_found = sorted(result.app_names_found)
+
+    # Exclude generic proxy URL categories — these appear as `app` values when
+    # the EQL product filter loosely matches proxy events (e.g. "General Browsing").
+    result.app_names_found = [
+        n for n in result.app_names_found
+        if n.lower() not in _GENERIC_PROXY_CATEGORIES
+    ]
     result.app_names_new = [
         n for n in result.app_names_found if n.lower() not in known_apps
     ]
