@@ -92,26 +92,45 @@ def _resolve_tables(
     return table_ids
 
 
-def _fetch_existing_keys(client: ExaClient, table_id: str) -> set[str]:
+def _fetch_existing_keys(
+    client: ExaClient, table_id: str, *, key_field: str = "key"
+) -> set[str]:
     """Return lowercase key set of all records currently in a context table.
 
     Returns an empty set on any error so callers can proceed safely.
     """
     try:
         records = get_all_records(client, table_id)
-        return {r.get("key", "").lower() for r in records if r.get("key")}
+        return {r.get(key_field, "").lower() for r in records if r.get(key_field)}
     except Exception:
         return set()
 
 
-def _resolve_risk_attr_id(client: ExaClient, table_id: str) -> str | None:
-    """Get the actual attribute ID for the 'risk' column (EXA-CONTEXT-SCHEMA-35)."""
-    detail = get_table(client, table_id)
-    table_meta = detail.get("table", detail)
-    for attr in table_meta.get("attributes", []):
-        if attr.get("displayName") == "risk" or "risk" in attr.get("id", ""):
-            return attr["id"]
-    return None
+def _resolve_public_domain_schema(
+    client: ExaClient, table_id: str
+) -> tuple[str, str | None]:
+    """Return (key_attr_id, risk_attr_id) for the Public AI Domains and Risk table.
+
+    Reads the live table schema so the sync works regardless of whether the tenant
+    provisioned the table with the legacy ("key"/"risk") or current
+    ("aillm_domain"/"risk_level") attribute IDs. Falls back to ("key", None) on
+    any error so callers proceed safely.
+    """
+    try:
+        detail = get_table(client, table_id)
+        table_meta = detail.get("table", detail)
+        key_attr_id = "key"
+        risk_attr_id: str | None = None
+        for attr in table_meta.get("attributes", []):
+            attr_id = attr.get("id", "")
+            display = (attr.get("displayName") or "").lower()
+            if attr.get("isKey"):
+                key_attr_id = attr_id
+            elif "risk" in attr_id.lower() or "risk" in display:
+                risk_attr_id = attr_id
+        return key_attr_id, risk_attr_id
+    except Exception:
+        return "key", None
 
 
 def sync_aillm_context_tables(
@@ -207,10 +226,17 @@ def sync_aillm_context_tables(
         pass
     table_ids = _resolve_tables(client, sync_buckets, known_attr_ids)
 
-    # Resolve risk attr ID for PublicDomains
-    risk_attr_id: str | None = None
+    # Resolve Public AI Domains attribute IDs (EXA-CONTEXT-SCHEMA-35)
+    pd_key_id = "key"
+    pd_risk_id: str | None = None
     if "public_domains" in sync_buckets and "public_domains" in table_ids:
-        risk_attr_id = _resolve_risk_attr_id(client, table_ids["public_domains"])
+        pd_key_id, pd_risk_id = _resolve_public_domain_schema(
+            client, table_ids["public_domains"]
+        )
+        if pd_key_id != "key" or pd_risk_id not in (None, "risk"):
+            console.print(
+                f"  PublicDomains attrs: key={pd_key_id!r} risk={pd_risk_id!r}", style="dim"
+            )
 
     # Phase 4: Sync each table
     console.print("\n[4/4] Syncing tables...", style="yellow")
@@ -220,9 +246,23 @@ def sync_aillm_context_tables(
         records: list[dict[str, str]] = getattr(merged, bucket)
         ref_count = len(getattr(ref, bucket))
 
-        # Remap risk column if needed (EXA-CONTEXT-SCHEMA-35)
-        if bucket == "public_domains" and risk_attr_id and risk_attr_id != "risk":
-            records = [{"key": r["key"], risk_attr_id: r["risk"]} for r in records]
+        # Remap canonical {"key": domain, "risk": level} to actual attribute IDs
+        # (EXA-CONTEXT-SCHEMA-35 — attribute IDs are opaque and tenant-specific)
+        key_field = "key"
+        if bucket == "public_domains":
+            key_field = pd_key_id
+            if pd_key_id != "key" or (pd_risk_id and pd_risk_id != "risk"):
+                records = [
+                    {
+                        pd_key_id: r["key"],
+                        **(
+                            {pd_risk_id: r.get("risk", "medium")}
+                            if pd_risk_id
+                            else {}
+                        ),
+                    }
+                    for r in records
+                ]
 
         console.print(f"\n  {exa_name}", style="cyan")
         console.print(f"    Reference: {ref_count} | Merged: {len(records)}")
@@ -246,9 +286,9 @@ def sync_aillm_context_tables(
         # force/replace rewrites the whole table so the check is unnecessary.
         skipped = 0
         if operation == "append":
-            existing_keys = _fetch_existing_keys(client, table_id)
+            existing_keys = _fetch_existing_keys(client, table_id, key_field=key_field)
             if existing_keys:
-                records = [r for r in records if r.get("key", "").lower() not in existing_keys]
+                records = [r for r in records if r.get(key_field, "").lower() not in existing_keys]
                 skipped = merged_total - len(records)
                 if skipped:
                     console.print(

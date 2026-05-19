@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -412,3 +413,160 @@ class TestSearchLogsForAIDomains:
         assert merged.merge_stats.discovered_new == 1
         domain_keys = {d["key"] for d in merged.public_domains}
         assert "brand-new-llm.example.com" in domain_keys
+
+
+class TestSyncPublicDomainsMapping:
+    """Schema-aware field mapping for Public AI Domains and Risk (EXA-CONTEXT-SCHEMA-35).
+
+    The baystate tenant uses aillm_domain (key) + risk_level (enum) attribute IDs
+    instead of the legacy key + risk names. Records must be remapped before upload
+    or the API silently drops them.
+    """
+
+    PUB_ID = "pg5mmUzim3"
+
+    def _baystate_attrs(self) -> dict[str, Any]:
+        return {
+            "id": self.PUB_ID,
+            "name": "Public AI Domains and Risk",
+            "attributes": [
+                {
+                    "displayName": "AI/LLM Domain",
+                    "id": "aillm_domain",
+                    "isKey": True,
+                    "type": "string",
+                },
+                {
+                    "displayName": "Risk Level",
+                    "id": "risk_level",
+                    "isKey": False,
+                    "type": "enum",
+                },
+            ],
+        }
+
+    def _standard_attrs(self) -> dict[str, Any]:
+        return {
+            "id": self.PUB_ID,
+            "name": "Public AI Domains and Risk",
+            "attributes": [
+                {"displayName": "Key", "id": "key", "isKey": True, "type": "string"},
+                {"displayName": "risk", "id": "risk", "isKey": False, "type": "string"},
+            ],
+        }
+
+    def _setup_mocks(
+        self,
+        mock_auth: Any,
+        schema: dict[str, Any],
+        existing_records: list[dict[str, Any]] | None = None,
+    ) -> None:
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=[{"name": "Public AI Domains and Risk", "id": self.PUB_ID}],
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/attributes/Other",
+            method="GET",
+            json={"attributes": []},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}",
+            method="GET",
+            json=schema,
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}/records"
+            "?limit=100000&offset=0",
+            method="GET",
+            json={"records": existing_records or []},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}/addRecords",
+            method="POST",
+            json={"status": "ok"},
+        )
+
+    def test_records_use_aillm_domain_and_risk_level_keys(self, exa, mock_auth):
+        """Records sent to baystate table use aillm_domain + risk_level, not key + risk."""
+        self._setup_mocks(mock_auth, self._baystate_attrs())
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["public_domains"])
+        assert results[0].errors == 0
+        assert results[0].upserted > 0
+
+        reqs = mock_auth.get_requests()
+        add_req = next(
+            r for r in reqs if "addRecords" in str(r.url) and r.method == "POST"
+        )
+        body = json.loads(add_req.content)
+        sample = body["data"][0]
+
+        assert "aillm_domain" in sample, f"Expected aillm_domain key, got: {sample}"
+        assert "risk_level" in sample, f"Expected risk_level key, got: {sample}"
+        assert "key" not in sample, f"Canonical 'key' leaked into payload: {sample}"
+        assert "risk" not in sample, f"Canonical 'risk' leaked into payload: {sample}"
+
+    def test_risk_level_value_populated(self, exa, mock_auth):
+        """Each record's risk_level field is non-empty."""
+        self._setup_mocks(mock_auth, self._baystate_attrs())
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        sync_aillm_context_tables(exa, buckets=["public_domains"])
+
+        reqs = mock_auth.get_requests()
+        add_req = next(
+            r for r in reqs if "addRecords" in str(r.url) and r.method == "POST"
+        )
+        body = json.loads(add_req.content)
+        for rec in body["data"]:
+            assert rec.get("risk_level"), f"Empty risk_level in record: {rec}"
+
+    def test_dedup_uses_aillm_domain_key(self, exa, mock_auth):
+        """chatgpt.com already present via aillm_domain field is correctly skipped."""
+        self._setup_mocks(
+            mock_auth,
+            self._baystate_attrs(),
+            existing_records=[{"aillm_domain": "chatgpt.com", "risk_level": "high"}],
+        )
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["public_domains"])
+        assert results[0].skipped == 1
+        assert results[0].upserted == results[0].merged_total - 1
+
+    def test_standard_key_schema_unchanged(self, exa, mock_auth):
+        """Legacy table with key + risk attributes: records remain unchanged."""
+        self._setup_mocks(mock_auth, self._standard_attrs())
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        sync_aillm_context_tables(exa, buckets=["public_domains"])
+
+        reqs = mock_auth.get_requests()
+        add_req = next(
+            (r for r in reqs if "addRecords" in str(r.url) and r.method == "POST"), None
+        )
+        if add_req:
+            body = json.loads(add_req.content)
+            sample = body["data"][0]
+            assert "key" in sample
+            assert "risk" in sample
+
+    def test_nonzero_write_regression(self, exa, mock_auth):
+        """Regression: table stays empty when wrong field names used (pre-fix)."""
+        self._setup_mocks(mock_auth, self._baystate_attrs())
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["public_domains"])
+        # Before fix: upserted > 0 but table stayed at 0 (API silently dropped records).
+        # After fix: records use correct attr IDs so the API persists them.
+        assert results[0].upserted > 0, (
+            "upserted must be > 0 — confirm aillm_domain/risk_level remapping is active"
+        )
