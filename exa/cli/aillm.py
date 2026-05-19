@@ -1,8 +1,9 @@
-"""AI/LLM CLI commands -- sync, sync-ruleset, and status.
+"""AI/LLM CLI commands -- sync, sync-ruleset, discover, and status.
 
 Commands:
   exa aillm sync           -- Sync 6 AI/LLM context tables from reference data
   exa aillm sync-ruleset   -- Sync 'AI/LLM DLP Rulesets' from live alert history
+  exa aillm discover       -- Discover AI activity candidates for context tables
   exa aillm status         -- Show live record counts for all 6 tables
 """
 
@@ -60,6 +61,17 @@ def sync_cmd(
             help="Days to look back when discovering domains from logs [default: 30]",
         ),
     ] = 30,
+    risk_override: Annotated[
+        str | None,
+        typer.Option(
+            "--risk-override",
+            help=(
+                "Path to a JSON file mapping domain -> risk level "
+                '(e.g. {"all-hands.dev": "medium"}). '
+                "Overrides the bundled risk rating for matching domains."
+            ),
+        ),
+    ] = None,
     tenant: Annotated[
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
@@ -68,16 +80,18 @@ def sync_cmd(
     """Sync AI/LLM context tables from bundled reference data.
 
     Populates all 6 Exabeam AI/LLM context tables from the bundled
-    reference dataset (596 records). Use --dry-run to preview first.
+    reference dataset. Use --dry-run to preview first.
     Use --discover-from-logs to augment with AI domains actively seen
     in your environment's proxy/web logs.
+    Use --risk-override to adjust risk ratings before syncing.
 
     \b
     Examples:
-      uv run exa aillm sync
-      uv run exa aillm sync --dry-run
-      uv run exa aillm sync --force
-      uv run exa aillm sync --discover-from-logs --lookback 60 --tenant csnafusion
+      exa aillm sync
+      exa aillm sync --dry-run
+      exa aillm sync --force
+      exa aillm sync --discover-from-logs --lookback 60 --tenant csnafusion
+      exa aillm sync --risk-override overrides.json --tenant csnafusion
     """
     from exa.aillm import sync_aillm_context_tables
 
@@ -106,6 +120,7 @@ def sync_cmd(
             discovered_domains=discovered_domains,
             force=force,
             dry_run=dry_run,
+            risk_override_path=risk_override,
         )
     finally:
         client.close()

@@ -122,24 +122,46 @@ exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
 
 ### `exa aillm`
 
-Sync and monitor six AI/LLM threat detection context tables in Exabeam. Reference data is sourced from [ai-llm-domains](https://github.com/repins267/ai-llm-domains) — a maintained dataset of 221+ domains, 90+ applications, proxy categories, and DLP alert patterns. Run `exa update` to pull the latest data before syncing.
+Sync and monitor six AI/LLM threat detection context tables in Exabeam. Reference data is sourced from [ai-llm-domains](https://github.com/repins267/ai-llm-domains) — a maintained dataset of 223+ domains, 90+ applications, proxy categories, and DLP alert patterns. Run `exa update` to pull the latest data before syncing.
 
 ```bash
-exa aillm sync                          # sync all 6 tables (append mode)
-exa aillm sync --force                  # replace all tables (full overwrite)
-exa aillm sync --tenant baystate        # target a specific tenant
-exa aillm sync --dry-run                # preview record counts without writing
+# Sync all 6 tables from bundled reference data
+exa aillm sync                                            # append mode
+exa aillm sync --force                                    # full replace
+exa aillm sync --dry-run                                  # preview without writing
+exa aillm sync --tenant csnafusion                        # specific tenant
 
-exa aillm status                        # show live record counts for all 6 tables
-exa aillm status --tenant baystate
+# Augment domain tables with AI domains seen in your proxy/web logs
+exa aillm sync --discover-from-logs
+exa aillm sync --discover-from-logs --lookback 60 --tenant csnafusion
+
+# Override risk ratings for specific domains before syncing
+exa aillm sync --risk-override overrides.json             # see format below
+
+# Sync 'AI/LLM DLP Rulesets' from real alert names in Threat Center
+# (run after AI/LLM correlation rules have been active for a few days)
+exa aillm sync-ruleset --tenant csnafusion
+exa aillm sync-ruleset --dry-run --tenant csnafusion      # preview matches
+exa aillm sync-ruleset --lookback 180 --tenant csnafusion # longer window
+
+# Discover AI activity candidates for enriching context tables
+exa aillm discover --tenant csnafusion                    # report only
+exa aillm discover --lookback 60 --tenant csnafusion
+exa aillm discover --add-rulesets --tenant csnafusion     # write alert names
+exa aillm discover --add-apps --tenant csnafusion         # write app names
+exa aillm discover --json --tenant csnafusion             # structured output
+
+# Show live record counts for all 6 tables
+exa aillm status
+exa aillm status --tenant csnafusion
 ```
 
 **The 6 context tables:**
 
 | Table | Key | Records | Content |
 |---|---|---|---|
-| Public AI Domains and Risk | `aillm_domain` | 221 | Domains with Low/Medium/High risk rating |
-| AI/LLM Web Domains | `key` | 221 | Domain-only list for web filtering |
+| Public AI Domains and Risk | `aillm_domain` | 223 | Domains with Low/Medium/High risk rating |
+| AI/LLM Web Domains | `key` | 223 | Domain-only list for web filtering |
 | AI/LLM Applications | `key` | 90 | Application names for log matching |
 | AI/LLM Proxy Categories | `key` | 9 | Vendor proxy/URL filter category names |
 | AI/LLM Web Categories | `key` | 9 | Web category names |
@@ -159,7 +181,7 @@ exa aillm status --tenant baystate
 | Video AI | 13 | 1 | 12 | 0 |
 | Voice/Audio AI | 10 | 0 | 10 | 0 |
 
-**High-risk rationales:** China data jurisdiction (DeepSeek, Qwen, Doubao, Kimi, ERNIE, Kling AI) · Autonomous execution / OS-level access (OpenHands, AutoGPT, Open Interpreter, OpenClaw) · No enterprise controls (Character.AI, CivitAI) · Malicious impersonators (zeroclaw.org, zeroclaw.net). See the [ai-llm-domains README](https://github.com/repins267/ai-llm-domains) for the full rationale table.
+**High-risk rationales:** China data jurisdiction (DeepSeek, Qwen, Doubao, Kimi, ERNIE, Kling AI) · Autonomous execution / OS-level access (OpenHands, AutoGPT, Open Interpreter, OpenClaw) · No enterprise controls (Character.AI, CivitAI) · Unauthorized forks/impersonators (zeroclaw.org, zeroclaw.net — included for detection). See the [ai-llm-domains README](https://github.com/repins267/ai-llm-domains) for the full rationale table.
 
 **Exclusions applied at load time** (present in reference data but not synced to tables):
 - IPv4 address entries — not valid as domain table keys
@@ -168,10 +190,16 @@ exa aillm status --tenant baystate
 **Per-tenant risk overrides:**
 
 ```bash
-# Override risk for specific domains before syncing
-echo '{"all-hands.dev": "medium"}' > overrides.json
-exa aillm sync --risk-override overrides.json
+# Create a JSON file mapping domain -> risk level
+echo '{"all-hands.dev": "medium", "deepseek.com": "critical"}' > overrides.json
+exa aillm sync --risk-override overrides.json --tenant csnafusion
 ```
+
+**`sync-ruleset` — why it exists:** The bundled DLP reference data contains generic vendor DLP pattern names. `sync-ruleset` replaces those with the actual correlation rule names that are firing on this tenant — the exact strings that appear in `alert_name` and drive Looker/BigQuery AI dashboard tiles.
+
+**`discover` — two passes:**
+- **Pass 1 (all tenants):** Pulls Threat Center alert names, filters for AI/LLM keywords, reports names not yet in the DLP Rulesets table. Use `--add-rulesets` to write them.
+- **Pass 2 (requires SentinelOne Prompt Security or similar):** Queries for AI proxy/agent events and extracts distinct application names. Use `--add-apps` to write new names to the Applications table.
 
 ### `exa hotkey`
 
