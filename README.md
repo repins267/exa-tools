@@ -162,7 +162,7 @@ exa aillm status --tenant baystate
 **High-risk rationales:** China data jurisdiction (DeepSeek, Qwen, Doubao, Kimi, ERNIE, Kling AI) · Autonomous execution / OS-level access (OpenHands, AutoGPT, Open Interpreter, OpenClaw) · No enterprise controls (Character.AI, CivitAI) · Malicious impersonators (zeroclaw.org, zeroclaw.net). See the [ai-llm-domains README](https://github.com/repins267/ai-llm-domains) for the full rationale table.
 
 **Exclusions applied at load time** (present in reference data but not synced to tables):
-- `zeroclaw.org`, `zeroclaw.net` — active malicious impersonators; kept as threat intel, excluded from domain tables
+- IPv4 address entries — not valid as domain table keys
 - 12 DLP IOC entries (Threat Campaign IOC, Supply Chain IOC, Network IOC vendors) — threat indicators, not DLP policy names
 
 **Per-tenant risk overrides:**

@@ -46,11 +46,13 @@ class TestLoadReferenceData:
             # Should not be a pure IPv4 address
             assert not (len(parts) == 4 and all(p.isdigit() for p in parts))
 
-    def test_malicious_domains_excluded(self):
+    def test_impersonator_domains_included_for_detection(self):
+        # zeroclaw.org / zeroclaw.net are high-risk impersonator domains and
+        # should be in the tables so access to them triggers detection rules.
         ref = load_reference_data()
         domain_keys = {d["key"] for d in ref.public_domains}
-        assert "zeroclaw.org" not in domain_keys
-        assert "zeroclaw.net" not in domain_keys
+        assert "zeroclaw.org" in domain_keys
+        assert "zeroclaw.net" in domain_keys
 
 
 class TestMergeAILLMData:

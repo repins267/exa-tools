@@ -1846,21 +1846,21 @@
   },
   {
     "domain": "zeroclaw.org",
-    "provider": "ZeroClaw Impersonator",
+    "provider": "ZeroClaw",
     "app": "ZeroClaw (Unauthorized Fork)",
     "risk": "high",
     "category": "Shadow AI",
     "type": "primary",
-    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
+    "notes": "Unauthorized fork impersonating official ZeroClaw project (zeroclawlabs.ai). Included for detection — access indicates use of unverified agent software."
   },
   {
     "domain": "zeroclaw.net",
-    "provider": "ZeroClaw Impersonator",
+    "provider": "ZeroClaw",
     "app": "ZeroClaw (Unauthorized Fork)",
     "risk": "high",
     "category": "Shadow AI",
     "type": "primary",
-    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
+    "notes": "Unauthorized fork impersonating official ZeroClaw project (zeroclawlabs.ai). Included for detection — access indicates use of unverified agent software."
   },
   {
     "domain": "cline.bot",

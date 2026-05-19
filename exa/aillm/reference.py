@@ -1,8 +1,7 @@
 """Load and filter AI/LLM reference data from bundled JSON files.
 
 Applies exclusion filters:
-- IPv4 addresses
-- Named malicious/impersonator domains
+- IPv4 addresses (not valid domain table keys)
 - DLP entries that are IOCs rather than named alert strings
 """
 
@@ -16,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 _IPV4_RE = re.compile(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
-_MALICIOUS_DOMAINS = frozenset({"zeroclaw.org", "zeroclaw.net"})
 _DLP_IOC_VENDOR_PATTERN = re.compile(r"IOC", re.IGNORECASE)
 
 # External repo data takes precedence over the bundled snapshot when present.
@@ -60,12 +58,12 @@ def load_reference_data() -> ReferenceData:
     raw_proxy_cats = _load_json("known_proxy_categories.json")
     raw_dlp = _load_json("known_dlp_alert_patterns.json")
 
-    # Filter domains
+    # Filter domains — exclude IPv4 addresses (invalid domain table keys only)
     filtered_domains: list[dict[str, Any]] = []
     excluded_domains = 0
     for d in raw_domains:
         domain = d.get("domain", "")
-        if _IPV4_RE.match(domain) or domain in _MALICIOUS_DOMAINS:
+        if _IPV4_RE.match(domain):
             excluded_domains += 1
             continue
         filtered_domains.append(d)
