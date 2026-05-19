@@ -160,6 +160,15 @@ def auth(
         raise typer.Exit(1)
 
 
+# -- Version ------------------------------------------------------------------
+
+@app.command()
+def version() -> None:
+    """Show exa-tools version."""
+    from importlib.metadata import version as _version
+    console.print(f"exa-tools {_version('exa-tools')}")
+
+
 # -- Context tables -----------------------------------------------------------
 
 from exa.cli.tables import tables_app  # noqa: E402

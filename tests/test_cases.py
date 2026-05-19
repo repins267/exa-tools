@@ -1,6 +1,10 @@
 """Tests for Threat Center case and alert operations."""
 
+import json
 from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
+
+from typer.testing import CliRunner
 
 from exa.case import (
     create_case,
@@ -11,6 +15,7 @@ from exa.case import (
     update_alert,
     update_case,
 )
+from exa.cli.cases import alerts_app, cases_app
 
 BASE_URL = "https://api.us-west.exabeam.cloud"
 
@@ -411,8 +416,123 @@ class TestUpdateAlert:
             json=ALERT_ROW,
         )
         update_alert(exa, "alert-uuid-001", name="New Name")
-        import json
         request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/alerts/alert-uuid-001")
         body = json.loads(request.content)
         assert "alertName" in body
         assert "name" not in body
+
+
+# ---------------------------------------------------------------------------
+# Filter pass-through verbatim
+# ---------------------------------------------------------------------------
+
+class TestCasesFilterPassthrough:
+    def test_not_stage_closed_verbatim(self, exa, mock_auth):
+        """Filter 'NOT stage:"CLOSED"' must reach the API body unchanged."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/search/cases",
+            method="POST",
+            json=SEARCH_CASES_RESPONSE,
+        )
+        filter_str = 'NOT stage:"CLOSED"'
+        search_cases(exa, filter=filter_str)
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/cases")
+        body = json.loads(request.content)
+        assert body["filter"] == filter_str
+
+    def test_filter_key_always_present(self, exa, mock_auth):
+        """filter key must be present even with no filter (EXA-SEARCH-FILTER-400)."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/search/cases",
+            method="POST",
+            json=SEARCH_CASES_RESPONSE,
+        )
+        search_cases(exa)
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/cases")
+        body = json.loads(request.content)
+        assert "filter" in body
+        assert body["filter"] == ""
+
+
+class TestAlertsFilterPassthrough:
+    def test_alert_name_verbatim(self, exa, mock_auth):
+        """Filter 'alertName:"Abnormal day of week"' must reach API body unchanged."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/search/alerts",
+            method="POST",
+            json=SEARCH_ALERTS_RESPONSE,
+        )
+        filter_str = 'alertName:"Abnormal day of week"'
+        search_alerts(exa, filter=filter_str)
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/alerts")
+        body = json.loads(request.content)
+        assert body["filter"] == filter_str
+
+    def test_filter_key_always_present(self, exa, mock_auth):
+        """filter key must be present even with no filter (EXA-SEARCH-FILTER-400)."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/search/alerts",
+            method="POST",
+            json=SEARCH_ALERTS_RESPONSE,
+        )
+        search_alerts(exa)
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/search/alerts")
+        body = json.loads(request.content)
+        assert "filter" in body
+        assert body["filter"] == ""
+
+
+# ---------------------------------------------------------------------------
+# --output file write (CLI level)
+# ---------------------------------------------------------------------------
+
+class TestCasesListOutputOption:
+    def test_output_writes_json_file(self, tmp_path):
+        outfile = tmp_path / "cases.json"
+        runner = CliRunner()
+        with patch("exa.cli.cases._make_client", return_value=MagicMock()):
+            with patch("exa.case.search_cases", return_value=[CASE_ROW]):
+                result = runner.invoke(cases_app, ["list", "--output", str(outfile)])
+        assert result.exit_code == 0, result.output
+        assert outfile.exists()
+        data = json.loads(outfile.read_text(encoding="utf-8"))
+        assert isinstance(data, list)
+        assert data[0]["caseId"] == "case-uuid-001"
+
+    def test_output_and_json_both_work(self, tmp_path):
+        outfile = tmp_path / "cases.json"
+        runner = CliRunner()
+        with patch("exa.cli.cases._make_client", return_value=MagicMock()):
+            with patch("exa.case.search_cases", return_value=[CASE_ROW]):
+                result = runner.invoke(
+                    cases_app, ["list", "--json", "--output", str(outfile)],
+                )
+        assert result.exit_code == 0, result.output
+        assert outfile.exists()
+        assert "case-uuid-001" in result.output
+
+
+class TestAlertsListOutputOption:
+    def test_output_writes_json_file(self, tmp_path):
+        outfile = tmp_path / "alerts.json"
+        runner = CliRunner()
+        with patch("exa.cli.cases._make_client", return_value=MagicMock()):
+            with patch("exa.case.search_alerts", return_value=[ALERT_ROW]):
+                result = runner.invoke(alerts_app, ["list", "--output", str(outfile)])
+        assert result.exit_code == 0, result.output
+        assert outfile.exists()
+        data = json.loads(outfile.read_text(encoding="utf-8"))
+        assert isinstance(data, list)
+        assert data[0]["alertId"] == "alert-uuid-001"
+
+    def test_output_and_json_both_work(self, tmp_path):
+        outfile = tmp_path / "alerts.json"
+        runner = CliRunner()
+        with patch("exa.cli.cases._make_client", return_value=MagicMock()):
+            with patch("exa.case.search_alerts", return_value=[ALERT_ROW]):
+                result = runner.invoke(
+                    alerts_app, ["list", "--json", "--output", str(outfile)],
+                )
+        assert result.exit_code == 0, result.output
+        assert outfile.exists()
+        assert "alert-uuid-001" in result.output

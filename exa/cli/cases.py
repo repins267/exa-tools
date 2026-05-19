@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -32,6 +33,12 @@ console = Console()
 
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 _PRIORITY_VALUES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+_FILTER_HINT = (
+    '  Filter syntax: field:"value", NOT field:"value", field:"a" OR field:"b"\n'
+    "  PowerShell: use single quotes around the filter value:\n"
+    '    --filter \'NOT stage:"CLOSED"\'\n'
+    '    --filter \'alertName:"Abnormal day of week"\''
+)
 
 
 def _make_client(tenant: str | None = None):
@@ -68,6 +75,10 @@ def cases_list(
         bool,
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write JSON to file (default: print to terminal)"),
+    ] = None,
 ) -> None:
     """List and search Threat Center cases.
 
@@ -81,60 +92,78 @@ def cases_list(
       uv run exa cases list --filter 'priority:"HIGH"' --lookback 7
       uv run exa cases list --filter 'NOT stage:"CLOSED"' --limit 25
       uv run exa cases list --json --tenant csnafusion
+      uv run exa cases list --output cases.json
     """
     from exa.case import search_cases
 
     client = _make_client(tenant)
     try:
-        rows = search_cases(
-            client,
-            filter=filter,
-            lookback_days=lookback,
-            limit=limit,
-        )
-
-        if json_out:
-            import json
-            console.print_json(json.dumps(rows))
-            return
-
-        if not rows:
-            console.print("No cases found.", style="dim")
-            return
-
-        table = Table(show_header=True, header_style="bold")
-        table.add_column("Case #", style="cyan", no_wrap=True)
-        table.add_column("Name", max_width=40)
-        table.add_column("Stage", no_wrap=True)
-        table.add_column("Priority", no_wrap=True)
-        table.add_column("Risk", no_wrap=True)
-        table.add_column("Assignee", no_wrap=True)
-        table.add_column("Case ID", style="dim", no_wrap=True)
-
-        priority_colors = {
-            "CRITICAL": "red",
-            "HIGH": "yellow",
-            "MEDIUM": "blue",
-            "LOW": "green",
-        }
-
-        for row in rows:
-            pri = str(row.get("priority", "")).upper()
-            pri_style = priority_colors.get(pri, "")
-            table.add_row(
-                str(row.get("caseNumber", "")),
-                str(row.get("alertName", row.get("caseName", ""))),
-                str(row.get("stage", "")),
-                f"[{pri_style}]{pri}[/{pri_style}]" if pri_style else pri,
-                str(row.get("riskScore", "")),
-                str(row.get("assignee", "")),
-                str(row.get("caseId", "")),
+        try:
+            rows = search_cases(
+                client,
+                filter=filter,
+                lookback_days=lookback,
+                limit=limit,
             )
-
-        console.print(table)
-        console.print(f"\n  {len(rows)} case(s)", style="dim")
+        except Exception as e:
+            from exa.exceptions import ExaAPIError as _ExaAPIError
+            if isinstance(e, _ExaAPIError) and e.status_code == 400:
+                console.print(f"  Filter error (HTTP 400): {e.detail}", style="red")
+                if filter:
+                    console.print(_FILTER_HINT, style="dim")
+                raise typer.Exit(1)
+            raise
     finally:
         client.close()
+
+    if output is not None:
+        import json as _json
+        output.write_text(_json.dumps(rows, indent=2), encoding="utf-8")
+
+    if json_out:
+        import json
+        console.print_json(json.dumps(rows))
+        return
+
+    if output is not None:
+        console.print(f"  {len(rows)} case(s) written to {output}", style="dim")
+        return
+
+    if not rows:
+        console.print("No cases found.", style="dim")
+        return
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Case #", style="cyan", no_wrap=True)
+    table.add_column("Name", max_width=40)
+    table.add_column("Stage", no_wrap=True)
+    table.add_column("Priority", no_wrap=True)
+    table.add_column("Risk", no_wrap=True)
+    table.add_column("Assignee", no_wrap=True)
+    table.add_column("Case ID", style="dim", no_wrap=True)
+
+    priority_colors = {
+        "CRITICAL": "red",
+        "HIGH": "yellow",
+        "MEDIUM": "blue",
+        "LOW": "green",
+    }
+
+    for row in rows:
+        pri = str(row.get("priority", "")).upper()
+        pri_style = priority_colors.get(pri, "")
+        table.add_row(
+            str(row.get("caseNumber", "")),
+            str(row.get("alertName", row.get("caseName", ""))),
+            str(row.get("stage", "")),
+            f"[{pri_style}]{pri}[/{pri_style}]" if pri_style else pri,
+            str(row.get("riskScore", "")),
+            str(row.get("assignee", "")),
+            str(row.get("caseId", "")),
+        )
+
+    console.print(table)
+    console.print(f"\n  {len(rows)} case(s)", style="dim")
 
 
 @cases_app.command("get")
@@ -318,6 +347,10 @@ def alerts_list(
         bool,
         typer.Option("--json/--no-json", help="Output raw JSON [default: no-json]"),
     ] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write JSON to file (default: print to terminal)"),
+    ] = None,
 ) -> None:
     """List and search Threat Center alerts.
 
@@ -331,56 +364,74 @@ def alerts_list(
       uv run exa alerts list --filter 'priority:"CRITICAL"' --lookback 1
       uv run exa alerts list --filter 'priority:"HIGH"' --limit 100 --json
       uv run exa alerts list --tenant csnafusion
+      uv run exa alerts list --output alerts.json
     """
     from exa.case import search_alerts
 
     client = _make_client(tenant)
     try:
-        rows = search_alerts(
-            client,
-            filter=filter,
-            lookback_days=lookback,
-            limit=limit,
-        )
-
-        if json_out:
-            import json
-            console.print_json(json.dumps(rows))
-            return
-
-        if not rows:
-            console.print("No alerts found.", style="dim")
-            return
-
-        table = Table(show_header=True, header_style="bold")
-        table.add_column("Name", max_width=40)
-        table.add_column("Priority", no_wrap=True)
-        table.add_column("Risk", no_wrap=True)
-        table.add_column("Case ID", no_wrap=True)
-        table.add_column("Alert ID", style="dim", no_wrap=True)
-
-        priority_colors = {
-            "CRITICAL": "red",
-            "HIGH": "yellow",
-            "MEDIUM": "blue",
-            "LOW": "green",
-        }
-
-        for row in rows:
-            pri = str(row.get("priority", "")).upper()
-            pri_style = priority_colors.get(pri, "")
-            table.add_row(
-                str(row.get("alertName", "")),
-                f"[{pri_style}]{pri}[/{pri_style}]" if pri_style else pri,
-                str(row.get("riskScore", "")),
-                str(row.get("caseId", "")),
-                str(row.get("alertId", "")),
+        try:
+            rows = search_alerts(
+                client,
+                filter=filter,
+                lookback_days=lookback,
+                limit=limit,
             )
-
-        console.print(table)
-        console.print(f"\n  {len(rows)} alert(s)", style="dim")
+        except Exception as e:
+            from exa.exceptions import ExaAPIError as _ExaAPIError
+            if isinstance(e, _ExaAPIError) and e.status_code == 400:
+                console.print(f"  Filter error (HTTP 400): {e.detail}", style="red")
+                if filter:
+                    console.print(_FILTER_HINT, style="dim")
+                raise typer.Exit(1)
+            raise
     finally:
         client.close()
+
+    if output is not None:
+        import json as _json
+        output.write_text(_json.dumps(rows, indent=2), encoding="utf-8")
+
+    if json_out:
+        import json
+        console.print_json(json.dumps(rows))
+        return
+
+    if output is not None:
+        console.print(f"  {len(rows)} alert(s) written to {output}", style="dim")
+        return
+
+    if not rows:
+        console.print("No alerts found.", style="dim")
+        return
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Name", max_width=40)
+    table.add_column("Priority", no_wrap=True)
+    table.add_column("Risk", no_wrap=True)
+    table.add_column("Case ID", no_wrap=True)
+    table.add_column("Alert ID", style="dim", no_wrap=True)
+
+    priority_colors = {
+        "CRITICAL": "red",
+        "HIGH": "yellow",
+        "MEDIUM": "blue",
+        "LOW": "green",
+    }
+
+    for row in rows:
+        pri = str(row.get("priority", "")).upper()
+        pri_style = priority_colors.get(pri, "")
+        table.add_row(
+            str(row.get("alertName", "")),
+            f"[{pri_style}]{pri}[/{pri_style}]" if pri_style else pri,
+            str(row.get("riskScore", "")),
+            str(row.get("caseId", "")),
+            str(row.get("alertId", "")),
+        )
+
+    console.print(table)
+    console.print(f"\n  {len(rows)} alert(s)", style="dim")
 
 
 @alerts_app.command("get")
