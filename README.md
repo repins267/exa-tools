@@ -120,6 +120,59 @@ exa tables records upload TABLE CSV_PATH [--replace] [--key COLNAME]
 exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
 ```
 
+### `exa aillm`
+
+Sync and monitor six AI/LLM threat detection context tables in Exabeam. Reference data is sourced from [ai-llm-domains](https://github.com/repins267/ai-llm-domains) — a maintained dataset of 221+ domains, 90+ applications, proxy categories, and DLP alert patterns. Run `exa update` to pull the latest data before syncing.
+
+```bash
+exa aillm sync                          # sync all 6 tables (append mode)
+exa aillm sync --force                  # replace all tables (full overwrite)
+exa aillm sync --tenant baystate        # target a specific tenant
+exa aillm sync --dry-run                # preview record counts without writing
+
+exa aillm status                        # show live record counts for all 6 tables
+exa aillm status --tenant baystate
+```
+
+**The 6 context tables:**
+
+| Table | Key | Records | Content |
+|---|---|---|---|
+| Public AI Domains and Risk | `aillm_domain` | 221 | Domains with Low/Medium/High risk rating |
+| AI/LLM Web Domains | `key` | 221 | Domain-only list for web filtering |
+| AI/LLM Applications | `key` | 90 | Application names for log matching |
+| AI/LLM Proxy Categories | `key` | 9 | Vendor proxy/URL filter category names |
+| AI/LLM Web Categories | `key` | 9 | Web category names |
+| AI/LLM DLP Rulesets | `key` | 46 | DLP alert/policy names indicating AI data transfer |
+
+**Domain categories and risk:**
+
+| Category | Domains | High | Medium | Low |
+|---|---|---|---|---|
+| Generative AI | 33 | 12 | 21 | 0 |
+| AI Platform/API | 75 | 3 | 52 | 20 |
+| Code Assistant | 30 | 0 | 6 | 24 |
+| Shadow AI | 21 | 11 | 10 | 0 |
+| Image Generation | 19 | 4 | 14 | 1 |
+| AI Search | 11 | 0 | 9 | 2 |
+| AI Productivity | 11 | 0 | 11 | 0 |
+| Video AI | 13 | 1 | 12 | 0 |
+| Voice/Audio AI | 10 | 0 | 10 | 0 |
+
+**High-risk rationales:** China data jurisdiction (DeepSeek, Qwen, Doubao, Kimi, ERNIE, Kling AI) · Autonomous execution / OS-level access (OpenHands, AutoGPT, Open Interpreter, OpenClaw) · No enterprise controls (Character.AI, CivitAI) · Malicious impersonators (zeroclaw.org, zeroclaw.net). See the [ai-llm-domains README](https://github.com/repins267/ai-llm-domains) for the full rationale table.
+
+**Exclusions applied at load time** (present in reference data but not synced to tables):
+- `zeroclaw.org`, `zeroclaw.net` — active malicious impersonators; kept as threat intel, excluded from domain tables
+- 12 DLP IOC entries (Threat Campaign IOC, Supply Chain IOC, Network IOC vendors) — threat indicators, not DLP policy names
+
+**Per-tenant risk overrides:**
+
+```bash
+# Override risk for specific domains before syncing
+echo '{"all-hands.dev": "medium"}' > overrides.json
+exa aillm sync --risk-override overrides.json
+```
+
 ### `exa hotkey`
 
 Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (Known customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
