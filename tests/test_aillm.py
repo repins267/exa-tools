@@ -461,20 +461,17 @@ class TestSyncPublicDomainsMapping:
         schema: dict[str, Any],
         existing_records: list[dict[str, Any]] | None = None,
     ) -> None:
+        # The list endpoint includes `attributes` — sync reads schema from here,
+        # not from the individual /tables/{id} endpoint.
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables",
             method="GET",
-            json=[{"name": "Public AI Domains and Risk", "id": self.PUB_ID}],
+            json=[schema],
         )
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/attributes/Other",
             method="GET",
             json={"attributes": []},
-        )
-        mock_auth.add_response(
-            url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}",
-            method="GET",
-            json=schema,
         )
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables/{self.PUB_ID}/records"

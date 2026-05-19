@@ -27,7 +27,6 @@ from exa.context.tables import (
     create_table,
     get_all_records,
     get_attributes,
-    get_table,
     get_tables,
 )
 
@@ -62,15 +61,22 @@ def _resolve_tables(
     client: ExaClient,
     buckets: list[str],
     known_attr_ids: dict[str, str],
-) -> dict[str, str]:
-    """Resolve or create all target tables. Returns bucket → table_id mapping."""
-    existing = {t["name"]: t for t in get_tables(client)}
+    existing_tables: list[dict[str, Any]],
+) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
+    """Resolve or create all target tables.
+
+    Returns (bucket -> table_id, bucket -> full table object from list endpoint).
+    The full table objects include the `attributes` array used for schema resolution.
+    """
+    existing = {t["name"]: t for t in existing_tables}
     table_ids: dict[str, str] = {}
+    table_objects: dict[str, dict[str, Any]] = {}
 
     for bucket in buckets:
         exa_name = TABLE_MAP[bucket]
         if exa_name in existing:
             table_ids[bucket] = existing[exa_name]["id"]
+            table_objects[bucket] = existing[exa_name]
             console.print(f"  Found: {exa_name} ({existing[exa_name]['id']})", style="green")
         else:
             console.print(f"  Creating: {exa_name}...", style="yellow", end="")
@@ -84,12 +90,13 @@ def _resolve_tables(
             result = create_table(client, exa_name, attributes=attrs)
             if result and "table" in result:
                 table_ids[bucket] = result["table"]["id"]
+                table_objects[bucket] = result["table"]
                 console.print(f" Created ({result['table']['id']})", style="green")
             else:
                 console.print(" FAILED", style="red")
             client.batch_write_sleep()
 
-    return table_ids
+    return table_ids, table_objects
 
 
 def _fetch_existing_keys(
@@ -107,30 +114,24 @@ def _fetch_existing_keys(
 
 
 def _resolve_public_domain_schema(
-    client: ExaClient, table_id: str
+    table_obj: dict[str, Any],
 ) -> tuple[str, str | None]:
-    """Return (key_attr_id, risk_attr_id) for the Public AI Domains and Risk table.
+    """Return (key_attr_id, risk_attr_id) from a table object from get_tables().
 
-    Reads the live table schema so the sync works regardless of whether the tenant
-    provisioned the table with the legacy ("key"/"risk") or current
-    ("aillm_domain"/"risk_level") attribute IDs. Falls back to ("key", None) on
-    any error so callers proceed safely.
+    Uses the list-endpoint response (which reliably includes `attributes`) so we
+    avoid a second round-trip to the individual /tables/{id} endpoint whose
+    response structure varies across tenants.
     """
-    try:
-        detail = get_table(client, table_id)
-        table_meta = detail.get("table", detail)
-        key_attr_id = "key"
-        risk_attr_id: str | None = None
-        for attr in table_meta.get("attributes", []):
-            attr_id = attr.get("id", "")
-            display = (attr.get("displayName") or "").lower()
-            if attr.get("isKey"):
-                key_attr_id = attr_id
-            elif "risk" in attr_id.lower() or "risk" in display:
-                risk_attr_id = attr_id
-        return key_attr_id, risk_attr_id
-    except Exception:
-        return "key", None
+    key_attr_id = "key"
+    risk_attr_id: str | None = None
+    for attr in table_obj.get("attributes", []):
+        attr_id = attr.get("id", "")
+        display = (attr.get("displayName") or "").lower()
+        if attr.get("isKey"):
+            key_attr_id = attr_id
+        elif "risk" in attr_id.lower() or "risk" in display:
+            risk_attr_id = attr_id
+    return key_attr_id, risk_attr_id
 
 
 def sync_aillm_context_tables(
@@ -215,7 +216,10 @@ def sync_aillm_context_tables(
 
     # Phase 3: Resolve tables
     console.print("\n[3/4] Resolving target context tables...", style="yellow")
-    # Resolve tenant-wide attribute IDs (EXA-CONTEXT-SCHEMA-35 workaround)
+    # Fetch the full table list once — used for both ID resolution and schema reading.
+    # The list endpoint reliably includes `attributes`; the individual /tables/{id}
+    # endpoint has a different response structure on some tenants.
+    all_tenant_tables = get_tables(client)
     known_attr_ids: dict[str, str] = {}
     try:
         tenant_attrs = get_attributes(client, "Other")
@@ -224,19 +228,21 @@ def sync_aillm_context_tables(
                 known_attr_ids[a["displayName"]] = a["id"]
     except Exception:
         pass
-    table_ids = _resolve_tables(client, sync_buckets, known_attr_ids)
+    table_ids, table_objects = _resolve_tables(
+        client, sync_buckets, known_attr_ids, all_tenant_tables
+    )
 
-    # Resolve Public AI Domains attribute IDs (EXA-CONTEXT-SCHEMA-35)
+    # Resolve Public AI Domains attribute IDs from the already-fetched schema
+    # (EXA-CONTEXT-SCHEMA-35 — attribute IDs are tenant-specific and opaque)
     pd_key_id = "key"
     pd_risk_id: str | None = None
-    if "public_domains" in sync_buckets and "public_domains" in table_ids:
+    if "public_domains" in sync_buckets and "public_domains" in table_objects:
         pd_key_id, pd_risk_id = _resolve_public_domain_schema(
-            client, table_ids["public_domains"]
+            table_objects["public_domains"]
         )
-        if pd_key_id != "key" or pd_risk_id not in (None, "risk"):
-            console.print(
-                f"  PublicDomains attrs: key={pd_key_id!r} risk={pd_risk_id!r}", style="dim"
-            )
+        console.print(
+            f"  PublicDomains attrs: key={pd_key_id!r} risk={pd_risk_id!r}", style="dim"
+        )
 
     # Phase 4: Sync each table
     console.print("\n[4/4] Syncing tables...", style="yellow")
