@@ -97,6 +97,7 @@ class ExaClient:
             self.base_url = base_url.rstrip("/")
             self._client_id = client_id
             self._client_secret = client_secret
+            self.tenant: str | None = None
         elif fqdn is not None:
             # Resolve FQDN → API server, then load creds by nickname
             from exa.config import load_profile, resolve_fqdn
@@ -106,18 +107,21 @@ class ExaClient:
             self.base_url = api_server_r.rstrip("/")
             self._client_id = cid
             self._client_secret = csecret
+            self.tenant = nickname
         elif tenant is not None or (
             base_url is None and client_id is None
         ):
             # Load from keyring by tenant nickname or FQDN
-            from exa.config import load_profile
+            from exa.config import load_profile, get_default_tenant
 
-            api_server, cid, csecret = load_profile(tenant)
+            resolved_tenant = tenant if tenant is not None else get_default_tenant()
+            api_server, cid, csecret = load_profile(resolved_tenant)
             if not api_server.startswith("https://"):
                 raise ValueError("API server URL must use HTTPS")
             self.base_url = api_server.rstrip("/")
             self._client_id = cid
             self._client_secret = csecret
+            self.tenant = resolved_tenant
         else:
             raise ExaAuthError(
                 "Provide all of (base_url, client_id, client_secret) "

@@ -199,6 +199,13 @@ from exa.cli.detection import detection_app  # noqa: E402
 app.add_typer(detection_app)
 
 
+# -- Endpoint audit -----------------------------------------------------------
+
+from exa.cli.endpoint import endpoint_app  # noqa: E402
+
+app.add_typer(endpoint_app)
+
+
 # -- Search -------------------------------------------------------------------
 
 _SEARCH_DEFAULT_API_FIELDS = ["user", "host", "activity_type", "outcome"]
