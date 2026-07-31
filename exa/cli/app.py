@@ -554,6 +554,13 @@ from exa.cli.sigma import sigma_app  # noqa: E402
 
 app.add_typer(sigma_app)
 
+
+# -- Simulate -----------------------------------------------------------------
+
+from exa.cli.simulate import simulate_app  # noqa: E402
+
+app.add_typer(simulate_app)
+
 # Short aliases: exa sc → exa sigma convert, exa sd → exa sigma deploy
 sc_app = typer.Typer(
     name="sc", hidden=True, invoke_without_command=True,
