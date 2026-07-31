@@ -229,6 +229,10 @@ def _map_field(sigma_field: str) -> tuple[str, str | None]:
     """Map a Sigma field (with optional modifier) to CIM2.
 
     Returns (cim2_field, modifier) where modifier is endswith/contains/startswith/None.
+    Resolution is oracle-aware via resolve_cim2_field, so the EQL query and the
+    deploy-readiness confidence check can never disagree on the mapped field
+    (a raw field passed through here while the checker resolved it via the
+    oracle previously produced invalid EQL flagged "Deploy Ready: Yes").
     """
     modifier = None
     base_field = sigma_field
@@ -237,7 +241,7 @@ def _map_field(sigma_field: str) -> tuple[str, str | None]:
         base_field = parts[0]
         modifier = parts[1] if len(parts) > 1 else None
 
-    cim2 = CIM2_FIELD_MAP.get(base_field, base_field)
+    cim2, _confidence = resolve_cim2_field(base_field)
     return cim2, modifier
 
 
