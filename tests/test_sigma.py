@@ -158,3 +158,69 @@ class TestUnsupportedModifierWarning:
         assert " AND " in result
         assert " OR " not in result
         assert len(warnings) == 0  # 'all' is supported, no warning
+
+
+class TestWildcardRegexEscaping:
+    r"""WLDi() globs are regex-compiled backend-side, so literal regex
+    metacharacters in the Sigma value must be escaped by the converter.
+
+    Verified against sademodev22 2026-07-31: a pattern built from the literal
+    text '\WINDOWS\system32' returned 0 hits against data that provably
+    contains it, while the doubled-backslash form returned the full sample.
+    """
+
+    def test_backslash_is_doubled_in_endswith(self):
+        r"""Sigma paths like '\netsh.exe' must not become a regex escape."""
+        result = _build_field_condition(
+            "process_name", "endswith", [r"\netsh.exe"],
+            sigma_field="Image|endswith", warnings=[],
+        )
+        # Two literal backslashes reach the backend regex as one literal '\'.
+        assert result == 'process_name:WLDi("*' + "\\\\" + 'netsh.exe")'
+
+    def test_backslash_doubled_for_all_wildcard_modifiers(self):
+        bs2 = "\\\\"  # two literal backslashes
+        for mod, expected in [
+            ("endswith", f'process_name:WLDi("*{bs2}powershell.exe")'),
+            ("startswith", f'process_name:WLDi("{bs2}powershell.exe*")'),
+            ("contains", f'process_name:WLDi("*{bs2}powershell.exe*")'),
+        ]:
+            result = _build_field_condition(
+                "process_name", mod, [r"\powershell.exe"],
+                sigma_field=f"Image|{mod}", warnings=[],
+            )
+            assert result == expected, f"{mod}: got {result}"
+
+    def test_regex_metacharacters_escaped(self):
+        """Parens/brackets/braces otherwise fail regex compilation entirely."""
+        result = _build_field_condition(
+            "process_command_line", "contains", ["foo(bar)[baz]{1}+?^$|"],
+            sigma_field="CommandLine|contains", warnings=[],
+        )
+        for ch in "()[]{}+?^$|":
+            assert "\\" + ch in result, f"{ch!r} not escaped in {result}"
+
+    def test_dot_and_star_not_escaped(self):
+        """'.' is escaped backend-side and '*' is the intended wildcard."""
+        result = _build_field_condition(
+            "process_name", "endswith", [r"\vssadmin.exe"],
+            sigma_field="Image|endswith", warnings=[],
+        )
+        assert r"\." not in result
+        assert result.startswith('process_name:WLDi("*')
+
+    def test_regex_modifier_value_not_escaped(self):
+        """RGXi() values are intentional regexes — escaping would break them."""
+        result = _build_field_condition(
+            "process_command_line", "re", [r"\d+\.exe"],
+            sigma_field="CommandLine|re", warnings=[],
+        )
+        assert result == r'process_command_line:RGXi("\d+\.exe")'
+
+    def test_exact_match_value_not_escaped(self):
+        """Exact match is a literal term match backend-side, not a regex."""
+        result = _build_field_condition(
+            "process_name", None, [r"C:\Windows\netsh.exe"],
+            sigma_field="Image", warnings=[],
+        )
+        assert result == r'process_name:"C:\Windows\netsh.exe"'

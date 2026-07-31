@@ -252,6 +252,30 @@ def _escape_eql_value(val: Any) -> str:
     return s
 
 
+# Regex metacharacters the backend passes through raw when it translates a
+# WLDi() glob into a regex. '*' is the intended wildcard and '.' is escaped
+# backend-side already, so neither belongs here.
+_WLDI_METACHARS = "()[]{}+?^$|"
+
+
+def _escape_wildcard_value(val: Any) -> str:
+    """Escape regex metacharacters in a WLDi() glob literal.
+
+    WLDi patterns are regex-compiled backend-side, so an unescaped backslash
+    is read as a regex escape: '*\\netsh.exe' becomes newline + 'etsh.exe' and
+    silently matches nothing, while '*\\powershell.exe' fails to compile at all
+    ('\\p' wants a Unicode property name). Sigma paths are full of backslashes,
+    so every path-prefixed process_creation rule is affected.
+
+    Backslash is escaped first so the escapes added for the other
+    metacharacters are not themselves re-escaped.
+    """
+    s = str(val).replace("\\", "\\\\")
+    for ch in _WLDI_METACHARS:
+        s = s.replace(ch, "\\" + ch)
+    return s
+
+
 def _build_field_condition(
     field: str,
     modifier: str | None,
@@ -284,11 +308,17 @@ def _build_field_condition(
         val_str = str(val)
 
         if effective_modifier == "endswith":
-            conditions.append(f'{field}:WLDi("*{_escape_eql_value(val_str)}")')
+            conditions.append(
+                f'{field}:WLDi("*{_escape_eql_value(_escape_wildcard_value(val_str))}")'
+            )
         elif effective_modifier == "startswith":
-            conditions.append(f'{field}:WLDi("{_escape_eql_value(val_str)}*")')
+            conditions.append(
+                f'{field}:WLDi("{_escape_eql_value(_escape_wildcard_value(val_str))}*")'
+            )
         elif effective_modifier == "contains":
-            conditions.append(f'{field}:WLDi("*{_escape_eql_value(val_str)}*")')
+            conditions.append(
+                f'{field}:WLDi("*{_escape_eql_value(_escape_wildcard_value(val_str))}*")'
+            )
         elif effective_modifier == "re":
             conditions.append(f'{field}:RGXi("{_escape_eql_value(val_str)}")')
         else:
