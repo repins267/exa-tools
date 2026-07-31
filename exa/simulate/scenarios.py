@@ -274,6 +274,13 @@ def build_events(
     *,
     behavior_key: str | None = None,
     hostname: str = "SIM-CLINICAL-01",
+    # Verified 2026-07-31 on sademodev22: webhook-ingested Sysmon JSON lands
+    # with `user` and `process_name` empty regardless of format (tested
+    # DOMAIN\user and bare user; path, basename and forward-slash Image).
+    # parent_process_name extracts from an identical regex, so this is a
+    # platform-side extraction gap, not a payload shape problem. Entity
+    # attribution therefore comes from `host`, and rules must match the binary
+    # via process_command_line. Kept in the realistic DOMAIN\user form.
     user: str = "HOSPITAL\\svc_imaging",
     marker: str = "EXA-SIMULATION",
     start: datetime | None = None,

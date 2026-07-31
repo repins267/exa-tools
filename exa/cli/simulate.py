@@ -135,7 +135,8 @@ def run_simulation(
         str, typer.Option("--hostname", help="Synthetic hostname [default: SIM-CLINICAL-01]")
     ] = "SIM-CLINICAL-01",
     user: Annotated[
-        str, typer.Option("--user", help="Synthetic user [default: HOSPITAL\\svc_imaging]")
+        str,
+        typer.Option("--user", help="Synthetic user [default: HOSPITAL\\svc_imaging]"),
     ] = "HOSPITAL\\svc_imaging",
     marker: Annotated[
         str,
