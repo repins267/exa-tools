@@ -72,8 +72,11 @@ _HEALTHCARE = Scenario(
             attack="T1090",
             stage="Lateral Movement",
             image=r"C:\Windows\System32\netsh.exe",
+            # Lead with the full executable name, as Sysmon records it and as
+            # every other behavior here does. Bare "netsh " cannot satisfy a
+            # rule arm matching on the binary name in the command line.
             command_line=(
-                "netsh interface portproxy add v4tov4 listenport=3389 "
+                "netsh.exe interface portproxy add v4tov4 listenport=3389 "
                 "listenaddress=0.0.0.0 connectport=3389 connectaddress=10.20.30.40"
             ),
             rule_name="[Sigma] RDP Port Forwarding Rule Added Via Netsh.EXE",
