@@ -92,6 +92,186 @@ def _resolve_token(no_prompt: bool = False) -> str:
     return token
 
 
+def _aba_field_coverage(events: list[dict]) -> dict[str, set[str]]:
+    """Map each CIM2 field the ABA parser extracts to the events supplying it.
+
+    Analytics rules are profiled/fact features, not EQL, so they cannot be
+    pre-evaluated the way correlation rules can. Field coverage is the
+    meaningful pre-flight: a rule whose requiredFields are absent cannot fire.
+    """
+    # source JSON path -> CIM2 field, per the published ABA parser
+    mapping = {
+        "type": "operation", "session": "conversation_id", "agent": "ai_agent_name",
+        "framework": "agent_name", "model": "model_name", "tool": "ai_tool_name",
+        "text": "llm_request", "response": "llm_response",
+        "in": "ai_token_in_count", "out": "ai_token_out_count",
+        "cost_usd": "cost", "host": "src_host", "user": "user",
+    }
+    covered: dict[str, set[str]] = {}
+    for ev in events:
+        for src, cim in mapping.items():
+            if ev.get(src) not in (None, "", [], {}):
+                covered.setdefault(cim, set()).add(ev.get("type", "?"))
+        data = ev.get("data") or {}
+        for src, cim in (("action", "operation_type"), ("result", "result"),
+                         ("total_tokens", "ai_token_count")):
+            if data.get(src) not in (None, "", [], {}):
+                covered.setdefault(cim, set()).add(ev.get("type", "?"))
+    return covered
+
+
+@simulate_app.command("aba")
+def aba_simulation(
+    scenario: Annotated[
+        str | None,
+        typer.Option("--scenario", "-s", help="ABA scenario key (omit to list)"),
+    ] = None,
+    event: Annotated[
+        str | None,
+        typer.Option("--event", "-e", help="Single event key instead of a scenario"),
+    ] = None,
+    tenant: Annotated[
+        str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)
+    ] = None,
+    hostname: Annotated[
+        str, typer.Option("--hostname", help="Synthetic host [default: atlas-agent-01]")
+    ] = "atlas-agent-01",
+    user: Annotated[
+        str, typer.Option("--user", help="Synthetic user [default: svc-atlas-agent]")
+    ] = "svc-atlas-agent",
+    marker: Annotated[
+        str, typer.Option("--marker", help="Tag in sim_marker [default: EXA-SIMULATION]")
+    ] = "EXA-SIMULATION",
+    schema: Annotated[
+        str,
+        typer.Option(
+            "--schema",
+            help="Wire schema marker. 'observra:1.0' is verified working; "
+            "'aba-1.0' targets the published CIM2 parser "
+            "[default: observra:1.0]",
+        ),
+    ] = "observra:1.0",
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run/--no-dry-run",
+                     help="Build without sending [default: dry-run]"),
+    ] = True,
+    out: Annotated[
+        Path | None, typer.Option("--out", help="Write generated events to a JSON file")
+    ] = None,
+    no_prompt: Annotated[
+        bool,
+        typer.Option("--no-prompt/--prompt", help="Fail instead of prompting for token"),
+    ] = False,
+) -> None:
+    """Generate ABA / Observra AI-agent telemetry that parses without a transform.
+
+    Emits the sensor wire schema directly, so all three parser match conditions
+    ("type", "framework", "schema") are satisfied. The observra library's own
+    output does NOT satisfy them and lands unparsed.
+
+    Targets OOTB *analytics* rules (profiled/fact features), not correlation
+    rules, so pre-flight reports CIM2 field coverage rather than an EQL verdict.
+
+    Examples:
+      uv run exa simulate aba
+      uv run exa simulate aba --scenario aba-injection
+      uv run exa simulate aba --scenario aba-lifecycle --out events.json
+      uv run exa simulate aba --scenario aba-injection --no-dry-run --tenant sademodev22
+    """
+    from exa.simulate.aba import ABA_SCENARIOS, build_aba_events, list_aba_events
+    from exa.simulate.webhook import resolve_ingest_url, send_events
+
+    if scenario is None and event is None:
+        console.print("[bold]ABA scenarios[/bold]\n")
+        for sc in ABA_SCENARIOS.values():
+            console.print(f"[bold]{sc.key}[/bold] — {sc.title}")
+            console.print(f"  {sc.description}", style="dim")
+            t = Table(show_header=True, header_style="bold")
+            t.add_column("Event")
+            t.add_column("activity_type")
+            t.add_column("Targets rule family")
+            for e in sc.events:
+                t.add_row(e.key, e.activity, e.targets)
+            console.print(t)
+        console.print(
+            "Pick one with --scenario, or --event for a single event.", style="dim")
+        return
+
+    try:
+        events = build_aba_events(
+            scenario, event_key=event, hostname=hostname, user=user,
+            marker=marker, schema=schema,
+        )
+        defs = ([e for e in list_aba_events(scenario) if e.key == event]
+                if event else list_aba_events(scenario))
+    except ValueError as e:
+        console.print(str(e), style="red")
+        raise typer.Exit(1) from None
+
+    table = Table(title=f"ABA events ({len(events)})", show_header=True,
+                  header_style="bold")
+    table.add_column("#", width=3)
+    table.add_column("Event")
+    table.add_column("type")
+    table.add_column("Targets")
+    for i, (d, ev) in enumerate(zip(defs, events, strict=False), start=1):
+        table.add_row(str(i), d.key, ev.get("type", "-"), d.targets)
+    console.print(table)
+
+    cov = _aba_field_coverage(events)
+    ct = Table(title="CIM2 field coverage (pre-flight)", show_header=True,
+               header_style="bold")
+    ct.add_column("CIM2 field")
+    ct.add_column("Supplied by event types")
+    for f in sorted(cov):
+        ct.add_row(f, ", ".join(sorted(cov[f])))
+    console.print(ct)
+
+    missing = {"llm_request", "result", "ai_tool_name", "ai_token_in_count"} - set(cov)
+    if missing:
+        console.print(
+            f"Not exercised in this batch: {', '.join(sorted(missing))} — "
+            "rules requiring those fields cannot fire.", style="yellow")
+
+    if out is not None:
+        out.write_text(json.dumps(events, indent=2), encoding="utf-8")
+        console.print(f"Wrote {len(events)} events to {out}", style="green")
+
+    from exa.cli.app import _make_client
+
+    client = _make_client(tenant)
+    try:
+        url = resolve_ingest_url(client)
+    except ValueError as e:
+        console.print(str(e), style="red")
+        raise typer.Exit(1) from None
+
+    if dry_run:
+        console.print(f"\nDry run — nothing sent. Target would be:\n  {url}",
+                      style="yellow")
+        console.print("Re-run with --no-dry-run to send.", style="dim")
+        return
+
+    token = _resolve_token(no_prompt=no_prompt)
+    console.print(f"\nSending {len(events)} events to {url} ...")
+
+    from exa.exceptions import ExaAPIError
+
+    try:
+        result = send_events(client, events, token=token)
+    except ExaAPIError as e:
+        console.print(f"Ingest failed: {e}", style="red")
+        raise typer.Exit(1) from None
+
+    console.print(f"Sent {result['sent']} events in {result['batches']} batch(es).",
+                  style="green")
+    console.print(
+        "Analytics rules are profiled features — allow ~40 min for triggers, "
+        "then search msg_type:\"exabeam-nganalytics-json-rule-trigger-success-"
+        "nganalytics\" AND src_product:\"Observra\".", style="dim")
+
+
 @simulate_app.command("list")
 def list_scenarios() -> None:
     """List available scenarios and the rules each behavior exercises.

@@ -196,3 +196,103 @@ class TestWebhook:
         with pytest.raises(ExaAPIError) as exc:
             send_events(_FakeClient(), build_events("healthcare"), token="bad")
         assert exc.value.status_code == 401
+
+
+class TestAbaScenarios:
+    """ABA / Observra agent-telemetry generation.
+
+    The whole point of this module is emitting the SENSOR wire schema directly,
+    so no transform is needed. Observra's own library output fails the parser's
+    match conditions; these tests guard against regressing to that shape.
+    """
+
+    def test_all_events_satisfy_parser_match_conditions(self):
+        """All three conditions are ANDed and checked before any extraction."""
+        import json as _json
+        import re as _re
+
+        from exa.simulate.aba import ABA_SCENARIOS, build_aba_events
+
+        for key in ABA_SCENARIOS:
+            for event in build_aba_events(key):
+                raw = _json.dumps(event)
+                assert _re.search(r'"type"\s*:', raw), f"{key}: no type"
+                assert _re.search(r'"framework"\s*:\s*"', raw), f"{key}: no framework"
+                assert _re.search(r'"schema"\s*:', raw), f"{key}: no schema"
+
+    def test_does_not_emit_library_schema_keys(self):
+        """Regression guard: library keys are what fails to parse."""
+        from exa.simulate.aba import build_aba_events
+
+        for event in build_aba_events():
+            for bad in ("event_type", "session_id", "agent_name", "timestamp",
+                        "library_version"):
+                assert bad not in event, f"{bad} is library shape and will not parse"
+
+    def test_cost_is_top_level_not_nested(self):
+        """Parser reads $.cost_usd; nesting it in data silently drops the field."""
+        from exa.simulate.aba import build_aba_events
+
+        priced = [e for e in build_aba_events("aba-activity") if "cost_usd" in e]
+        assert priced, "expected at least one priced event"
+        for event in priced:
+            assert isinstance(event["cost_usd"], float)
+            assert "cost_usd" not in (event.get("data") or {})
+
+    def test_injection_text_is_in_request_not_response(self):
+        """Injection rules key on llm_request ($.text). $.response maps to
+        llm_response and will NOT fire them."""
+        from exa.simulate.aba import build_aba_events
+
+        for event in build_aba_events("aba-injection"):
+            assert event.get("text"), "injection payload must be in text"
+            assert not event.get("response")
+
+    def test_guardrail_events_carry_violation_result(self):
+        from exa.simulate.aba import build_aba_events
+
+        results = {e["data"]["result"] for e in build_aba_events("aba-guardrail")}
+        assert "guardrail_violation" in results
+
+    def test_lifecycle_covers_all_four_agent_actions(self):
+        from exa.simulate.aba import build_aba_events
+
+        actions = {e["data"]["action"] for e in build_aba_events("aba-lifecycle")}
+        assert actions == {"create_agent", "modify_agent", "share_agent",
+                           "delete_agent"}
+
+    def test_events_share_one_session(self):
+        """Events must correlate on conversation_id within a run."""
+        from exa.simulate.aba import build_aba_events
+
+        events = build_aba_events("aba-activity")
+        assert len({e["session"] for e in events}) == 1
+        assert len({e["data"]["session_key"] for e in events}) == 1
+
+    def test_events_ordered_in_time(self):
+        from exa.simulate.aba import build_aba_events
+
+        stamps = [e["ts"] for e in build_aba_events("aba-activity")]
+        assert stamps == sorted(stamps)
+
+    def test_schema_marker_is_configurable(self):
+        from exa.simulate.aba import SCHEMA_ABA, build_aba_events
+
+        events = build_aba_events("aba-injection", schema=SCHEMA_ABA)
+        assert all(e["schema"] == "aba-1.0" for e in events)
+
+    def test_marker_present_for_traceability(self):
+        from exa.simulate.aba import build_aba_events
+
+        events = build_aba_events("aba-lifecycle", marker="MY-TAG")
+        assert all(e["sim_marker"] == "MY-TAG" for e in events)
+
+    def test_unknown_scenario_and_event_raise(self):
+        import pytest as _pytest
+
+        from exa.simulate.aba import build_aba_events, get_aba_scenario
+
+        with _pytest.raises(ValueError, match="aba-injection"):
+            get_aba_scenario("nope")
+        with _pytest.raises(ValueError, match="Unknown ABA event"):
+            build_aba_events("aba-injection", event_key="nope")
