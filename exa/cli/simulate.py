@@ -179,7 +179,13 @@ def aba_simulation(
       uv run exa simulate aba --scenario aba-lifecycle --out events.json
       uv run exa simulate aba --scenario aba-injection --no-dry-run --tenant sademodev22
     """
-    from exa.simulate.aba import ABA_SCENARIOS, build_aba_events, list_aba_events
+    from exa.simulate.aba import (
+        ABA_SCENARIOS,
+        UNMAPPED,
+        build_aba_events,
+        dropped_at_extraction,
+        list_aba_events,
+    )
     from exa.simulate.webhook import resolve_ingest_url, send_events
 
     if scenario is None and event is None:
@@ -227,6 +233,24 @@ def aba_simulation(
     for f in sorted(cov):
         ct.add_row(f, ", ".join(sorted(cov[f])))
     console.print(ct)
+
+    # Everything below reaches the collector and parses, then is discarded
+    # before it becomes a CIM2 field — so no rule can reference it, however
+    # the rule is written. This is the evidence for extending the parser.
+    dropped = dropped_at_extraction(events)
+    if dropped:
+        dt = Table(title="Dropped at extraction - no CIM2 destination",
+                   show_header=True, header_style="bold red")
+        dt.add_column("Emitted field")
+        dt.add_column("Present on")
+        dt.add_column("Detection family blocked")
+        for f in sorted(dropped):
+            dt.add_row(f, ", ".join(sorted(dropped[f])), UNMAPPED.get(f, "-"))
+        console.print(dt)
+        console.print(
+            f"[yellow]{len(dropped)} emitted field(s) have no CIM2 destination in the "
+            "published ABA parser. They will parse successfully and be discarded.[/yellow]"
+        )
 
     missing = {"llm_request", "result", "ai_tool_name", "ai_token_in_count"} - set(cov)
     if missing:

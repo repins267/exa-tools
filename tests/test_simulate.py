@@ -296,3 +296,58 @@ class TestAbaScenarios:
             get_aba_scenario("nope")
         with _pytest.raises(ValueError, match="Unknown ABA event"):
             build_aba_events("aba-injection", event_key="nope")
+
+
+class TestAbaSupplyChain:
+    """Skill provenance and the signals the published parser discards.
+
+    This scenario is deliberately built around fields that have no CIM2
+    destination today. It exists to validate an extended parser against real
+    payloads, and to quantify the extraction gap — so these tests assert the
+    gap is reported honestly, not that the fields land.
+    """
+
+    def test_supply_chain_events_still_satisfy_match_conditions(self):
+        """Extra fields must not break parsing — the event still has to match."""
+        import json as _json
+
+        from exa.simulate.aba import build_aba_events
+
+        for ev in build_aba_events("aba-supplychain"):
+            raw = _json.dumps(ev, separators=(",", ":"))
+            for cond in ('"type":', '"framework":"', '"schema":"'):
+                assert cond in raw, f"{ev.get('type')} lost match condition {cond}"
+
+    def test_skill_provenance_is_emitted(self):
+        from exa.simulate.aba import build_aba_events
+
+        first = build_aba_events("aba-supplychain", event_key="supply-skill-first-seen")[0]
+        assert first["skill"] == "invoice-normaliser"
+        assert first["skill_source"] == "clawhub"
+        assert first["skill_publisher"] == "acme-invoice-tools"
+        assert first["skill_version"] == "0.1.4"
+        assert first["skill_digest"].startswith("sha256:")
+
+    def test_provenance_fields_are_reported_as_dropped(self):
+        """The point of the scenario: these parse, then get discarded."""
+        from exa.simulate.aba import build_aba_events, dropped_at_extraction
+
+        dropped = dropped_at_extraction(build_aba_events("aba-supplychain"))
+        for key in ("skill", "skill_source", "skill_publisher", "skill_digest",
+                    "current_depth", "max_depth", "source_agent", "target_agent",
+                    "triggered_rules", "max_severity"):
+            assert key in dropped, f"{key} should be reported as dropped"
+
+    def test_no_mapped_field_is_also_reported_dropped(self):
+        """A field cannot be both extracted and discarded — guards the tables."""
+        from exa.simulate.aba import PARSER_TOP_LEVEL, UNMAPPED
+
+        assert not (set(PARSER_TOP_LEVEL) & set(UNMAPPED))
+
+    def test_events_without_security_signals_report_nothing_spurious(self):
+        """Scenarios that set no signals should not appear to lose provenance."""
+        from exa.simulate.aba import build_aba_events, dropped_at_extraction
+
+        dropped = dropped_at_extraction(build_aba_events("aba-lifecycle"))
+        assert "skill" not in dropped
+        assert "current_depth" not in dropped
