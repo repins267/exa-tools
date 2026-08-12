@@ -1090,7 +1090,7 @@
   },
   {
     "domain": "stablediffusionweb.com",
-    "provider": "Stability AI",
+    "provider": "Unofficial (not Stability AI)",
     "app": "Stable Diffusion",
     "risk": "high",
     "category": "Image Generation",
