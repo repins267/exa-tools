@@ -63,11 +63,17 @@
       "notes": "DNS-only, and the most commonly mis-analysed source. Events arrive as activity_type dns-response, NOT web-activity-allowed, so the OOTB AI/LLM analytics rules never fire on an Umbrella-only tenant regardless of table health. Domains land in dns_domain (registered domain, e.g. claude.ai) and dns_query (full FQDN) -- never web_domain, so a Web Domains table cannot match. Categories are compound strings; match with RGXi('Generative AI') rather than equality. `user` is blank on ~99.9% of rows, so identity needs Parser Manager mapping or an Entra ID context-table lookup.",
       "observed_on": ["documented in CLAUDE.md, not yet measured by this module"]
     },
-    "Exabeam/ABA Telemetry": {
+    "Exabeam/Observra": {
       "role": "agent",
-      "aliases": ["Observra", "Observra Telemetry", "ABA", "Agent Behavior Analytics"],
+      "aliases": ["Observra Telemetry", "ABA Telemetry", "ABA", "Agent Behavior Analytics"],
       "identity_fields": ["user", "email_address"],
-      "activity_types": ["ai_agent-request", "tool-call", "tool-return"],
+      "activity_types": [
+        "ai_agent-request",
+        "ai_agent-response",
+        "tool-call",
+        "tool-return",
+        "app-activity"
+      ],
       "provides_fields": [
         "llm_request",
         "llm_response",
@@ -82,7 +88,9 @@
         "result",
         "result_reason"
       ],
-      "notes": "Exabeam's agent-level sensor (open-source producer Observra, renamed ABA). This is the ONLY source of the agent-only fields that block AI rules on every proxy/DLP-based tenant, and the only thing that populates `result` -- which five of six panels on the OOTB Agentic AI Security dashboard depend on. Group detections on ai_agent_name, never agent_name: the parser maps $.framework to agent_name, so agent_name holds the framework (claude/adk/openai) by design. Ingest is the Webhook Cloud Collector on api2.<region> (EXA-INGEST-API2-HOST). See also EXA-ABA-MATCH-CONDITIONS -- parser conditions are literal substrings ANDed against the raw log, so a near-miss produces a silently unparsed event with no fields at all.",
+      "parser": "exabeam-observra-json-ai-agent-activity",
+      "parser_conditions": ["\"type\":", "\"framework\":\"", "\"schema\":\"observra"],
+      "notes": "Exabeam's agent-level sensor. NAMING: the rename ran ABA -> Observra and finalised 24 June 2026; production Vendor/Product is Exabeam/Observra and the parser requires \"schema\":\"observra. The `aba-` variant is a SUPERSEDED interim name that survives only in the public Content-Library-CIM2 mirror, which froze 16 June -- eight days before the rename -- and publishes it with no freshness marker. Never cite CIM2 for parser definitions; use Parser Manager in the tenant. Verified from Parser_Update-2026-08-06_Observra_2026_07_16. This is the only source of the agent-only fields that block AI rules on proxy/DLP-only tenants, and the only thing that populates `result`, which five of six panels on the OOTB Agentic AI Security dashboard depend on. Parser conditions are literal substrings ANDed and evaluated BEFORE extraction -- miss one and the event lands parsed:false, msg_type:null, no fields, while ingest still returns HTTP 200. `cost_usd` must be top-level; nesting it under data silently drops it. Group detections on ai_agent_name, never agent_name -- the parser maps $.framework to agent_name, so agent_name holds the framework (claude/adk/openai) by design. Ingest is the Webhook Cloud Collector on api2.<region> (EXA-INGEST-API2-HOST). The parser extracts 23 paths, all operational, and drops every security-relevant field (has_injection, current_depth/max_depth, source_agent/target_agent, skill provenance, triggered_rules/max_severity) -- so the behavioural layer works but the deterministic layer cannot be built.",
       "observed_on": ["sademodev22", "sademodev23"]
     },
     "Microsoft/Microsoft Purview": {

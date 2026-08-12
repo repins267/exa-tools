@@ -73,6 +73,12 @@ class VendorPack:
     # Fields this product uniquely supplies. Used to answer "what would unblock
     # these rules" with a product name instead of a field list.
     provides_fields: tuple[str, ...] = ()
+    # The tenant parser that claims this product, and the literal substrings its
+    # match conditions AND together. Conditions are evaluated BEFORE extraction,
+    # so missing one drops the event to parsed:false with no fields while ingest
+    # still returns HTTP 200 — worth recording where the answer is known.
+    parser: str | None = None
+    parser_conditions: tuple[str, ...] = ()
     unpopulated_fields: tuple[str, ...] = ()
     notes: str = ""
     observed_on: tuple[str, ...] = ()
@@ -147,6 +153,8 @@ def load_vendor_packs() -> dict[str, VendorPack]:
             alert_name_pattern=body.get("alert_name_pattern") or None,
             domain_fields=_tup(body, "domain_fields"),
             provides_fields=_tup(body, "provides_fields"),
+            parser=body.get("parser") or None,
+            parser_conditions=_tup(body, "parser_conditions"),
             unpopulated_fields=_tup(body, "unpopulated_fields"),
             notes=str(body.get("notes") or ""),
             observed_on=_tup(body, "observed_on"),

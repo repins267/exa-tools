@@ -66,10 +66,21 @@ def search_events(
     body: dict[str, Any] = {
         "limit": limit,
         "distinct": distinct,
+        # EQL goes in BOTH fields. Measured 2026-08-12 on baystate.use1 (US-East)
+        # and csnsafusion (SA): sending EQL only in `query` returns the UNFILTERED
+        # result set, byte-identical to sending no filter at all — no error, no
+        # warning, just every event. `filter` is the field both tenants honour.
+        #
+        # Sending it in both is deliberate rather than switching outright. If a
+        # tenant honours `query`, it filters; if it honours `filter`, it filters;
+        # if it ANDs them, the same EQL twice is the same result. Verified to
+        # return the correct single-value result on both tenants above.
+        #
+        # `filter` must also never be absent — the endpoint returns 400
+        # "Mandatory filter field missing" (EXA-SEARCH-FILTER-400), which is why
+        # the empty-string default stayed even when it was doing nothing else.
         "query": filter,
-        # Always include filter key — /search/v2/events returns 400
-        # "Mandatory filter field missing" if absent (EXA-SEARCH-FILTER-400)
-        "filter": "",
+        "filter": filter,
         "startTime": resolved_start.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "endTime": resolved_end.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "fields": req_fields,

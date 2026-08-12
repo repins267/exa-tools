@@ -33,13 +33,40 @@ class TestSearchEventsBodyKey:
         assert "query" in body, "EQL string must go in 'query' key"
 
     def test_mandatory_filter_key_present(self, exa, mock_auth):
-        """EXA-SEARCH-FILTER-400: 'filter' key must always be present (empty string ok)."""
+        """EXA-SEARCH-FILTER-400: 'filter' key must always be present."""
         mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)
         search_events(exa, EQL_FILTER, lookback_hours=1, limit=3)
         request = mock_auth.get_request(url=SEARCH_URL)
         body = json.loads(request.content)
         assert "filter" in body, "body must include 'filter' key (EXA-SEARCH-FILTER-400)"
-        assert body["filter"] == "", "'filter' must be empty string when no secondary filter needed"
+
+    def test_eql_sent_in_both_query_and_filter(self, exa, mock_auth):
+        """The EQL must reach BOTH keys, because tenants disagree about which they honour.
+
+        This assertion previously demanded `filter == ""`, encoding the belief that
+        `query` carried the EQL. Measured 2026-08-12 against baystate.use1 (US-East)
+        and csnsafusion (SA), that is wrong on both: sending EQL only in `query`
+        returns the UNFILTERED result set -- on csnsafusion, byte-identical to
+        sending no filter at all (72 rows / 71 distinct activity types either way).
+        No error is raised, so every caller silently got every event.
+
+        Sending it in both is deliberate. If a tenant honours `query` it filters, if
+        it honours `filter` it filters, and if it ANDs them the same EQL twice is the
+        same result -- verified to return the correct single-value result on both.
+        """
+        mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)
+        search_events(exa, EQL_FILTER, lookback_hours=1, limit=3)
+        body = json.loads(mock_auth.get_request(url=SEARCH_URL).content)
+        assert body["query"] == EQL_FILTER
+        assert body["filter"] == EQL_FILTER
+
+    def test_empty_eql_leaves_both_keys_empty(self, exa, mock_auth):
+        """A catch-all search must not accidentally send a filter to either key."""
+        mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)
+        search_events(exa, "", lookback_hours=1, limit=3)
+        body = json.loads(mock_auth.get_request(url=SEARCH_URL).content)
+        assert body["query"] == ""
+        assert body["filter"] == ""
 
     def test_eql_string_reaches_api_unchanged(self, exa, mock_auth):
         mock_auth.add_response(url=SEARCH_URL, method="POST", json=SEARCH_RESPONSE)
