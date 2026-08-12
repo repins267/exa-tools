@@ -1090,7 +1090,7 @@
   },
   {
     "domain": "stablediffusionweb.com",
-    "provider": "Stability AI",
+    "provider": "Unofficial (not Stability AI)",
     "app": "Stable Diffusion",
     "risk": "high",
     "category": "Image Generation",
@@ -1846,21 +1846,21 @@
   },
   {
     "domain": "zeroclaw.org",
-    "provider": "ZeroClaw",
+    "provider": "ZeroClaw Impersonator",
     "app": "ZeroClaw (Unauthorized Fork)",
     "risk": "high",
     "category": "Shadow AI",
     "type": "primary",
-    "notes": "Unauthorized fork impersonating official ZeroClaw project (zeroclawlabs.ai). Included for detection — access indicates use of unverified agent software."
+    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
   },
   {
     "domain": "zeroclaw.net",
-    "provider": "ZeroClaw",
+    "provider": "ZeroClaw Impersonator",
     "app": "ZeroClaw (Unauthorized Fork)",
     "risk": "high",
     "category": "Shadow AI",
     "type": "primary",
-    "notes": "Unauthorized fork impersonating official ZeroClaw project (zeroclawlabs.ai). Included for detection — access indicates use of unverified agent software."
+    "notes": "MALICIOUS — unauthorized fork impersonating official ZeroClaw project. Warning issued by zeroclaw-labs Feb 2026"
   },
   {
     "domain": "cline.bot",
