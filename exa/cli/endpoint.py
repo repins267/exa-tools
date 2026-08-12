@@ -92,7 +92,14 @@ def test(
         typer.Option("--json/--no-json", help="Output results as JSON to stdout. [default: no-json]"),
     ] = False,
 ) -> None:
-    """Run a live conformance audit against all endpoints in the catalog."""
+    """Run a live conformance audit against all endpoints in the catalog.
+
+    
+    Examples:
+      uv run exa endpoint test --tenant sademodev22
+      uv run exa endpoint test --spec "Threat Center" --tenant sademodev22
+      uv run exa endpoint test --findings-only --tenant sademodev22
+      uv run exa endpoint test --json --tenant sademodev22 > audit.json"""
     import json as _json
 
     from exa.client import ExaClient
@@ -236,7 +243,13 @@ def list_endpoints(
         typer.Option("--json/--no-json", help="Output as JSON. [default: no-json]"),
     ] = False,
 ) -> None:
-    """List all endpoints in the catalog."""
+    """List all endpoints in the catalog.
+
+    
+    Examples:
+      uv run exa endpoint list
+      uv run exa endpoint list --spec "Context"
+      uv run exa endpoint list --json | jq '.[].path'"""
     import json as _json
     import sys
 
@@ -293,7 +306,12 @@ def show_results(
         typer.Option("--json/--no-json", help="Output as JSON. [default: no-json]"),
     ] = False,
 ) -> None:
-    """Show findings from the last audit run."""
+    """Show findings from the last audit run.
+
+    
+    Examples:
+      uv run exa endpoint results --tenant sademodev22
+      uv run exa endpoint results --findings-only --tenant sademodev22"""
     import json as _json
     import sys
 
@@ -358,7 +376,12 @@ def diff(
         typer.Option("--json/--no-json", help="Output diff as JSON. [default: no-json]"),
     ] = False,
 ) -> None:
-    """Compare two audit runs -- what got fixed, what broke, what's new."""
+    """Compare two audit runs -- what got fixed, what broke, what's new.
+
+    
+    Examples:
+      uv run exa endpoint diff --tenant sademodev22
+      uv run exa endpoint diff --before run-2026-08-01.json --after run-2026-08-12.json"""
     import json as _json
     import sys
     from pathlib import Path

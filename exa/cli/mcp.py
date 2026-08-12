@@ -137,6 +137,12 @@ def serve(
 ) -> None:
     """Start the Exabeam MCP server.
 
+    
+    Examples:
+      uv run exa mcp serve --tenant sademodev22      # stdio, for Claude Desktop
+      uv run exa mcp serve --tenant sademodev22 --port 8080
+      uv run exa mcp install --tenant sademodev22    # usually what you want instead
+
     Default (no --port): stdio mode — Claude Desktop spawns this as a subprocess.
     With --port: HTTP/SSE mode — add http://HOST:PORT/sse as a custom connector
     in Claude Desktop settings.

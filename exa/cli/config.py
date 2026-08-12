@@ -10,7 +10,12 @@ from rich.table import Table
 
 config_app = typer.Typer(
     name="config",
-    help="View and modify exa-tools configuration (~/.exa/config.json).",
+    help=(
+        "View and modify exa-tools configuration (~/.exa/config.json). "
+        "Takes SUBCOMMANDS, not flags -- try 'exa config tenants'. "
+        "To ADD a tenant, use 'exa configure' (no -ure/-ig confusion: "
+        "'configure' sets one up, 'config' inspects what exists)."
+    ),
     no_args_is_help=True,
 )
 console = Console()
