@@ -22,6 +22,13 @@ SKIP_ALWAYS = frozenset({
     "POST /auth/v1/token",
 })
 
+# Endpoints that return binary/non-JSON responses — will always 406 with a JSON client.
+# Spec does not document the Accept header requirement or content-type for these.
+# Skipped with reason "binary_response" so the audit table shows them clearly.
+BINARY_RESPONSE_PATHS = frozenset({
+    "/site-collectors/v1/cores/{coreId}/certificates/download",
+})
+
 # Endpoints that modify data — skipped unless --destructive is passed
 DESTRUCTIVE_METHODS = frozenset({"DELETE", "PUT", "PATCH"})
 # POST endpoints known to create or modify data (GET paths are never destructive).
@@ -78,9 +85,18 @@ def is_destructive(endpoint: dict[str, Any]) -> bool:
 
 
 def is_skipped(endpoint: dict[str, Any]) -> bool:
-    """Return True if this endpoint should always be skipped."""
+    """Return True if this endpoint should always be excluded from results entirely."""
     key = f"{endpoint.get('method', '').upper()} {endpoint.get('path', '')}"
     return key in SKIP_ALWAYS
+
+
+def is_binary_response(endpoint: dict[str, Any]) -> bool:
+    """Return True if this endpoint returns binary/non-JSON content.
+
+    These endpoints will always return HTTP 406 when called with Accept: application/json.
+    The spec does not document the content-type constraint. Skip them to avoid false findings.
+    """
+    return endpoint.get("path", "") in BINARY_RESPONSE_PATHS
 
 
 def filter_catalog(
@@ -96,12 +112,14 @@ def filter_catalog(
         if is_skipped(ep):
             continue
         # Apply spec/path filters first so --spec and --endpoint always scope the output,
-        # even for destructive entries that will be shown as skipped.
+        # even for entries that will be shown as skipped.
         if spec and ep.get("spec", "").lower() != spec.lower():
             continue
         if path_filter and path_filter.lower() not in ep.get("path", "").lower():
             continue
-        if not include_destructive and is_destructive(ep):
+        if is_binary_response(ep):
+            ep = {**ep, "_skipped": "binary_response"}
+        elif not include_destructive and is_destructive(ep):
             ep = {**ep, "_skipped": "destructive"}
         results.append(ep)
     return results
