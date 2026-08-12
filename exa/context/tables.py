@@ -132,6 +132,74 @@ def get_all_records(
     return all_records
 
 
+def resolve_table_schema(
+    client: ExaClient,
+    table: str | dict[str, Any],
+) -> tuple[str, dict[str, str]]:
+    """Resolve a table's real key attribute and its other attribute IDs.
+
+    NEVER assume the key attribute is named "key" (EXA-TABLE-KEY-ATTR). Each
+    table defines its own. Reading records with r.get("key") against a table
+    that uses a different attribute returns an EMPTY list while totalItems
+    reports a healthy count — it looks like an empty table but is fully
+    populated. Confirmed on "Public AI Domains and Risk", which uses
+    `aillm_domain` + `risk_level`.
+
+    Args:
+        client: Authenticated ExaClient.
+        table: Table ID, or a table object from get_tables() (which already
+            includes `attributes` — pass it to avoid a second round trip).
+
+    Returns:
+        (key_attr_id, {display_name_lower: attr_id}) for non-key attributes.
+        Falls back to ("key", {}) if the schema cannot be read.
+    """
+    if isinstance(table, dict):
+        attributes = table.get("attributes") or []
+        if not attributes and table.get("id"):
+            attributes = (get_table_attributes(client, table["id"]) or {}).get(
+                "attributes", []
+            )
+    else:
+        attributes = (get_table_attributes(client, table) or {}).get("attributes", [])
+
+    key_attr = "key"
+    others: dict[str, str] = {}
+    for attr in attributes:
+        attr_id = attr.get("id", "")
+        if not attr_id:
+            continue
+        if attr.get("isKey"):
+            key_attr = attr_id
+        else:
+            display = (attr.get("displayName") or attr_id).lower()
+            others[display] = attr_id
+    return key_attr, others
+
+
+def get_all_records_keyed(
+    client: ExaClient,
+    table: str | dict[str, Any],
+) -> tuple[str, list[dict[str, Any]], set[str]]:
+    """Read every record from a table using its real key attribute.
+
+    Prefer this over get_all_records() whenever you intend to read key values —
+    it removes the "key" assumption that silently yields an empty result set.
+
+    Returns:
+        (key_attr_id, records, lowercased set of key values)
+    """
+    table_id = table["id"] if isinstance(table, dict) else table
+    key_attr, _ = resolve_table_schema(client, table)
+    records = get_all_records(client, table_id)
+    keys = {
+        str(r[key_attr]).strip().lower()
+        for r in records
+        if r.get(key_attr) not in (None, "")
+    }
+    return key_attr, records, keys
+
+
 def add_records(
     client: ExaClient,
     table_id: str,

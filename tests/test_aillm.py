@@ -1,15 +1,54 @@
 """Tests for AI/LLM reference data, merge, and sync."""
 
 import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 
-from exa.aillm.reference import ReferenceData, load_reference_data
-from exa.aillm.merge import merge_aillm_data, MergedData
+from exa.aillm.merge import MergedData, merge_aillm_data
+from exa.aillm.profile import FieldValues, TenantProfile
+from exa.aillm.reference import load_reference_data
 
 BASE_URL = "https://api.us-west.exabeam.cloud"
+
+
+@pytest.fixture(autouse=True)
+def _isolate_profile_cache(tmp_path, monkeypatch):
+    """Keep the real ~/.exa/cache out of the tests.
+
+    collect_tenant_profile() returns a cached profile whenever one exists for
+    the tenant and date. A developer who has profiled a customer tenant today
+    would otherwise satisfy that call from disk, and the assertions below would
+    run against customer data instead of their own fixtures — passing or
+    failing for reasons nothing in this file controls.
+    """
+    monkeypatch.setattr("exa.aillm.profile.CACHE_DIR", tmp_path / "cache")
+
+
+def _profile(
+    fields: dict[str, list[str]],
+    *,
+    truncated: set[str] | None = None,
+    attribution: dict[str, dict[str, list[str]]] | None = None,
+) -> TenantProfile:
+    """Build a TenantProfile directly, so discovery can be tested without HTTP.
+
+    Discovery reads a profile; it does not query. Constructing one here keeps
+    these tests about classification rather than about transport.
+    """
+    truncated = truncated or set()
+    return TenantProfile(
+        tenant="test-tenant",
+        collected_at="2026-08-11T00:00:00+00:00",
+        lookback_days=30,
+        fields={
+            name: FieldValues(
+                name, values=sorted(set(values)), truncated=name in truncated
+            )
+            for name, values in fields.items()
+        },
+        attribution=attribution or {},
+    )
 
 
 class TestLoadReferenceData:
@@ -339,82 +378,335 @@ class TestGetAILLMTableStatus:
             assert "UTC" in s.last_updated
 
 
-class TestSearchLogsForAIDomains:
-    """Tests for search_logs_for_ai_domains()."""
+class TestDiscoverAIDomains:
+    """Classification of the hostnames a tenant actually reaches.
 
-    def test_returns_distinct_domains(self, exa, mock_auth):
-        mock_auth.add_response(
-            url=f"{BASE_URL}/search/v2/events",
-            method="POST",
-            json={
-                "rows": [
-                    {"web_domain": "chatgpt.com", "approxLogTime": "1744214400000000"},
-                    {"web_domain": "claude.ai", "approxLogTime": "1744214400000000"},
-                    {"web_domain": "chatgpt.com", "approxLogTime": "1744214400000000"},  # dup
-                ]
-            },
-        )
-        from exa.aillm.discover import search_logs_for_ai_domains
+    Domain values below are ones observed on a live tenant, so a regression
+    here is a regression against real customer traffic rather than a synthetic
+    example.
+    """
 
-        domains = search_logs_for_ai_domains(exa, lookback_days=30)
-        assert "chatgpt.com" in domains
-        assert "claude.ai" in domains
-        # Deduplication: chatgpt.com appears once
-        assert domains.count("chatgpt.com") == 1
+    @pytest.fixture(autouse=True)
+    def _fixed_exclusions(self, monkeypatch):
+        """Pin the exclusion list.
 
-    def test_empty_logs_returns_empty_list(self, exa, mock_auth):
-        mock_auth.add_response(
-            url=f"{BASE_URL}/search/v2/events",
-            method="POST",
-            json={"rows": []},
-        )
-        from exa.aillm.discover import search_logs_for_ai_domains
-
-        domains = search_logs_for_ai_domains(exa, lookback_days=30)
-        assert domains == []
-
-    def test_domains_are_sorted(self, exa, mock_auth):
-        mock_auth.add_response(
-            url=f"{BASE_URL}/search/v2/events",
-            method="POST",
-            json={
-                "rows": [
-                    {"web_domain": "z-ai.com", "approxLogTime": "1744214400000000"},
-                    {"web_domain": "a-ai.com", "approxLogTime": "1744214400000000"},
-                    {"web_domain": "m-ai.com", "approxLogTime": "1744214400000000"},
-                ]
-            },
-        )
-        from exa.aillm.discover import search_logs_for_ai_domains
-
-        domains = search_logs_for_ai_domains(exa, lookback_days=7)
-        assert domains == sorted(domains)
-
-    def test_discover_and_merge_adds_new_domains(self, exa, mock_auth):
-        """End-to-end: discovered domains flow into merge correctly."""
-        from exa.aillm.discover import search_logs_for_ai_domains
-        from exa.aillm.merge import merge_aillm_data
-        from exa.aillm.reference import load_reference_data
-
-        mock_auth.add_response(
-            url=f"{BASE_URL}/search/v2/events",
-            method="POST",
-            json={
-                "rows": [
-                    {"web_domain": "brand-new-llm.example.com", "approxLogTime": "1744214400000000"},
-                    {"web_domain": "chatgpt.com", "approxLogTime": "1744214400000000"},
-                ]
-            },
+        load_exclusions() prefers ~/.exa/aillm-domains/data/known_exclusions.json
+        over the bundled fallback, so classification would otherwise depend on
+        whether the developer has run `exa update`.
+        """
+        monkeypatch.setattr(
+            "exa.aillm.discover.load_exclusions",
+            lambda: {"datagrail.io", "buzzfeed.ai", "powerad.ai"},
         )
 
-        ref = load_reference_data()
+    def test_reference_domain_is_known(self):
+        from exa.aillm.discover import KNOWN, discover_ai_domains
+
+        result = discover_ai_domains(None, profile=_profile({"web_domain": ["chatgpt.com"]}))
+
+        assert [d.domain for d in result.known] == ["chatgpt.com"]
+        assert result.known[0].classification == KNOWN
+        assert result.known[0].risk  # risk carried through from reference data
+
+    def test_full_host_matches_registered_domain(self):
+        """Reference data holds registered domains; logs hold full hosts.
+
+        ContextListContains is exact-match, so this mismatch is the reason a
+        223-record table can overlap live data by ~7. Suffix matching is what
+        lets discovery report cdn.openai.com as covered.
+        """
+        from exa.aillm.discover import discover_ai_domains
+
+        # Reference data lists several openai.com hosts explicitly, but never
+        # every one a tenant reaches. These two are absent from it.
+        result = discover_ai_domains(
+            None,
+            profile=_profile({"web_domain": ["files.openai.com", "ab.chatgpt.com"]}),
+        )
+
+        assert {d.domain for d in result.known} == {"files.openai.com", "ab.chatgpt.com"}
+        assert {d.matched_reference for d in result.known} == {"openai.com", "chatgpt.com"}
+        assert result.candidates == []
+
+    def test_exclusion_beats_weak_ai_hint(self):
+        """datagrail.io is martech — it matches a naive filter on 'datagrail'."""
+        from exa.aillm.discover import EXCLUDED, discover_ai_domains
+
+        result = discover_ai_domains(
+            None, profile=_profile({"web_domain": ["datagrail.io", "buzzfeed.ai"]})
+        )
+
+        assert {d.domain for d in result.excluded} == {"datagrail.io", "buzzfeed.ai"}
+        assert all(d.classification == EXCLUDED for d in result.excluded)
+        assert result.candidates == []
+        assert result.known == []
+
+    def test_unlisted_ai_domain_is_a_candidate_not_known(self):
+        """claude.com and geminiweb-pa.googleapis.com were both live and unlisted.
+
+        These are current primary domains of two major providers, absent from a
+        223-entry reference set. They must surface for review — and must not be
+        promoted to `known`, which is what feeds a context table unattended.
+        """
+        from exa.aillm.discover import CANDIDATE, discover_ai_domains
+
+        result = discover_ai_domains(
+            None,
+            profile=_profile(
+                {"web_domain": ["claude.com", "geminiweb-pa.googleapis.com"]}
+            ),
+        )
+
+        assert {d.domain for d in result.candidates} == {
+            "claude.com",
+            "geminiweb-pa.googleapis.com",
+        }
+        assert all(d.classification == CANDIDATE for d in result.candidates)
+        assert all(d.reason for d in result.candidates)
+        assert result.known == []
+
+    def test_non_ai_domains_are_not_reported(self):
+        """The predecessor returned every domain in the tenant — 10,000+."""
+        from exa.aillm.discover import discover_ai_domains
+
+        profile = _profile(
+            {"web_domain": ["sharepoint.com", "rapid7.com", "chatgpt.com"]}
+        )
+        result = discover_ai_domains(None, profile=profile)
+
+        reported = {
+            d.domain for d in result.known + result.candidates + result.excluded
+        }
+        assert reported == {"chatgpt.com"}
+        assert result.scanned == 3  # everything was examined, most was dropped
+
+    def test_safe_to_sync_excludes_candidates(self):
+        """Only reference-matched domains may reach a context table unreviewed."""
+        from exa.aillm.discover import discover_ai_domains
+
+        result = discover_ai_domains(
+            None,
+            profile=_profile(
+                {"web_domain": ["chatgpt.com", "claude.com", "datagrail.io"]}
+            ),
+        )
+
+        assert result.safe_to_sync == ["chatgpt.com"]
+        assert result.safe_to_sync == sorted(result.safe_to_sync)
+
+    def test_truncation_propagates_from_profile(self):
+        """A truncated sample means "not found" does not mean "not present"."""
+        from exa.aillm.discover import discover_ai_domains
+
+        profile = _profile({"web_domain": ["chatgpt.com"]}, truncated={"web_domain"})
+        assert discover_ai_domains(None, profile=profile).truncated is True
+
+        profile = _profile({"web_domain": ["chatgpt.com"]})
+        assert discover_ai_domains(None, profile=profile).truncated is False
+
+
+class TestDiscoverCategories:
+    """Category discovery — the field three analytics rules match against."""
+
+    def test_finds_vendor_specific_ai_categories(self):
+        """Vendors do not agree on a taxonomy, and the two fields diverge.
+
+        Palo Alto emits AI-conversational-assistant in `categories`; Zscaler
+        emits 'AI & ML Apps' in `category`. Generic labels like 'Generative AI'
+        match neither, which is how a 9-record table reaches zero overlap.
+        """
+        from exa.aillm.discover import discover_categories
+
+        found = discover_categories(
+            None,
+            profile=_profile(
+                {
+                    "category": ["AI & ML Apps", "MS Copilot Personal"],
+                    "categories": ["AI-conversational-assistant", "AI-platform-service"],
+                }
+            ),
+        )
+
+        assert {(v.field_name, v.value) for v in found} == {
+            ("category", "AI & ML Apps"),
+            ("category", "MS Copilot Personal"),
+            ("categories", "AI-conversational-assistant"),
+            ("categories", "AI-platform-service"),
+        }
+
+    def test_ignores_non_ai_categories(self):
+        from exa.aillm.discover import discover_categories
+
+        found = discover_categories(
+            None,
+            profile=_profile(
+                {
+                    "category": ["online-shopping", "newly-registered-domain"],
+                    "categories": ["business-and-economy"],
+                }
+            ),
+        )
+
+        assert found == []
+
+    def test_flags_values_already_in_reference_data(self):
+        """in_reference separates "already covered" from "must be appended"."""
+        from exa.aillm.discover import discover_categories
+
+        found = discover_categories(
+            None,
+            profile=_profile({"category": ["Generative AI", "AI & ML Apps"]}),
+        )
+        by_value = {v.value: v for v in found}
+
+        assert by_value["Generative AI"].in_reference is True
+        assert by_value["AI & ML Apps"].in_reference is False
+
+    def test_records_vendor_attribution(self):
+        """Which product classified the traffic decides where the fix belongs."""
+        from exa.aillm.discover import discover_categories
+
+        found = discover_categories(
+            None,
+            profile=_profile(
+                {"category": ["AI & ML Apps"]},
+                attribution={"category": {"AI & ML Apps": ["Zscaler / Internet Access"]}},
+            ),
+        )
+
+        assert found[0].sources == ["Zscaler / Internet Access"]
+
+
+class TestDiscoverAlertNames:
+    """event.alert_name discovery (EXA-ALERTNAME-TWO-NAMESPACES).
+
+    This is the CIM field carrying the *source product's* alert name, which is
+    what dashboards and any AI/LLM DLP Rulesets lookup filter on. It is not the
+    Threat Center analytics-rule namespace read by discover_alerts.py; the two
+    do not intersect, and populating the table from the wrong one yields a
+    panel that renders blank with no error.
+    """
+
+    def test_finds_ai_alert_names(self):
+        from exa.aillm.discover import discover_alert_names
+
+        found = discover_alert_names(
+            None,
+            profile=_profile(
+                {
+                    "alert_name": [
+                        "DSPM for AI: Detect sensitive info added to AI sites",
+                        "Copilot - sensitive content",
+                        "Impossible travel",
+                    ]
+                }
+            ),
+        )
+
+        assert {v.value for v in found} == {
+            "DSPM for AI: Detect sensitive info added to AI sites",
+            "Copilot - sensitive content",
+        }
+        assert all(v.field_name == "alert_name" for v in found)
+
+    def test_bundled_dlp_patterns_do_not_match_a_real_tenant(self):
+        """The bundled 46 names have zero overlap with observed alert names.
+
+        This is why the table must be discovery-driven: sync populates it from
+        reference data, the record count looks healthy, and it matches nothing.
+        """
+        from exa.aillm.discover import discover_alert_names
+
+        found = discover_alert_names(
+            None,
+            profile=_profile(
+                {"alert_name": ["DSPM for AI: Detect sensitive info added to AI sites"]}
+            ),
+        )
+
+        assert found[0].in_reference is False
+
+
+class TestSearchLogsForAIDomainsShim:
+    """The backwards-compatible list-returning shim, end to end over HTTP."""
+
+    def _search_callback(self, rows_by_field: dict[str, list[dict[str, str]]]):
+        import httpx
+
+        def callback(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.content)
+            primary = (body.get("groupBy") or body.get("fields") or [""])[0]
+            return httpx.Response(200, json={"rows": rows_by_field.get(primary, [])})
+
+        return callback
+
+    def test_returns_only_reference_matched_domains(self, exa, mock_auth):
+        from exa.aillm.discover import search_logs_for_ai_domains
+
+        mock_auth.add_callback(
+            self._search_callback(
+                {
+                    "web_domain": [
+                        {"web_domain": "claude.ai"},
+                        {"web_domain": "chatgpt.com"},
+                        {"web_domain": "chatgpt.com"},  # duplicate
+                        {"web_domain": "sharepoint.com"},
+                    ]
+                }
+            ),
+            url=f"{BASE_URL}/search/v2/events",
+            method="POST",
+            is_reusable=True,
+        )
+
+        assert search_logs_for_ai_domains(exa, lookback_days=30) == [
+            "chatgpt.com",
+            "claude.ai",
+        ]
+
+    def test_empty_tenant_returns_empty_list(self, exa, mock_auth):
+        from exa.aillm.discover import search_logs_for_ai_domains
+
+        mock_auth.add_callback(
+            self._search_callback({}),
+            url=f"{BASE_URL}/search/v2/events",
+            method="POST",
+            is_reusable=True,
+        )
+
+        assert search_logs_for_ai_domains(exa, lookback_days=30) == []
+
+    def test_unlisted_domain_does_not_reach_a_context_table(self, exa, mock_auth):
+        """Regression: callers feed this straight into merge and then upload.
+
+        The predecessor returned every observed domain, so an unreviewed
+        hostname went into a customer's context table with no human in the
+        loop. An unlisted AI domain must surface as a candidate instead.
+        """
+        from exa.aillm.discover import discover_ai_domains, search_logs_for_ai_domains
+
+        mock_auth.add_callback(
+            self._search_callback(
+                {
+                    "web_domain": [
+                        {"web_domain": "claude.com"},  # real, AI, and unlisted
+                        {"web_domain": "chatgpt.com"},
+                    ]
+                }
+            ),
+            url=f"{BASE_URL}/search/v2/events",
+            method="POST",
+            is_reusable=True,
+        )
+
         discovered = search_logs_for_ai_domains(exa, lookback_days=30)
-        merged = merge_aillm_data(ref, discovered_domains=discovered)
+        merged = merge_aillm_data(load_reference_data(), discovered_domains=discovered)
 
-        # 1 genuinely new domain added
-        assert merged.merge_stats.discovered_new == 1
-        domain_keys = {d["key"] for d in merged.public_domains}
-        assert "brand-new-llm.example.com" in domain_keys
+        assert "claude.com" not in discovered
+        assert merged.merge_stats.discovered_new == 0
+
+        result = discover_ai_domains(exa, lookback_days=30)
+        assert "claude.com" in [d.domain for d in result.candidates]
 
 
 class TestSyncPublicDomainsMapping:

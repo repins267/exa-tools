@@ -253,7 +253,8 @@ def discover_cmd(
         bool,
         typer.Option(
             "--add-rulesets/--no-add-rulesets",
-            help="Write matched alert names to AI/LLM DLP Rulesets table [default: no-add-rulesets]",
+            help="Write matched alert names to AI/LLM DLP Rulesets "
+            "[default: no-add-rulesets]",
         ),
     ] = False,
     add_apps: Annotated[
@@ -417,6 +418,327 @@ _RULESETS_LABEL = "AI/LLM DLP Rulesets"
 
 
 # -- status -------------------------------------------------------------------
+
+
+@aillm_app.command("validate")
+def validate_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Verify AI/LLM context tables match values the tenant actually emits.
+
+    Record count is not a health signal. A table can hold hundreds of entries,
+    report Healthy, and match nothing -- silently starving every analytics rule
+    that reads it via ContextListContains(). This measures real overlap.
+
+    \b
+    Status meanings:
+      OK    -- entries match live values
+      WEAK  -- few matches for the table size (often registered-domain vs host)
+      DEAD  -- zero overlap; rules reading this table cannot fire
+      EMPTY -- table has no records
+
+    Exits non-zero if any rule-backed table is DEAD.
+
+    \b
+    Examples:
+      uv run exa aillm validate --tenant geha
+      uv run exa aillm validate --refresh --json --tenant geha
+    """
+    import json as _json
+
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.validate import (
+        STATUS_DEAD,
+        STATUS_OK,
+        STATUS_WEAK,
+        has_dead_tables,
+        validate_aillm_tables,
+    )
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(
+            client, lookback_days=lookback, refresh=refresh
+        )
+        results = validate_aillm_tables(client, profile=profile)
+
+        if json_out:
+            console.print_json(
+                _json.dumps(
+                    {
+                        "tenant": profile.tenant,
+                        "collected_at": profile.collected_at,
+                        "api_calls": profile.api_calls,
+                        "tables": [
+                            {
+                                "table": r.table_name,
+                                "records": r.records,
+                                "live_field": r.live_field,
+                                "live_values": r.live_values,
+                                "overlap": r.overlap,
+                                "status": r.status,
+                                "read_by_rules": r.read_by_rules,
+                                "note": r.note,
+                            }
+                            for r in results
+                        ],
+                    }
+                )
+            )
+        else:
+            tbl = Table(show_header=True, header_style="bold")
+            tbl.add_column("Table", style="cyan", no_wrap=True)
+            tbl.add_column("Records", justify="right")
+            tbl.add_column("Live Field", style="dim")
+            tbl.add_column("Live Values", justify="right")
+            tbl.add_column("Overlap", justify="right")
+            tbl.add_column("Rules", justify="center")
+            tbl.add_column("Status")
+
+            colours = {STATUS_OK: "green", STATUS_WEAK: "yellow", STATUS_DEAD: "red"}
+            for r in results:
+                tbl.add_row(
+                    r.table_name,
+                    str(r.records),
+                    r.live_field,
+                    str(r.live_values),
+                    str(r.overlap),
+                    "yes" if r.read_by_rules else "-",
+                    f"[{colours.get(r.status, 'dim')}]{r.status}[/]",
+                )
+            console.print(tbl)
+
+            for r in results:
+                if r.note:
+                    console.print(f"  {r.table_name}: {r.note}", style="dim")
+
+            console.print(
+                f"\n  Profile: {profile.api_calls} API call(s) this run "
+                f"(0 = served from cache)",
+                style="dim",
+            )
+
+        if has_dead_tables(results):
+            console.print(
+                "\n  One or more rule-backed tables are DEAD -- "
+                "analytics rules reading them cannot fire.",
+                style="red",
+            )
+            raise typer.Exit(code=1)
+    finally:
+        client.close()
+
+
+@aillm_app.command("rules")
+def rules_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option("--refresh/--no-refresh", help="Re-collect the tenant profile "
+                     "[default: no-refresh]"),
+    ] = False,
+    show_blocked: Annotated[
+        bool,
+        typer.Option("--show-blocked/--no-show-blocked",
+                     help="List each blocked rule by name [default: show-blocked]"),
+    ] = True,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Show which AI analytics rules can fire against this tenant's data.
+
+    Every rule declares requiredFields. A rule whose required fields are absent
+    or unpopulated is enabled, Active, and silently unable to fire. This compares
+    declared requirements against the observed field inventory.
+
+    Rules blocked ONLY by agent-only fields (llm_request, llm_response,
+    ai_token_*, ai_function_name) are called out separately -- no proxy, DLP or
+    context table can populate those. That set is the agent-telemetry case.
+
+    \b
+    Examples:
+      uv run exa aillm rules --tenant geha
+      uv run exa aillm rules --refresh --tenant geha
+    """
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.rules import analyze_ai_rules
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(client, lookback_days=lookback, refresh=refresh)
+        rep = analyze_ai_rules(client, profile=profile)
+
+        console.print(f"\n  Analytics rules on tenant : {rep.total_rules}")
+        console.print(f"  AI-scoped                 : {rep.ai_rules}")
+        console.print(
+            f"  Enabled / disabled        : {rep.enabled} / {rep.disabled}"
+        )
+        console.print(f"  [green]Reachable today           : {len(rep.reachable)}[/]")
+        console.print(f"  [red]Blocked                   : {len(rep.blocked)}[/]")
+
+        if rep.blockers:
+            tbl = Table(show_header=True, header_style="bold", title="Blocking fields")
+            tbl.add_column("Missing field", style="cyan")
+            tbl.add_column("Rules blocked", justify="right")
+            tbl.add_column("Agent-only", justify="center")
+            from exa.aillm.rules import AGENT_ONLY_FIELDS
+
+            for fname, names in rep.blockers.items():
+                tbl.add_row(
+                    fname,
+                    str(len(names)),
+                    "yes" if fname in AGENT_ONLY_FIELDS else "-",
+                )
+            console.print()
+            console.print(tbl)
+
+        agent_blocked = rep.agent_blocked
+        if agent_blocked:
+            console.print(
+                f"\n  [yellow]{len(agent_blocked)} rule(s) are blocked solely by "
+                f"agent-only telemetry.[/]"
+            )
+            console.print(
+                "  No proxy, DLP or context table can populate those fields.",
+                style="dim",
+            )
+
+        if show_blocked and rep.blocked:
+            console.print("\n  Blocked rules:", style="dim")
+            for r in rep.blocked:
+                console.print(
+                    f"    {r.name[:72]}", style="dim"
+                )
+                console.print(
+                    f"      missing: {', '.join(r.missing_fields)}", style="dim"
+                )
+
+        if rep.context_consumers:
+            console.print("\n  Context tables consumed by rules:", style="dim")
+            for table_name, names in rep.context_consumers.items():
+                console.print(f"    {table_name}: {len(names)} rule(s)", style="dim")
+
+        console.print(
+            f"\n  Profile: {profile.api_calls} API call(s) this run "
+            f"(0 = served from cache)",
+            style="dim",
+        )
+    finally:
+        client.close()
+
+
+@aillm_app.command("risk")
+def risk_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option("--refresh/--no-refresh", help="Re-collect the tenant profile "
+                     "[default: no-refresh]"),
+    ] = False,
+    show_unlisted: Annotated[
+        bool,
+        typer.Option("--show-unlisted/--no-show-unlisted",
+                     help="List AI-looking domains absent from reference data "
+                          "[default: show-unlisted]"),
+    ] = True,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Report the risk tiers of AI domains this tenant actually reaches.
+
+    Joins observed web_domain values to the curated risk levels in
+    'Public AI Domains and Risk'. Also maintains a high-risk watchlist: an empty
+    watchlist is the good outcome and is itself a reportable finding.
+
+    \b
+    Examples:
+      uv run exa aillm risk --tenant geha
+      uv run exa aillm risk --refresh --no-show-unlisted --tenant geha
+    """
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.risk import build_risk_report
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(client, lookback_days=lookback, refresh=refresh)
+        rep = build_risk_report(client, profile=profile)
+
+        colours = {"critical": "red", "high": "red", "medium": "yellow", "low": "green"}
+        tbl = Table(show_header=True, header_style="bold")
+        tbl.add_column("Risk", style="cyan")
+        tbl.add_column("Domains", justify="right")
+        tbl.add_column("Examples", style="dim")
+        for tier, domains in rep.by_risk.items():
+            tbl.add_row(
+                f"[{colours.get(tier, 'dim')}]{tier.upper()}[/]",
+                str(len(domains)),
+                ", ".join(d.domain for d in domains[:4]),
+            )
+        console.print(tbl)
+
+        if rep.watchlist_clear:
+            console.print(
+                f"\n  [green]High-risk watchlist CLEAR[/] — none of the "
+                f"{rep.watchlist_total} high-risk domains were reached.",
+            )
+        else:
+            console.print(
+                f"\n  [red]High-risk watchlist: {len(rep.watchlist_hits)} hit(s)[/]"
+            )
+            for d in rep.watchlist_hits:
+                console.print(f"    {d.domain}  ({d.provider} / {d.category})")
+
+        if show_unlisted and rep.unlisted:
+            console.print(
+                f"\n  {len(rep.unlisted)} AI-looking domain(s) not in reference data "
+                f"— candidates for the ai-llm-domains repo:",
+                style="dim",
+            )
+            for d in rep.unlisted[:40]:
+                console.print(f"    {d}", style="dim")
+
+        if rep.sample_truncated:
+            console.print(
+                "\n  NOTE: web_domain sample was truncated — treat counts as a "
+                "lower bound.",
+                style="yellow",
+            )
+        console.print(
+            f"\n  Profile: {profile.api_calls} API call(s) this run "
+            f"(0 = served from cache)",
+            style="dim",
+        )
+    finally:
+        client.close()
 
 
 @aillm_app.command("status")
