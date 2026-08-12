@@ -1333,3 +1333,197 @@ class TestSyncPublicDomainsMapping:
         assert results[0].upserted > 0, (
             "upserted must be > 0 — confirm aillm_domain/risk_level remapping is active"
         )
+
+
+class TestGapsApply:
+    """apply_gaps -- the only write path in the aillm module.
+
+    Every test here guards a failure the API reports as success: a write under
+    the wrong key attribute, a duplicate from a stale report, or a withheld
+    value promoted by accident.
+    """
+
+    TABLE_ID = "tbl-dlp"
+    TABLES_URL = f"{BASE_URL}/context-management/v1/tables"
+
+    def _report(self, tmp_path, propose, withhold=None):
+        import json as _json
+
+        payload = {
+            "tenant": "t",
+            "tables": [
+                {
+                    "table": "AI/LLM DLP Rulesets",
+                    "table_id": self.TABLE_ID,
+                    "key_attr": "key",
+                    "propose": [
+                        {"value": v, "reason": "ai-related", "redacted": False}
+                        for v in propose
+                    ],
+                    "withhold": withhold or [],
+                }
+            ],
+        }
+        path = tmp_path / "gaps.json"
+        path.write_text(_json.dumps(payload), encoding="utf-8")
+        return path
+
+    def _mock_reads(self, mock_auth, *, key_attr="alert_name", existing=()):
+        # get_tables() returns `attributes` inline, so resolve_table_schema()
+        # needs no second call. Mirror that -- a fixture that omits them would
+        # pass while hiding an extra round trip per table on the real API.
+        mock_auth.add_response(
+            url=self.TABLES_URL,
+            method="GET",
+            json=[
+                {
+                    "id": self.TABLE_ID,
+                    "name": "AI/LLM DLP Rulesets",
+                    "displayName": "AI/LLM DLP Rulesets",
+                    "attributes": [{"id": key_attr, "isKey": True}],
+                }
+            ],
+        )
+        mock_auth.add_response(
+            url=f"{self.TABLES_URL}/{self.TABLE_ID}/records?limit=100000&offset=0",
+            method="GET",
+            json={"records": [{key_attr: v} for v in existing]},
+        )
+
+    def test_dry_run_issues_no_write(self, exa, mock_auth, tmp_path):
+        """Dry run is the default and must stay read-only. The whole point of
+        the reviewable report is defeated if reviewing it writes."""
+        from exa.aillm.gaps import apply_gaps
+
+        self._mock_reads(mock_auth)
+        report = self._report(tmp_path, ["DSPM for AI: Detect sensitive info"])
+
+        results = apply_gaps(exa, report)
+
+        assert results[0].written == 1, "dry run still reports what it would write"
+        assert results[0].status == "DryRun"
+        assert not [
+            r for r in mock_auth.get_requests() if r.method == "POST" and "addRecords" in str(r.url)
+        ], "dry run must not POST"
+
+    def test_write_uses_the_resolved_key_attribute(self, exa, mock_auth, tmp_path):
+        """EXA-TABLE-KEY-ATTR: the key is not always 'key'. Writing under the
+        wrong one is accepted with HTTP 200 and lands nothing."""
+        import json as _json
+
+        from exa.aillm.gaps import apply_gaps
+
+        self._mock_reads(mock_auth, key_attr="alert_name")
+        mock_auth.add_response(
+            url=f"{self.TABLES_URL}/{self.TABLE_ID}/addRecords",
+            method="POST",
+            json={"trackerId": "trk-1", "jsonEntries": 1},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/uploadStatus/trk-1",
+            method="GET",
+            json={"status": "Completed", "totalUploaded": 1, "totalErrors": 0},
+        )
+        report = self._report(tmp_path, ["AIEnterpriseInteractionsExported"])
+
+        results = apply_gaps(exa, report, dry_run=False)
+
+        add = next(
+            r for r in mock_auth.get_requests() if "addRecords" in str(r.url)
+        )
+        record = _json.loads(add.content)["data"][0]
+        assert record == {"alert_name": "AIEnterpriseInteractionsExported"}, (
+            f"wrote under the report's key_attr instead of the live one: {record}"
+        )
+        assert results[0].key_attr == "alert_name"
+        assert results[0].written == 1
+
+    def test_value_already_present_is_not_rewritten(self, exa, mock_auth, tmp_path):
+        """addRecords is additive. A report older than the table would otherwise
+        duplicate anything that arrived in between."""
+        from exa.aillm.gaps import apply_gaps
+
+        self._mock_reads(mock_auth, existing=["Already There"])
+        report = self._report(tmp_path, ["Already There"])
+
+        results = apply_gaps(exa, report, dry_run=False)
+
+        assert results[0].already_present == 1
+        assert results[0].written == 0
+        assert results[0].skipped_reason == "all proposals already present"
+        assert not [
+            r for r in mock_auth.get_requests() if "addRecords" in str(r.url)
+        ], "nothing new to write, so nothing should be POSTed"
+
+    def test_withheld_values_are_never_written(self, exa, mock_auth, tmp_path):
+        """No flag on this command can promote a withheld value. Purview's
+        withheld strings carry message subjects, i.e. patient names."""
+        from exa.aillm.gaps import apply_gaps
+
+        self._mock_reads(mock_auth)
+        report = self._report(
+            tmp_path,
+            ["Genuine Policy"],
+            withhold=[
+                {
+                    "value": "DLP policy matched for email w/ subject: <redacted>",
+                    "reason": "high-cardinality-per-record",
+                    "redacted": True,
+                }
+            ],
+        )
+
+        results = apply_gaps(exa, report)
+
+        assert results[0].proposed == 1, "only the propose bucket is considered"
+        assert results[0].written == 1
+
+    def test_table_absent_from_tenant_is_reported_not_created(
+        self, exa, mock_auth, tmp_path
+    ):
+        """A missing table means the tenant is on different content, not that
+        we should invent one -- creating it would look like success and match
+        nothing."""
+        from exa.aillm.gaps import apply_gaps
+
+        mock_auth.add_response(url=self.TABLES_URL, method="GET", json=[])
+        report = self._report(tmp_path, ["Genuine Policy"])
+
+        results = apply_gaps(exa, report, dry_run=False)
+
+        assert results[0].skipped_reason == "table not present on tenant"
+        assert results[0].written == 0
+        assert not results[0].ok
+
+    def test_table_filter_restricts_the_write(self, exa, mock_auth, tmp_path):
+        from exa.aillm.gaps import apply_gaps
+
+        mock_auth.add_response(url=self.TABLES_URL, method="GET", json=[])
+        report = self._report(tmp_path, ["Genuine Policy"])
+
+        results = apply_gaps(exa, report, tables=["AI/LLM Web Domains"])
+
+        assert results == [], "a table not named in --table is not touched at all"
+
+    def test_upload_errors_surface_as_not_ok(self, exa, mock_auth, tmp_path):
+        """A partial upload must not read as success -- the POST already
+        returned 200 before any of this was known."""
+        from exa.aillm.gaps import apply_gaps
+
+        self._mock_reads(mock_auth)
+        mock_auth.add_response(
+            url=f"{self.TABLES_URL}/{self.TABLE_ID}/addRecords",
+            method="POST",
+            json={"trackerId": "trk-9", "jsonEntries": 2},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/uploadStatus/trk-9",
+            method="GET",
+            json={"status": "Completed", "totalUploaded": 1, "totalErrors": 1},
+        )
+        report = self._report(tmp_path, ["Policy A", "Policy B"])
+
+        results = apply_gaps(exa, report, dry_run=False)
+
+        assert results[0].errors == 1
+        assert not results[0].ok

@@ -53,8 +53,10 @@ between runs, so "not found" never means "not present".
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from exa.aillm.discover import (
@@ -964,3 +966,127 @@ def _value_to_dict(g: GapValue) -> dict[str, Any]:
         "sources": g.sources,
         "detail": g.detail,
     }
+
+
+# -- apply --------------------------------------------------------------------
+
+
+@dataclass
+class ApplyResult:
+    """What happened to one table during an apply."""
+
+    table_name: str
+    table_id: str | None = None
+    key_attr: str = "key"
+    proposed: int = 0
+    already_present: int = 0
+    written: int = 0
+    status: str = ""
+    errors: int = 0
+    timed_out: bool = False
+    skipped_reason: str = ""
+
+    @property
+    def ok(self) -> bool:
+        return not self.skipped_reason and self.errors == 0 and not self.timed_out
+
+
+def apply_gaps(
+    client: ExaClient,
+    report_path: str | Path,
+    *,
+    dry_run: bool = True,
+    tables: list[str] | None = None,
+) -> list[ApplyResult]:
+    """Write the reviewed proposals from a gaps report into their context tables.
+
+    Reads a file rather than re-deriving the analysis on the spot, deliberately.
+    A human has to be able to read what will be written before it is written --
+    these values reach a customer's production tenant, and some of the source
+    data carries customer content. Re-running the analysis inside apply would
+    make the reviewed artifact decorative.
+
+    Only the ``propose`` bucket is ever written. Anything withheld stays
+    withheld; there is no flag to override that from here.
+
+    Args:
+        client: Authenticated ExaClient.
+        report_path: gaps.json produced by `exa aillm gaps --out`.
+        dry_run: When True (default) nothing is written.
+        tables: Restrict to these table display names.
+
+    Returns:
+        One ApplyResult per table in the report.
+    """
+    from exa.context.tables import (
+        add_records_tracked,
+        get_all_records_keyed,
+        get_tables,
+        poll_upload_status,
+    )
+
+    path = Path(report_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    tables_by_name: dict[str, dict[str, Any]] = {}
+    for t in get_tables(client):
+        name = (t.get("displayName") or t.get("name") or "").strip()
+        if name:
+            tables_by_name[name] = t
+
+    results: list[ApplyResult] = []
+    for entry in payload.get("tables", []):
+        name = str(entry.get("table") or entry.get("table_name") or "")
+        if tables and name not in tables:
+            continue
+        proposals = [
+            str(p["value"])
+            for p in entry.get("propose", [])
+            if p.get("value") and not p.get("redacted")
+        ]
+        res = ApplyResult(table_name=name, proposed=len(proposals))
+
+        if not proposals:
+            res.skipped_reason = "nothing proposed"
+            results.append(res)
+            continue
+
+        table_obj = tables_by_name.get(name)
+        if table_obj is None:
+            res.skipped_reason = "table not present on tenant"
+            results.append(res)
+            continue
+        res.table_id = table_obj.get("id")
+
+        # Resolve the real key attribute and re-read current contents. The
+        # report may be hours old, and addRecords is additive -- writing a value
+        # that arrived in the meantime duplicates it (EXA-TABLE-KEY-ATTR,
+        # EXA-ADDRECORDS-ASYNC).
+        key_attr, _records, existing = get_all_records_keyed(client, table_obj)
+        res.key_attr = key_attr
+        fresh = [v for v in proposals if v.strip().lower() not in existing]
+        res.already_present = len(proposals) - len(fresh)
+
+        if not fresh:
+            res.skipped_reason = "all proposals already present"
+            results.append(res)
+            continue
+
+        if dry_run:
+            res.status = "DryRun"
+            res.written = len(fresh)
+            results.append(res)
+            continue
+
+        uploads = add_records_tracked(
+            client, str(res.table_id), [{key_attr: v} for v in fresh]
+        )
+        for upload in uploads:
+            done = poll_upload_status(client, upload)
+            res.written += done.uploaded
+            res.errors += done.errors
+            res.timed_out = res.timed_out or done.timed_out
+            res.status = done.status
+        results.append(res)
+
+    return results

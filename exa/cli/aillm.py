@@ -904,8 +904,16 @@ def sources_cmd(
         client.close()
 
 
-@aillm_app.command("gaps")
+# No help= here on purpose: Typer prefers it over the callback docstring, and
+# the docstring is what carries the withhold-reason table and the examples that
+# tests/test_help.py requires of every command.
+gaps_app = typer.Typer(name="gaps", invoke_without_command=True)
+aillm_app.add_typer(gaps_app)
+
+
+@gaps_app.callback(invoke_without_command=True)
 def gaps_cmd(
+    ctx: typer.Context,
     output: Annotated[
         Path | None,
         typer.Option(
@@ -994,10 +1002,17 @@ def gaps_cmd(
       uv run exa aillm gaps --tenant baystate
       uv run exa aillm gaps --tenant baystate --out gaps.json
       uv run exa aillm gaps --no-deep --json --tenant baystate
+      uv run exa aillm gaps apply gaps.json --tenant baystate
     """
     import json as _json
 
     from exa.aillm.gaps import analyze_gaps, gap_report_to_dict
+
+    # This is a group callback so 'gaps apply' can hang off it. Click runs the
+    # callback before every subcommand, so without this guard 'gaps apply' would
+    # silently re-run the whole analysis -- ~10 API calls -- before writing.
+    if ctx.invoked_subcommand is not None:
+        return
 
     client = _make_client(tenant)
     try:
@@ -1107,6 +1122,160 @@ def gaps_cmd(
     console.print(
         f"\n  Profile: {report.api_calls} API call(s) this run "
         f"(0 = served from cache)",
+        style="dim",
+    )
+
+
+@gaps_app.command("apply")
+def gaps_apply_cmd(
+    report_file: Annotated[
+        Path,
+        typer.Argument(
+            help="gaps.json written by 'exa aillm gaps --out'",
+            exists=True,
+            dir_okay=False,
+        ),
+    ],
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run/--no-dry-run",
+            help="Show what would be written without writing it. "
+            "--no-dry-run writes to the tenant [default: dry-run]",
+        ),
+    ] = True,
+    table: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--table",
+            help="Restrict to this table display name; repeatable "
+            "[default: every table in the report]",
+        ),
+    ] = None,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Write a reviewed gap report's proposals into their context tables.
+
+    Reads the file rather than re-deriving the analysis, deliberately: a human
+    has to be able to read what will be written before it is written. Only the
+    'propose' bucket is ever written -- nothing withheld can be promoted from
+    here, at any flag.
+
+    DRY RUN IS THE DEFAULT. --no-dry-run writes to the tenant.
+
+    Two safeguards worth knowing about, because both cover failures the API
+    reports as success:
+
+    \b
+      - The key attribute is re-resolved per table. It is not always named
+        'key' -- writing under the wrong one is accepted and lands nothing.
+      - The table is re-read first, so a value that arrived between the report
+        and the apply is skipped. addRecords is additive; re-writing duplicates.
+
+    Writes are then polled to a terminal uploadStatus. The POST returns 200
+    before the records are queryable, so an immediate read reports the
+    pre-write state and reads exactly like a failed write.
+
+    \b
+    Examples:
+      uv run exa aillm gaps apply gaps.json --tenant baystate
+      uv run exa aillm gaps apply gaps.json --tenant baystate --no-dry-run
+      uv run exa aillm gaps apply gaps.json --table "AI/LLM DLP Rulesets"
+    """
+    import json as _json
+
+    from exa.aillm.gaps import apply_gaps
+
+    client = _make_client(tenant)
+    try:
+        results = apply_gaps(
+            client, report_file, dry_run=dry_run, tables=list(table) if table else None
+        )
+    finally:
+        client.close()
+
+    if json_out:
+        console.print_json(
+            _json.dumps(
+                {
+                    "dry_run": dry_run,
+                    "tables": [
+                        {
+                            "table": r.table_name,
+                            "table_id": r.table_id,
+                            "key_attr": r.key_attr,
+                            "proposed": r.proposed,
+                            "already_present": r.already_present,
+                            "written": r.written,
+                            "status": r.status,
+                            "errors": r.errors,
+                            "timed_out": r.timed_out,
+                            "skipped_reason": r.skipped_reason,
+                            "ok": r.ok,
+                        }
+                        for r in results
+                    ],
+                }
+            )
+        )
+        return
+
+    console.rule("AI/LLM gaps apply -- DRY RUN" if dry_run else "AI/LLM gaps apply")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Key attr", style="dim")
+    tbl.add_column("Proposed", justify="right")
+    tbl.add_column("Present", justify="right")
+    tbl.add_column("Written" if not dry_run else "Would write", justify="right")
+    tbl.add_column("Status")
+
+    for r in results:
+        if r.skipped_reason:
+            status = f"[dim]{r.skipped_reason}[/]"
+        elif r.timed_out:
+            status = "[yellow]still uploading -- re-check later[/]"
+        elif r.errors:
+            status = f"[red]{r.errors} error(s)[/]"
+        else:
+            status = f"[green]{r.status or 'ok'}[/]"
+        tbl.add_row(
+            r.table_name,
+            r.key_attr,
+            str(r.proposed),
+            str(r.already_present),
+            str(r.written),
+            status,
+        )
+    console.print(tbl)
+
+    total = sum(r.written for r in results)
+    if dry_run:
+        console.print(
+            f"\n  DRY RUN -- nothing was written. {total} record(s) would be "
+            "added.\n  Re-run with --no-dry-run to write.",
+            style="yellow",
+        )
+        return
+
+    failed = [r for r in results if not r.ok and not r.skipped_reason]
+    if failed:
+        console.print(
+            f"\n  {len(failed)} table(s) did not complete cleanly: "
+            f"{', '.join(r.table_name for r in failed)}",
+            style="red",
+        )
+    console.print(f"\n  {total} record(s) written.", style="green")
+    console.print(
+        "  Re-run 'exa aillm validate' to confirm overlap improved -- record "
+        "count alone does not prove a table matches live data.",
         style="dim",
     )
 
