@@ -1,0 +1,213 @@
+{
+  "version": "2026-08-12",
+  "description": "What each security product is known to emit for AI/LLM analysis. Detect the vendor once, and the pack supplies its taxonomy without enumerating the tenant. Every value here was observed on a live tenant -- add to it after each engagement so customer N+1 starts where customer N finished.",
+  "packs": {
+    "Zscaler/Zscaler Internet Access": {
+      "role": "proxy",
+      "category_fields": ["category"],
+      "ai_categories": [
+        "Generative AI and ML Applications",
+        "General AI and ML Applications",
+        "AI & ML Apps",
+        "MS Copilot Personal"
+      ],
+      "allowed_actions": ["Allowed", "Allow"],
+      "blocked_actions": ["Blocked", "Block"],
+      "identity_fields": ["user"],
+      "notes": "Category strings are title-case and differ from Palo Alto's hyphenated taxonomy. 'MS Copilot Personal' distinguishes personal Copilot from the enterprise tenant -- nothing else surfaces that.",
+      "observed_on": ["geha.use1", "baystate.use1"]
+    },
+    "Palo Alto Networks/Palo Alto NGFW": {
+      "role": "proxy",
+      "category_fields": ["categories", "category"],
+      "ai_categories": [
+        "artificial-intelligence",
+        "microsoft.copilot",
+        "AI-conversational-assistant",
+        "AI-writing-assistant",
+        "AI-media-service",
+        "AI-platform-service",
+        "AI-data-and-workflow-optimizer",
+        "AI-code-assistant"
+      ],
+      "allowed_actions": ["allow"],
+      "blocked_actions": ["block-url", "deny", "drop"],
+      "identity_fields": ["user", "src_user"],
+      "alert_name_noise": ["^Grayware:", "^Parked:"],
+      "notes": "Hyphenated lowercase taxonomy in `categories`. AI-platform-service means API/agent traffic rather than chat UI -- a useful shadow-AI signal. Grayware:/Parked: alert prefixes are domain verdicts, not AI alerts.",
+      "observed_on": ["geha.use1", "baystate.use1"]
+    },
+    "Check Point/Check Point NGFW": {
+      "role": "proxy",
+      "category_fields": ["category"],
+      "ai_categories": ["Artificial Intelligence (AI)"],
+      "allowed_actions": ["Accept", "HTTPS Inspect", "Read"],
+      "blocked_actions": ["Prevent", "Drop", "Reject"],
+      "identity_fields": ["user"],
+      "notes": "Uses Accept/Prevent, NOT Allow/Block -- a panel filtering on 'Block' matches nothing here. Categories are sparse; most AI traffic carries a null category and is only identifiable by domain.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Check Point/SmartDefense": {
+      "role": "ids",
+      "alert_name_noise": ["^dga-", "\\.TC\\.[0-9a-zA-Z]{8}$"],
+      "notes": "Emits machine-generated DGA detection tokens (dga-Cai8Z.TC.893fEDbW). Each is unique and never recurs -- 973 distinct values in 30 days on one tenant. Never usable as context-table entries.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Cisco/Cisco Umbrella": {
+      "role": "dns",
+      "category_fields": ["categories"],
+      "ai_categories": ["Application | Generative AI", "Generative AI"],
+      "domain_fields": ["dns_domain", "dns_query"],
+      "activity_types": ["dns-response", "dns-query"],
+      "unpopulated_fields": ["user", "web_domain", "url"],
+      "notes": "DNS-only, and the most commonly mis-analysed source. Events arrive as activity_type dns-response, NOT web-activity-allowed, so the OOTB AI/LLM analytics rules never fire on an Umbrella-only tenant regardless of table health. Domains land in dns_domain (registered domain, e.g. claude.ai) and dns_query (full FQDN) -- never web_domain, so a Web Domains table cannot match. Categories are compound strings; match with RGXi('Generative AI') rather than equality. `user` is blank on ~99.9% of rows, so identity needs Parser Manager mapping or an Entra ID context-table lookup.",
+      "observed_on": ["documented in CLAUDE.md, not yet measured by this module"]
+    },
+    "Exabeam/ABA Telemetry": {
+      "role": "agent",
+      "aliases": ["Observra", "Observra Telemetry", "ABA", "Agent Behavior Analytics"],
+      "identity_fields": ["user", "email_address"],
+      "activity_types": ["ai_agent-request", "tool-call", "tool-return"],
+      "provides_fields": [
+        "llm_request",
+        "llm_response",
+        "ai_token_in_count",
+        "ai_token_out_count",
+        "ai_token_count",
+        "ai_function_name",
+        "ai_tool_name",
+        "ai_agent_name",
+        "model_name",
+        "conversation_id",
+        "result",
+        "result_reason"
+      ],
+      "notes": "Exabeam's agent-level sensor (open-source producer Observra, renamed ABA). This is the ONLY source of the agent-only fields that block AI rules on every proxy/DLP-based tenant, and the only thing that populates `result` -- which five of six panels on the OOTB Agentic AI Security dashboard depend on. Group detections on ai_agent_name, never agent_name: the parser maps $.framework to agent_name, so agent_name holds the framework (claude/adk/openai) by design. Ingest is the Webhook Cloud Collector on api2.<region> (EXA-INGEST-API2-HOST). See also EXA-ABA-MATCH-CONDITIONS -- parser conditions are literal substrings ANDed against the raw log, so a near-miss produces a silently unparsed event with no fields at all.",
+      "observed_on": ["sademodev22", "sademodev23"]
+    },
+    "Microsoft/Microsoft Purview": {
+      "role": "dlp",
+      "identity_fields": ["email_address"],
+      "alert_name_pattern": "^DLP policy \\((?P<policy>.+?)\\) matched for",
+      "alert_name_templates": [
+        "U.S. Health Insurance Act (HIPAA) Enhanced",
+        "Default DLP policy - Protect sensitive M365 Copilot interactions",
+        "DSPM for AI: Detect sensitive info added to AI sites",
+        "DLP-Audit sensitive data shared to generative AI sites",
+        "CC_DSPM for AI - Unethical behavior in AI apps"
+      ],
+      "notes": "Two shapes. DSPM-for-AI policies emit a clean policy name straight into alert_name and are table-friendly. Classic DLP policy matches wrap the policy name with the EMAIL SUBJECT -- one distinct value per email, so no exact-match context table can ever match them, and the subjects carry patient/customer content. Apply alert_name_pattern to recover the policy name before diffing; 3,323 distinct values collapsed to 2 policies on one tenant. A tenant emitting no DSPM names has not enabled DSPM for AI -- that is a customer finding, not a tooling gap.",
+      "observed_on": ["geha.use1", "baystate.use1"]
+    },
+    "Microsoft/Microsoft 365": {
+      "role": "audit",
+      "identity_fields": ["email_address", "user"],
+      "alert_name_templates": [
+        "TeamCopilotMsgInteraction",
+        "AIEnterpriseInteractionsExported"
+      ],
+      "notes": "Audit operations, not alerts. AIEnterpriseInteractionsExported does not match a \\bAI\\b word-boundary pattern -- there is no boundary between AI and Enterprise. Any AI classifier must allow a leading AI followed by a capital.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Microsoft/Copilot": {
+      "role": "agent",
+      "identity_fields": ["email_address"],
+      "activity_types": [
+        "ai_agent-request",
+        "ai_agent-create",
+        "ai_agent-modify",
+        "ai_agent-share",
+        "ai_agent-delete",
+        "ai_agent-publish"
+      ],
+      "unpopulated_fields": ["result", "result_reason", "app_id", "user"],
+      "notes": "M365 Copilot audit is the usual source of ai_agent-* activity. It does NOT populate `result` or `result_reason`, which the OOTB Agentic AI Security dashboard is built on -- five of its six panels hang off `result` (EXA-AGENTIC-DASH-NULL-RESULT). `user` is ~99.8% null; identity is in email_address.",
+      "observed_on": ["geha.use1", "baystate.use1"]
+    },
+    "Asimily/Asimily": {
+      "role": "medical_device",
+      "alert_name_templates": ["Use of AI chatbot detected"],
+      "notes": "Medical-device security platform. Emits a genuine, low-cardinality AI alert name -- valuable in healthcare tenants and easily missed because the vendor is not a traditional security feed.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Netskope/Netskope Security Cloud": {
+      "role": "casb",
+      "identity_fields": ["user", "email_address"],
+      "notes": "Present on a healthcare tenant with 14 distinct alert names, none AI-relevant in 30 days. CASB is a likely AI-visibility source; worth probing its own category taxonomy when a tenant relies on it.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Varonis/Varonis Data Security Platform": {
+      "role": "dlp",
+      "identity_fields": ["user"],
+      "notes": "27 distinct alert names observed, none AI-relevant in 30 days.",
+      "observed_on": ["baystate.use1"]
+    },
+    "SentinelOne/Singularity Platform": {
+      "role": "edr",
+      "identity_fields": ["user"],
+      "notes": "Endpoint source -- the likely provider of process_name / parent_process_name, which are the only detection path for locally-run models (ollama, lm studio, llama.cpp, MCP servers).",
+      "observed_on": ["baystate.use1"]
+    },
+    "Microsoft/Microsoft Defender": {
+      "role": "edr",
+      "identity_fields": ["user", "email_address"],
+      "observed_on": ["baystate.use1"]
+    },
+    "Proofpoint/Targeted Attack Platform": {
+      "role": "email",
+      "identity_fields": ["email_address"],
+      "observed_on": ["baystate.use1"]
+    },
+    "SentinelOne/Prompt Security": {
+      "role": "agent",
+      "aliases": ["Prompt Security", "Prompt"],
+      "identity_fields": ["user", "email_address"],
+      "activity_types": ["ai_agent-request"],
+      "notes": "Dedicated GenAI security platform (acquired by SentinelOne), arriving via a Webhook cloud collector and emitting ai_agent-request. This is an AI-NATIVE source: unlike a proxy it sees prompts and responses rather than domains, so it is a candidate provider of the agent-only fields that block rules on proxy-only tenants. Probe llm_request / llm_response / ai_token_* on any tenant running it before concluding an agent sensor is missing. Do NOT let it inherit the SentinelOne EDR pack -- different product, different role.",
+      "observed_on": ["baystate.use1"]
+    },
+    "CrowdStrike/Falcon": {
+      "role": "edr",
+      "aliases": ["CrowdStrike Falcon", "Falcon Insight", "Falcon Data Replicator"],
+      "identity_fields": ["user"],
+      "provides_fields": ["process_name", "parent_process_name", "process_command_line", "file_hash"],
+      "notes": "Endpoint process telemetry is the ONLY detection path for locally-run models -- ollama, lm studio, llama.cpp, gpt4all, MCP servers -- which leave no network trace after download and are invisible to every proxy. Feeds the AI Agent Process Names and AI Dev Framework Process Names tables (6 rules each). A tenant with Falcon but empty process-name tables has the telemetry and is simply not matching it.",
+      "observed_on": ["reported present at geha.use1; product string not yet confirmed"]
+    },
+    "Fortinet/FortiGate": {
+      "role": "proxy",
+      "aliases": ["FortiGate", "Fortinet FortiGate", "FortiOS"],
+      "category_fields": ["category", "categories"],
+      "ai_categories": ["Artificial Intelligence Technology", "Artificial Intelligence"],
+      "allowed_actions": ["accept", "allow"],
+      "blocked_actions": ["deny", "block", "blocked"],
+      "identity_fields": ["user", "src_user"],
+      "notes": "FortiGuard web filtering. Category strings UNVERIFIED against a live tenant -- confirm before relying on them.",
+      "observed_on": ["unverified"]
+    },
+    "Okta/Okta": {
+      "role": "identity",
+      "aliases": ["Okta Identity Cloud", "Okta Workforce Identity"],
+      "identity_fields": ["user", "email_address"],
+      "notes": "SSO into AI SaaS. The `app` field carries the target application name, which feeds AI/LLM Applications -- often the only record that a sanctioned AI tool is in use when the proxy cannot see inside TLS. Worth probing on any tenant where Applications overlap is low.",
+      "observed_on": ["unverified"]
+    },
+    "Microsoft/Entra ID": {
+      "role": "identity",
+      "aliases": ["Azure AD", "Azure Active Directory", "Entra"],
+      "identity_fields": ["user", "email_address"],
+      "notes": "Enterprise-app sign-ins name the AI SaaS being accessed, and Entra is also the join that maps a proxy's short directory ID to a person -- the identity gap seen on every proxy-only tenant.",
+      "observed_on": ["unverified"]
+    },
+    "Exabeam/Correlation Rule": {
+      "role": "internal",
+      "notes": "Exabeam's own output. Exclude from source inventories -- it is not a customer telemetry source.",
+      "observed_on": ["baystate.use1"]
+    },
+    "Exabeam/Audit Log": {
+      "role": "internal",
+      "notes": "Exabeam platform audit. Exclude from source inventories.",
+      "observed_on": ["baystate.use1"]
+    }
+  }
+}

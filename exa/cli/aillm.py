@@ -741,6 +741,168 @@ def risk_cmd(
         client.close()
 
 
+@aillm_app.command("sources")
+def sources_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to enumerate"),
+    ] = 7,
+    show_all: Annotated[
+        bool,
+        typer.Option(
+            "--all/--ai-only",
+            help="Include sources with no AI/LLM relevance [default: ai-only]",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Inventory the vendors, products and collectors feeding this tenant.
+
+    Run this FIRST. Every later step assumes a source exists to populate the
+    field it measures, and that assumption is worth two API calls to check --
+    a DNS-only tenant emits dns-response rather than web-activity, so the OOTB
+    AI rules cannot fire regardless of how well the context tables are filled.
+
+    Reports which sources exist and what they emit, never how much: group_by
+    returns distinct values with no count field at all.
+
+    \b
+    Examples:
+      uv run exa aillm sources --tenant baystate
+      uv run exa aillm sources --all --lookback 30 --tenant baystate
+      uv run exa aillm sources --json --tenant baystate | jq .
+    """
+    import dataclasses
+    import json as _json
+
+    from exa.aillm.sources import collect_sources
+
+    client = _make_client(tenant)
+    try:
+        inv = collect_sources(client, lookback_days=lookback)
+
+        if json_out:
+            payload = {
+                "lookback_days": inv.lookback_days,
+                "api_calls": inv.api_calls,
+                "truncated": inv.truncated,
+                "collectors_available": inv.collectors_available,
+                "missing_roles": inv.missing_roles(),
+                "sources": [
+                    {
+                        **{
+                            k: v
+                            for k, v in dataclasses.asdict(s).items()
+                            if k != "pack"
+                        },
+                        "pack": s.pack.key if s.pack else None,
+                        "ai_relevant": s.ai_relevant,
+                        "recognised": s.recognised,
+                    }
+                    for s in inv.sources
+                ],
+            }
+            console.print_json(_json.dumps(payload))
+            return
+
+        console.rule(f"Source inventory — last {inv.lookback_days} days")
+
+        if not inv.sources:
+            console.print(
+                "\n  No vendor/product values returned. Either the tenant is "
+                "silent over this window, or `vendor`/`product` are unpopulated.",
+                style="yellow",
+            )
+            return
+
+        shown = inv.sources if show_all else inv.ai_sources
+        tbl = Table(show_header=True, header_style="bold")
+        tbl.add_column("Vendor", style="cyan", no_wrap=True)
+        tbl.add_column("Product", no_wrap=True)
+        tbl.add_column("Role")
+        tbl.add_column("Known", justify="center")
+        tbl.add_column("Activity types", max_width=40)
+        tbl.add_column("Collector", max_width=34)
+        for s in shown:
+            acts = ", ".join(s.activity_types[:3])
+            if len(s.activity_types) > 3:
+                acts += f" (+{len(s.activity_types) - 3})"
+            coll = ", ".join(s.collectors[:2])
+            if len(s.collectors) > 2:
+                coll += f" (+{len(s.collectors) - 2})"
+            tbl.add_row(
+                s.vendor,
+                s.product,
+                s.role,
+                "yes" if s.recognised else "-",
+                acts or "-",
+                coll or "-",
+            )
+        console.print(tbl)
+
+        total, ai = len(inv.sources), len(inv.ai_sources)
+        if not show_all:
+            console.print(
+                f"\n  {ai} AI-relevant of {total} sources. "
+                "Use --all to see the rest.",
+                style="dim",
+            )
+
+        missing = inv.missing_roles()
+        if missing:
+            console.print(
+                f"\n  No source for: {', '.join(missing)}",
+                style="yellow",
+            )
+            if "agent" in missing:
+                console.print(
+                    "    Without an agent source, llm_request / ai_token_* / result "
+                    "are unpopulated and the rules needing them cannot fire —\n"
+                    "    no amount of context-table population changes that.",
+                    style="dim",
+                )
+            if "edr" in missing:
+                console.print(
+                    "    Without endpoint telemetry there is no detection path for "
+                    "locally-run models (ollama, lm studio, llama.cpp).",
+                    style="dim",
+                )
+
+        unknown = inv.unrecognised
+        if unknown:
+            console.print(
+                f"\n  {len(unknown)} source(s) have no vendor pack — "
+                "candidates to add after this engagement:",
+                style="dim",
+            )
+            for s in unknown[:10]:
+                console.print(f"    {s.key}  ({s.role})", style="dim")
+
+        if not inv.collectors_available:
+            console.print(
+                "\n  Cloud Collector listing unavailable — the tenant may ingest "
+                "via Site Collectors or syslog instead.",
+                style="dim",
+            )
+        if inv.truncated:
+            console.print(
+                "\n  Sample truncated — treat this inventory as a LOWER BOUND.",
+                style="yellow",
+            )
+        console.print(
+            f"\n  {inv.api_calls} API call(s) this run", style="dim"
+        )
+    finally:
+        client.close()
+
+
 @aillm_app.command("status")
 def status_cmd(
     tenant: Annotated[
