@@ -105,7 +105,18 @@ class TableValidation:
     # Live values the tenant emits that this table does NOT contain. This is the
     # populate payload — the direction overlap alone never answers. Unclassified
     # here on purpose; `exa aillm gaps` decides what is safe to add.
+    #
+    # Held in the ORIGINAL case the tenant emitted, even though matching is
+    # case-insensitive. Lowercasing here would both mangle every proposed table
+    # entry (`teamcopilotmsginteraction`) and break the case-sensitive half of
+    # the AI classifier, which is the only thing that recognises
+    # `AIEnterpriseInteractionsExported`. It also keeps the value usable as a
+    # key into `TenantProfile.attribution`, which is keyed by the raw value.
     missing: list[str] = field(default_factory=list)
+    # This table's existing keys, lowercased. Carried so gap analysis can tell
+    # "absent" from "already present under a normalised form" without re-reading
+    # the table — a second read costs an API call and can race the first.
+    entries: list[str] = field(default_factory=list)
     consumers: list[str] = field(default_factory=list)
     fields: list[str] = field(default_factory=list)
 
@@ -196,11 +207,19 @@ def validate_aillm_tables(
         v.key_attr = key_attr
         v.records = len(records)
 
+        v.entries = sorted(keys)
+
         # Union across every field this table is matched against — a table read
         # via both process_name and parent_process_name is covered by either.
+        # Matching is done lowercased; `original` keeps the emitted casing so the
+        # missing list can be reported and classified as the tenant wrote it.
         live: set[str] = set()
+        original: dict[str, str] = {}
         for f in spec.fields:
-            live |= {x.lower() for x in profile.values(f)}
+            for x in profile.values(f):
+                low = x.lower()
+                live.add(low)
+                original.setdefault(low, x)
         v.live_values = len(live)
         v.truncated_sample = any(profile.truncated(f) for f in spec.fields)
 
@@ -218,7 +237,7 @@ def validate_aillm_tables(
                     covered.update(hits)
 
         v.matched_examples = sorted(matched)[:8]
-        v.missing = sorted(live - covered)
+        v.missing = sorted(original.get(x, x) for x in (live - covered))
         v.status = _classify(v)
 
         # Notes are additive. Truncation used to sit in an elif chain and lose to

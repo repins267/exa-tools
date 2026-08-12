@@ -709,6 +709,465 @@ class TestSearchLogsForAIDomainsShim:
         assert "claude.com" in [d.domain for d in result.candidates]
 
 
+class TestGapAnalysis:
+    """`exa aillm gaps` — live values a table lacks, classified.
+
+    Every value below was observed on a live healthcare tenant (baystate.use1,
+    2026-08-12), so a regression here is a regression against real customer
+    data. The alert-name figures from that tenant, over 30 days:
+
+        27,777 distinct alert_name values
+        19,134 Microsoft Purview per-email strings -> 2 real policy names
+         7,276 Check Point machine-generated tokens
+             8 genuine AI alert names
+
+    Adding the diff unclassified would have written 27,000 records, most of them
+    unmatchable and some carrying patient names.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _bundled_data_only(self, tmp_path, monkeypatch):
+        """Pin every data source to the bundled copies.
+
+        vendors, reference and discover all prefer ~/.exa/aillm-domains/data
+        over the bundle, so classification would otherwise depend on whether the
+        developer has run `exa update` — and on a TAM's machine that directory
+        holds customer-derived data.
+        """
+        monkeypatch.setattr(
+            "exa.aillm.vendors._EXTERNAL_DATA_DIR", tmp_path / "absent"
+        )
+        monkeypatch.setattr(
+            "exa.aillm.reference._EXTERNAL_DATA_DIR", tmp_path / "absent"
+        )
+        monkeypatch.setattr(
+            "exa.aillm.discover.load_exclusions", lambda: {"datagrail.io"}
+        )
+
+    def _validation(
+        self,
+        table: str,
+        fields: list[str],
+        missing: list[str],
+        *,
+        entries: list[str] | None = None,
+        truncated: bool = False,
+    ):
+        from exa.aillm.validate import TableValidation
+
+        return TableValidation(
+            table_name=table,
+            table_id="tbl-1",
+            fields=fields,
+            live_field=", ".join(fields),
+            missing=missing,
+            entries=entries or [],
+            truncated_sample=truncated,
+            status="DEAD",
+        )
+
+    def _report(self, validation, profile, **kwargs):
+        from exa.aillm.gaps import build_gap_report
+
+        return build_gap_report([validation], profile, **kwargs)
+
+    # -- Purview normalisation ------------------------------------------------
+
+    PURVIEW = "Microsoft / Microsoft Purview"
+
+    def _purview_raw(self, policy: str, subject: str) -> str:
+        return f"DLP policy ({policy}) matched for email with subject ({subject})"
+
+    def test_purview_per_email_values_collapse_to_policy_names(self):
+        """3,323 distinct values, 2 real policies. Diffing raw compares noise."""
+        internal = "U.S. Health Insurance Act (HIPAA) Enhanced - Internal"
+        external = "U.S. Health Insurance Act (HIPAA) Enhanced - External"
+        raws = [
+            self._purview_raw(internal, "RE: Patient chart"),
+            self._purview_raw(internal, "FW: Lab results"),
+            self._purview_raw(external, "Referral"),
+        ]
+        profile = _profile(
+            {"alert_name": raws},
+            attribution={"alert_name": {r: [self.PURVIEW] for r in raws}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], raws)
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.propose == []
+        assert table.by_reason() == {"high-cardinality-per-record": 3}
+        assert {g.value for g in table.withhold} == {internal, external}
+        # Two entries covering three live values — the collapse, in the output.
+        assert table.withheld_distinct == 2
+        assert table.withheld_values == 3
+
+    def test_email_subjects_never_reach_disk(self):
+        """The raw string carries the message subject. It must not be written."""
+        import json as _json
+
+        from exa.aillm.gaps import gap_report_to_dict
+
+        raw = self._purview_raw(
+            "U.S. Health Insurance Act (HIPAA) Enhanced - Internal",
+            "RE: Cuevas discharge summary",
+        )
+        profile = _profile(
+            {"alert_name": [raw]},
+            attribution={"alert_name": {raw: [self.PURVIEW]}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [raw])
+
+        text = _json.dumps(gap_report_to_dict(self._report(v, profile)))
+
+        assert "Cuevas" not in text
+        assert "matched for email with subject" not in text
+        assert "U.S. Health Insurance Act (HIPAA) Enhanced - Internal" in text
+
+    def test_ai_policy_inside_a_wrapper_is_proposed_by_name_only(self):
+        """The policy name is addable; the per-email string never is."""
+        policy = "Default DLP policy - Protect sensitive M365 Copilot interactions"
+        raw = self._purview_raw(policy, "Q3 planning")
+        profile = _profile(
+            {"alert_name": [raw]},
+            attribution={"alert_name": {raw: [self.PURVIEW]}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [raw])
+
+        table = self._report(v, profile).tables[0]
+
+        assert [g.value for g in table.propose] == [policy]
+        assert table.propose[0].normalised is True
+
+    # -- the classifier misses ------------------------------------------------
+
+    def test_ai_enterprise_interactions_exported_is_proposed(self):
+        """There is no word boundary between "AI" and "Enterprise".
+
+        `\\bAI\\b` therefore skipped this Microsoft 365 audit operation on a live
+        tenant, and it was one of only eight genuine AI alert names that tenant
+        emitted in 30 days. The fix must not open the gate to every word
+        containing "ai".
+        """
+        from exa.aillm.discover import is_ai_alert_name
+
+        assert is_ai_alert_name("AIEnterpriseInteractionsExported")
+        assert not is_ai_alert_name("Airport badge access denied")
+        assert not is_ai_alert_name("AIRPORT")
+        assert not is_ai_alert_name("Email messages removed after delivery")
+
+        names = ["AIEnterpriseInteractionsExported", "TeamCopilotMsgInteraction"]
+        profile = _profile(
+            {"alert_name": names},
+            attribution={"alert_name": {n: ["Microsoft / Microsoft 365"] for n in names}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], names)
+
+        table = self._report(v, profile).tables[0]
+
+        assert sorted(g.value for g in table.propose) == sorted(names)
+
+    def test_vendor_template_is_proposed(self):
+        """Asimily is not a traditional security feed and is easy to miss."""
+        name = "Use of AI chatbot detected"
+        profile = _profile(
+            {"alert_name": [name]},
+            attribution={"alert_name": {name: ["Asimily / Asimily"]}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [name])
+
+        table = self._report(v, profile).tables[0]
+
+        assert [g.value for g in table.propose] == [name]
+
+    # -- machine-generated noise ----------------------------------------------
+
+    def test_check_point_tokens_are_withheld_as_machine_generated(self):
+        """973 in a truncated sample, 7,276 over the full 30 days. Never data."""
+        tokens = ["dga-Cai8Z.TC.893fEDbW", "Malware.TC.0059VopB"]
+        profile = _profile(
+            {"alert_name": tokens},
+            attribution={"alert_name": {t: ["Check Point / SmartDefense"] for t in tokens}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], tokens)
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.propose == []
+        assert table.by_reason() == {"machine-generated": 2}
+
+    def test_sibling_pack_supplies_the_noise_pattern(self):
+        """Check Point emits the same tokens under two products.
+
+        Only the SmartDefense pack documents them. Without the vendor-sibling
+        fallback the NGFW-attributed ones were reported as "unrelated" — true,
+        but it hides that they are generated rather than merely uninteresting.
+        """
+        token = "dga-4oe6S.TC.5658JNJy"
+        profile = _profile(
+            {"alert_name": [token]},
+            attribution={"alert_name": {token: ["Check Point / Check Point NGFW"]}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [token])
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.withhold[0].reason == "machine-generated"
+
+    def test_random_token_containing_llm_is_not_proposed(self):
+        """`dga-6WsNw.TC.c5b8LLMs` is base62, not an LLM alert.
+
+        The shared AI classifier matches "LLM" anywhere, which is right for
+        prose and wrong for random tokens. Overriding a vendor noise pattern
+        requires a word-boundary match.
+        """
+        token = "dga-6WsNw.TC.c5b8LLMs"
+        profile = _profile(
+            {"alert_name": [token]},
+            attribution={"alert_name": {token: ["Check Point / SmartDefense"]}},
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [token])
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.propose == []
+        assert table.withhold[0].reason == "machine-generated"
+
+    def test_ai_domain_verdict_survives_the_noise_pattern(self):
+        """Palo Alto's Parked:/Grayware: prefixes are noise — except when the
+        domain being flagged is AI-branded, which is the shadow-AI signal."""
+        names = ["Parked:broadstreet.ai", "Parked:iionads.com"]
+        profile = _profile(
+            {"alert_name": names},
+            attribution={
+                "alert_name": {n: ["Palo Alto Networks / Palo Alto NGFW"] for n in names}
+            },
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], names)
+
+        table = self._report(v, profile).tables[0]
+
+        assert [g.value for g in table.propose] == ["Parked:broadstreet.ai"]
+        assert [g.value for g in table.withhold] == ["Parked:iionads.com"]
+
+    # -- accounting -----------------------------------------------------------
+
+    def test_no_value_is_ever_dropped_silently(self):
+        """Examined must equal accounted for, in every bucket, always."""
+        raws = [
+            self._purview_raw("HIPAA Enhanced - Internal", "RE: chart"),
+            "dga-Cai8Z.TC.893fEDbW",
+            "Use of AI chatbot detected",
+            "Impossible travel",
+            "Password Spray",
+        ]
+        profile = _profile(
+            {"alert_name": raws},
+            attribution={
+                "alert_name": {
+                    raws[0]: [self.PURVIEW],
+                    raws[1]: ["Check Point / SmartDefense"],
+                    raws[2]: ["Asimily / Asimily"],
+                }
+            },
+        )
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], raws)
+
+        report = self._report(v, profile)
+        table = report.tables[0]
+
+        assert table.examined == len(raws)
+        assert table.accounted == len(raws)
+        assert table.balanced is True
+        assert report.balanced is True
+        assert all(g.reason for g in table.propose + table.withhold)
+
+    def test_withheld_alert_text_is_redacted_unless_requested(self):
+        profile = _profile({"alert_name": ["Impossible travel"]})
+        v = self._validation(
+            "AI/LLM DLP Rulesets", ["alert_name"], ["Impossible travel"]
+        )
+
+        default = self._report(v, profile).tables[0]
+        assert default.withhold[0].value is None
+        assert default.withhold[0].redacted is True
+
+        opted_in = self._report(v, profile, include_withheld_values=True).tables[0]
+        assert opted_in.withhold[0].value == "Impossible travel"
+
+    def test_value_already_in_the_table_is_not_reproposed(self):
+        name = "Use of AI chatbot detected"
+        profile = _profile(
+            {"alert_name": [name]},
+            attribution={"alert_name": {name: ["Asimily / Asimily"]}},
+        )
+        v = self._validation(
+            "AI/LLM DLP Rulesets", ["alert_name"], [name], entries=[name.lower()]
+        )
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.propose == []
+        assert table.withhold[0].reason == "covered-after-normalisation"
+
+    # -- truncation -----------------------------------------------------------
+
+    def test_counts_are_labelled_lower_bounds_when_truncated(self):
+        """A truncated sample means "not found" is not "not present"."""
+        from exa.aillm.gaps import gap_report_to_dict
+
+        profile = _profile(
+            {"alert_name": ["Impossible travel"]}, truncated={"alert_name"}
+        )
+        v = self._validation(
+            "AI/LLM DLP Rulesets", ["alert_name"], ["Impossible travel"], truncated=True
+        )
+
+        report = self._report(v, profile)
+        payload = gap_report_to_dict(report)
+
+        assert report.lower_bound is True
+        assert payload["counts_are_lower_bound"] is True
+        assert "alert_name" in payload["truncated_fields"]
+        assert payload["tables"][0]["counts_are_lower_bound"] is True
+
+    def test_complete_sample_is_not_labelled_a_lower_bound(self):
+        profile = _profile({"alert_name": ["Impossible travel"]})
+        v = self._validation(
+            "AI/LLM DLP Rulesets", ["alert_name"], ["Impossible travel"]
+        )
+
+        assert self._report(v, profile).lower_bound is False
+
+    # -- the other tables -----------------------------------------------------
+
+    def test_domain_buckets_follow_discovery(self):
+        """Gaps must not re-derive what discovery already decided."""
+        hosts = ["chatgpt.com", "claude.com", "datagrail.io", "sharepoint.com"]
+        profile = _profile({"web_domain": hosts})
+        v = self._validation("AI/LLM Web Domains", ["web_domain"], hosts)
+
+        table = self._report(v, profile).tables[0]
+        by_value = {g.value: g.reason for g in table.withhold}
+
+        assert [g.value for g in table.propose] == ["chatgpt.com"]
+        assert by_value["claude.com"] == "needs-review"
+        assert by_value["datagrail.io"] == "excluded-martech"
+        assert by_value["sharepoint.com"] == "not-ai-related"
+
+    def test_ai_categories_proposed_and_others_withheld(self):
+        values = ["AI-conversational-assistant", "online-shopping"]
+        profile = _profile({"category": values})
+        v = self._validation("AI/LLM Web Categories", ["category"], values)
+
+        table = self._report(v, profile).tables[0]
+
+        assert [g.value for g in table.propose] == ["AI-conversational-assistant"]
+        assert [g.value for g in table.withhold] == ["online-shopping"]
+
+    def test_interpreters_need_review_and_model_runtimes_are_proposed(self):
+        """python.exe runs the AI frameworks — and everything else.
+
+        Six rules read each process-name table. Auto-adding an interpreter fires
+        all of them on the whole estate.
+        """
+        values = ["ollama.exe", "python.exe", "EXCEL.EXE"]
+        profile = _profile({"process_name": values})
+        v = self._validation(
+            "AI Agent Process Names", ["process_name", "parent_process_name"], values
+        )
+
+        table = self._report(v, profile).tables[0]
+        by_value = {g.value: g.reason for g in table.withhold}
+
+        assert [g.value for g in table.propose] == ["ollama.exe"]
+        assert by_value["python.exe"] == "needs-review"
+        assert by_value["EXCEL.EXE"] == "not-ai-related"
+
+    def test_app_values_use_reference_data_then_provider_tokens(self):
+        values = ["ChatGPT", "Copilot.M365.Teams", "Workday"]
+        profile = _profile({"app": values})
+        v = self._validation("AI/LLM Applications", ["app"], values)
+
+        table = self._report(v, profile).tables[0]
+
+        assert sorted(g.value for g in table.propose) == [
+            "ChatGPT",
+            "Copilot.M365.Teams",
+        ]
+        assert [g.value for g in table.withhold] == ["Workday"]
+
+    def test_a_misparsed_domain_carrying_an_identity_is_redacted(self):
+        """Field type is not a safety guarantee.
+
+        A parser artefact put `<creds><USR>firstname.lastname@<customer>.org<`
+        into `web_domain` on a live tenant — a structured taxonomy field holding
+        a raw log fragment naming a person. The content test has to run on every
+        field, not only the ones known to be free text.
+        """
+        import json as _json
+
+        from exa.aillm.gaps import gap_report_to_dict
+
+        leak = "<creds><USR>Brandon.Andrews@baystatehealth.org<"
+        profile = _profile({"web_domain": [leak, "chatgpt.com"]})
+        v = self._validation("AI/LLM Web Domains", ["web_domain"], [leak, "chatgpt.com"])
+
+        report = self._report(v, profile)
+        table = report.tables[0]
+        text = _json.dumps(gap_report_to_dict(report))
+
+        assert "baystatehealth.org" not in text
+        assert "Brandon" not in text
+        assert any(g.redacted for g in table.withhold)
+        assert table.balanced is True
+
+    def test_listing_is_capped_but_counts_stay_complete(self):
+        """43,461 withheld domains produced a 43 MB file nobody would open.
+
+        Capping the LISTING is fine; losing the count is not. The elision has to
+        be stated in the file rather than inferred from its absence.
+        """
+        from exa.aillm.gaps import gap_report_to_dict
+
+        hosts = [f"host{i}.example.com" for i in range(50)]
+        profile = _profile({"web_domain": hosts})
+        v = self._validation("AI/LLM Web Domains", ["web_domain"], hosts)
+
+        payload = gap_report_to_dict(
+            self._report(v, profile), max_listed_per_reason=10
+        )
+        table = payload["tables"][0]
+
+        assert table["withheld_values"] == 50
+        assert table["withheld_by_reason"] == {"not-ai-related": 50}
+        assert len(table["withhold"]) == 10
+        assert table["withhold_listing"] == {
+            "max_listed_per_reason": 10,
+            "listed": 10,
+            "not_listed": 40,
+        }
+        assert table["balanced"] is True
+
+    def test_per_record_shapes_are_never_proposed(self):
+        """No pack to normalise with, so nothing can rescue these."""
+        from exa.aillm.gaps import is_per_record
+
+        assert is_per_record("Copilot alert for user jane.doe@example.org")
+        assert is_per_record("AI policy " + "x" * 200)
+        assert not is_per_record("Use of AI chatbot detected")
+
+        raw = "GenAI upload alert for jane.doe@example.org"
+        profile = _profile({"alert_name": [raw]})
+        v = self._validation("AI/LLM DLP Rulesets", ["alert_name"], [raw])
+
+        table = self._report(v, profile).tables[0]
+
+        assert table.propose == []
+        assert table.withhold[0].reason == "high-cardinality-per-record"
+        assert table.withhold[0].value is None  # raw text stays off disk
+
+
 class TestSyncPublicDomainsMapping:
     """Schema-aware field mapping for Public AI Domains and Risk (EXA-CONTEXT-SCHEMA-35).
 

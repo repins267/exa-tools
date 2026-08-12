@@ -9,6 +9,7 @@ Commands:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -901,6 +902,213 @@ def sources_cmd(
         )
     finally:
         client.close()
+
+
+@aillm_app.command("gaps")
+def gaps_cmd(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the reviewable JSON gap report to this path [default: none]",
+        ),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    deep: Annotated[
+        bool,
+        typer.Option(
+            "--deep/--no-deep",
+            help="Re-enumerate any field whose standing 5,000-value sample was "
+            "truncated, at a 50,000 row cap. One read-only API call per "
+            "truncated field, and the reason the proposal counts are right "
+            "[default: deep]",
+        ),
+    ] = True,
+    include_withheld_values: Annotated[
+        bool,
+        typer.Option(
+            "--include-withheld-values/--no-include-withheld-values",
+            help="Write withheld alert_name text into the report. Those strings "
+            "are free text from the source product and can carry customer "
+            "content [default: no-include-withheld-values]",
+        ),
+    ] = False,
+    max_listed: Annotated[
+        int,
+        typer.Option(
+            "--max-listed",
+            help="Withheld entries listed per reason in the output; 0 lists all. "
+            "Counts are always complete -- this caps the listing only "
+            "[default: 200]",
+        ),
+    ] = 200,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Show what this tenant emits that the AI/LLM context tables do not hold.
+
+    READ-ONLY -- this command never writes to a tenant. It classifies every
+    missing value into propose (safe to add) or withhold (with a machine-readable
+    reason), and never drops one silently: examined always equals accounted for.
+
+    Values are normalised through the vendor pack first. Microsoft Purview wraps
+    each classic DLP match with the message subject, so 19,134 distinct live
+    values collapsed to 2 real policy names on one tenant -- diffing the raw
+    strings compares one-shot text and proposes adding all of it.
+
+    \b
+    Withhold reasons:
+      high-cardinality-per-record -- one distinct value per event; unmatchable
+      machine-generated           -- vendor noise tokens (dga-*, *.TC.*)
+      not-ai-related              -- no AI/LLM signal
+      excluded-martech            -- adtech riding the .ai TLD
+      needs-review                -- plausible, but not safe unattended
+      covered-after-normalisation -- already in the table once normalised
+
+    Counts are LOWER BOUNDS wherever the live sample was truncated. --deep (on
+    by default) re-enumerates any capped field at a 50,000 row cap first: the
+    standing 5,000-value sample hid six of eight genuine AI alert names behind
+    per-email DLP noise on a live tenant.
+
+    \b
+    Examples:
+      uv run exa aillm gaps --tenant baystate
+      uv run exa aillm gaps --tenant baystate --out gaps.json
+      uv run exa aillm gaps --no-deep --json --tenant baystate
+    """
+    import json as _json
+
+    from exa.aillm.gaps import analyze_gaps, gap_report_to_dict
+
+    client = _make_client(tenant)
+    try:
+        report = analyze_gaps(
+            client,
+            lookback_days=lookback,
+            refresh=refresh,
+            include_withheld_values=include_withheld_values,
+            deep=deep,
+        )
+    finally:
+        client.close()
+
+    payload = gap_report_to_dict(report, max_listed_per_reason=max_listed)
+
+    if output is not None:
+        output.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+
+    if json_out:
+        console.print_json(_json.dumps(payload))
+        return
+
+    console.rule("AI/LLM context table gaps -- read only")
+
+    def _bound(n: int, truncated: bool) -> str:
+        return f">= {n}" if truncated else str(n)
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Field", style="dim")
+    tbl.add_column("Missing", justify="right")
+    tbl.add_column("Propose", justify="right")
+    tbl.add_column("Withhold", justify="right")
+    tbl.add_column("Top withhold reason", max_width=32)
+    tbl.add_column("Status")
+
+    colours = {"OK": "green", "WEAK": "yellow", "DEAD": "red", "EMPTY": "red"}
+    for t in report.tables:
+        reasons = t.by_reason()
+        top = next(iter(reasons.items()), None)
+        tbl.add_row(
+            t.table_name,
+            ", ".join(t.fields),
+            _bound(t.examined, t.truncated_sample),
+            str(t.proposed),
+            _bound(t.withheld_values, t.truncated_sample),
+            f"{top[0]} ({top[1]})" if top else "-",
+            f"[{colours.get(t.status, 'dim')}]{t.status}[/]",
+        )
+    console.print(tbl)
+
+    for t in report.tables:
+        if not t.propose:
+            continue
+        console.print(f"\n  {t.table_name} -- {len(t.propose)} proposed:", style="bold")
+        for g in t.propose:
+            src = f"  [{', '.join(g.sources)}]" if g.sources else ""
+            console.print(f"    + {g.value}", style="green")
+            console.print(f"        {g.reason}{src}", style="dim")
+
+    for t in report.tables:
+        reasons = t.by_reason()
+        if not reasons:
+            continue
+        console.print(f"\n  {t.table_name} -- withheld:", style="dim")
+        for reason, count in reasons.items():
+            console.print(
+                f"    {_bound(count, t.truncated_sample):>10}  {reason}", style="dim"
+            )
+
+    unbalanced = [t.table_name for t in report.tables if not t.balanced]
+    if unbalanced:
+        console.print(
+            f"\n  BUG: values unaccounted for in: {', '.join(unbalanced)}",
+            style="red",
+        )
+    else:
+        console.print(
+            "\n  Every examined value is accounted for in exactly one bucket.",
+            style="dim",
+        )
+
+    if report.deepened_fields:
+        console.print(
+            "\n  Re-enumerated at a 50,000 row cap (standing sample was capped "
+            f"at 5,000): {', '.join(report.deepened_fields)}",
+            style="dim",
+        )
+
+    if report.lower_bound:
+        console.print(
+            "\n  Live samples were truncated for: "
+            f"{', '.join(report.truncated_fields)}.\n"
+            "  EVERY count above is a LOWER BOUND -- a value absent here may "
+            "still be present on the tenant.",
+            style="yellow",
+        )
+
+    if output is not None:
+        console.print(f"\n  Wrote {output}", style="green")
+        if not include_withheld_values:
+            console.print(
+                "  Withheld alert_name text is redacted in that file "
+                "(--include-withheld-values to keep it).",
+                style="dim",
+            )
+    console.print(
+        f"\n  Profile: {report.api_calls} API call(s) this run "
+        f"(0 = served from cache)",
+        style="dim",
+    )
 
 
 @aillm_app.command("status")

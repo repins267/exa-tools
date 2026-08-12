@@ -168,6 +168,21 @@ def _from_dict(raw: dict[str, Any]) -> TenantProfile | None:
         return None
 
 
+def save_profile(profile: TenantProfile) -> None:
+    """Persist a profile to today's cache file.
+
+    Best-effort: a cache that cannot be written is a performance problem, never
+    a correctness one, so this never raises.
+    """
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _cache_path(profile.tenant).write_text(
+            json.dumps(_to_dict(profile), indent=2), encoding="utf-8"
+        )
+    except OSError:
+        pass
+
+
 def load_cached_profile(client: ExaClient) -> TenantProfile | None:
     """Return today's cached profile for this tenant, or None."""
     path = _cache_path(_tenant_id(client))
@@ -242,13 +257,7 @@ def ensure_fields(
                 name, values=vals, truncated=len(rows) >= limit
             )
 
-    try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        _cache_path(profile.tenant).write_text(
-            json.dumps(_to_dict(profile), indent=2), encoding="utf-8"
-        )
-    except OSError:
-        pass
+    save_profile(profile)
     return profile
 
 
@@ -367,12 +376,6 @@ def collect_tenant_profile(
                     profile.fields[name] = FieldValues(name, exists=False)
                     profile.absent_fields.append(name)
 
-    try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        _cache_path(profile.tenant).write_text(
-            json.dumps(_to_dict(profile), indent=2), encoding="utf-8"
-        )
-    except OSError:
-        pass
+    save_profile(profile)
 
     return profile

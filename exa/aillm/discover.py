@@ -88,13 +88,49 @@ _AI_CATEGORY = re.compile(
     re.I,
 )
 
+# `\bAI\b` alone is not enough: there is NO word boundary between "AI" and
+# "Enterprise", so `AIEnterpriseInteractionsExported` -- a real Microsoft 365
+# audit operation naming AI enterprise interactions -- was silently dropped on a
+# live tenant, and with it one of only eight genuine AI alert names that tenant
+# emits. The second alternative is scoped case-SENSITIVE `(?-i:...)` and demands
+# CamelCase after the AI, so `AIEnterprise` matches while `AIRPORT` (all caps)
+# and `airline` (lowercase) do not. Leaving it case-insensitive would match the
+# "ai" inside every ordinary word.
 _AI_ALERT = re.compile(
-    r"\bAI\b|LLM|GenAI|generative|copilot|chatbot|prompt|DSPM for AI", re.I
+    r"\bAI\b|(?-i:\bAI(?=[A-Z][a-z]))|LLM|GenAI|generative|copilot|chatbot|"
+    r"prompt|DSPM for AI",
+    re.I,
 )
 
 KNOWN = "known"
 CANDIDATE = "candidate"
 EXCLUDED = "excluded"
+
+
+# The four predicates below are the classifier itself, exposed so gap analysis
+# runs the SAME test discovery runs. When `exa aillm gaps` carried its own copy
+# of these patterns the two commands disagreed about the same tenant, which is
+# the one failure mode neither operator can debug from the output.
+
+
+def is_ai_alert_name(value: str) -> bool:
+    """Whether an ``event.alert_name`` value carries an AI/LLM signal."""
+    return bool(_AI_ALERT.search(value or ""))
+
+
+def is_ai_category(value: str) -> bool:
+    """Whether a proxy/URL category value names an AI class of traffic."""
+    return bool(_AI_CATEGORY.search(value or ""))
+
+
+def has_ai_provider_token(value: str) -> bool:
+    """Whether a value names a known AI provider or product (strong signal)."""
+    return bool(_AI_TOKENS.search(value or ""))
+
+
+def has_weak_ai_hint(value: str) -> bool:
+    """Whether a value only *looks* AI-ish (.ai TLD, ai- prefix) -- review first."""
+    return bool(_WEAK_AI_HINT.search(value or ""))
 
 
 @dataclass
