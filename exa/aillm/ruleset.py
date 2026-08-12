@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from rich.console import Console
 
 from exa.case.alerts import search_alerts
-from exa.context.tables import add_records, get_all_records, get_tables
+from exa.context.tables import add_records, get_all_records_keyed, get_tables
 
 if TYPE_CHECKING:
     from exa.client import ExaClient
@@ -195,16 +195,31 @@ def sync_dlp_ruleset(
     operation = "replace" if force else "append"
 
     # Step 5: Dedup against existing records (append mode only)
-    records = [{"key": name} for name in matched]
+    #
+    # Resolve the key attribute — never assume it is named "key"
+    # (EXA-TABLE-KEY-ATTR). Reading r.get("key") on a table that uses a different
+    # attribute returns an EMPTY set while totalItems reports a healthy count, so
+    # every record looks new and the write silently duplicates the whole table.
+    key_attr = "key"
+    records = [{key_attr: name} for name in matched]
     if operation == "append":
         try:
-            existing = get_all_records(client, table_id)
-            existing_keys = {r.get("key", "").lower() for r in existing if r.get("key")}
-            new_records = [r for r in records if r["key"].lower() not in existing_keys]
+            key_attr, _existing, existing_keys = get_all_records_keyed(client, target)
+            records = [{key_attr: name} for name in matched]
+            new_records = [
+                r for r in records if r[key_attr].lower() not in existing_keys
+            ]
             result.already_present = len(records) - len(new_records)
             records = new_records
-        except Exception:
-            pass  # Proceed without dedup on error
+        except Exception as exc:  # noqa: BLE001
+            # addRecords is additive, so appending without a dedup read writes
+            # every matched name again. Proceed (a duplicate is recoverable, a
+            # failed sync is not) but never do it silently.
+            console.print(
+                f"  ! Could not read existing records to dedup ({exc}). "
+                "Writing all matched names — duplicates are possible.",
+                style="yellow",
+            )
 
     result.already_present = result.keyword_matched - len(records)
 

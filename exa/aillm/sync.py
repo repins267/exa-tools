@@ -68,7 +68,16 @@ def _resolve_tables(
     Returns (bucket -> table_id, bucket -> full table object from list endpoint).
     The full table objects include the `attributes` array used for schema resolution.
     """
-    existing = {t["name"]: t for t in existing_tables}
+    # Match on displayName OR name. displayName is null on some tenants
+    # (EXA-DISPLAYNAME-UNDOCUMENTED — all 109 tables on csnsafusion), while other
+    # tenants carry the human-readable value there and an internal id in `name`.
+    # status.py and validate.py already use the fallback; matching only on
+    # `name` here made the three code paths disagree about which tables exist.
+    existing: dict[str, dict[str, Any]] = {}
+    for t in existing_tables:
+        for candidate in (t.get("displayName"), t.get("name")):
+            if candidate and candidate not in existing:
+                existing[candidate] = t
     table_ids: dict[str, str] = {}
     table_objects: dict[str, dict[str, Any]] = {}
 
