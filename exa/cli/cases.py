@@ -313,7 +313,7 @@ def cases_update(
             priority=priority.upper() if priority else None,
             tags=tag_list,
         )
-        console.print("✓ Case updated", style="green")
+        console.print("OK Case updated", style="green")
         console.print(f"  Stage:    {result.get('stage', '')}")
         console.print(f"  Priority: {result.get('priority', '')}")
         console.print(f"  Assignee: {result.get('assignee', '')}")
@@ -554,7 +554,7 @@ def alerts_update(
             priority=priority.upper() if priority else None,
             tags=tag_list,
         )
-        console.print("✓ Alert updated", style="green")
+        console.print("OK Alert updated", style="green")
         console.print(f"  Priority: {result.get('priority', '')}")
     finally:
         client.close()

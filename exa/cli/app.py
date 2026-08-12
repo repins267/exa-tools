@@ -51,11 +51,11 @@ def configure() -> None:
     try:
         nickname, fqdn, api_server, region = resolve_fqdn(fqdn_input)
     except ValueError as e:
-        console.print(f"✗ {e}", style="red")
+        console.print(f"x {e}", style="red")
         raise typer.Exit(1)
 
     console.print(
-        f"✓ Resolved: {fqdn} → {region} ({api_server})",
+        f"OK Resolved: {fqdn} -> {region} ({api_server})",
         style="green",
     )
 
@@ -81,7 +81,7 @@ def configure() -> None:
         test_client.close()
     except Exception as e:
         console.print(
-            f"✗ Connection failed — "
+            f"x Connection failed — "
             f"verify credentials and region\n"
             f"  API server tried: {api_server}\n"
             f"  Error: {e}",
@@ -90,7 +90,7 @@ def configure() -> None:
         raise typer.Exit(1)
 
     console.print(
-        f"✓ Connected — {fqdn} ({region})",
+        f"OK Connected — {fqdn} ({region})",
         style="green",
     )
 
@@ -308,13 +308,13 @@ def search(
 
     # ── Mutex conflict detection (before any API call) ─────────────────────
     if as_json and csv_path:
-        console.print("✗ Cannot combine --json and --csv", style="red")
+        console.print("x Cannot combine --json and --csv", style="red")
         raise typer.Exit(1)
     if unique and count:
-        console.print("✗ Cannot combine --unique and --count", style="red")
+        console.print("x Cannot combine --unique and --count", style="red")
         raise typer.Exit(1)
     if csv_path and count:
-        console.print("✗ --count produces no rows; use without --csv", style="red")
+        console.print("x --count produces no rows; use without --csv", style="red")
         raise typer.Exit(1)
     if unique and fields:
         console.print("  --fields ignored when --unique is set", style="yellow")

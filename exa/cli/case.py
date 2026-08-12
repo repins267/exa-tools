@@ -31,8 +31,8 @@ console = Console()
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 _VERDICT_STYLES = {
-    "SUSPECTED_INCIDENT": ("red", "⚠"),
-    "LIKELY_FP": ("green", "✓"),
+    "SUSPECTED_INCIDENT": ("red", "!"),
+    "LIKELY_FP": ("green", "OK"),
     "LEARNING_PHASE_NOISE": ("yellow", "~"),
     "NEEDS_INVESTIGATION": ("yellow", "?"),
 }

@@ -1,4 +1,4 @@
-"""Splunk SPL → Exabeam EQL CLI commands.
+"""Splunk SPL -> Exabeam EQL CLI commands.
 
 Commands:
   exa splunk convert  -- Convert Splunk searches from Excel to Exabeam rules

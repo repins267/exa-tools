@@ -533,7 +533,7 @@ def audit(
                     console.print(
                         "[yellow]PDF skipped:[/yellow] Microsoft Edge not found. "
                         "Install Edge or open the HTML report and use "
-                        "File → Print → Save as PDF."
+                        "File -> Print -> Save as PDF."
                     )
             finally:
                 if tmp_path is not None:

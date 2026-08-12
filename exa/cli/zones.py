@@ -107,7 +107,7 @@ def zones_export(
         for rec in snap.records:
             writer.writerow([rec.get(snap.ip_field, ""), rec.get(snap.name_field, "")])
 
-    console.print(f"  {len(snap.records):,} rows → {out_path}", style="green")
+    console.print(f"  {len(snap.records):,} rows -> {out_path}", style="green")
 
 
 # -- remove -------------------------------------------------------------------

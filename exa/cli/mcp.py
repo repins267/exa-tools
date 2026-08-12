@@ -263,7 +263,7 @@ def install(
     _install_config(server_name, server_config, config_path)
 
     console.print(
-        f"  Installed '[bold]{server_name}[/bold]' → {config_path}",
+        f"  Installed '[bold]{server_name}[/bold]' -> {config_path}",
         style="green",
     )
     if not docs:
