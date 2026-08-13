@@ -17,6 +17,12 @@ CLAUDE.local.md
 # entry and nothing machine-specific. The .local. variant is where per-machine
 # settings go (Bedrock region, model pins, tool permissions), so it must not be.
 .claude/settings.local.json
+# Backups of the above. .gitignore matches exact names, so CLAUDE.local.md.bak was
+# NOT covered and sat untracked in a public checkout carrying the ClientId, tenant
+# names and customer findings -- one `git add -A` from being staged. Backups recur,
+# so this is a rule rather than a habit.
+*.bak
+*.orig
 *-prompt.md
 reports/*.html
 reports/*.json
