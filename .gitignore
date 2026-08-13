@@ -13,6 +13,10 @@ build/
 htmlcov/
 CLAUDE.md
 CLAUDE.local.md
+# .claude/settings.json IS tracked on purpose -- it carries the public docs MCP
+# entry and nothing machine-specific. The .local. variant is where per-machine
+# settings go (Bedrock region, model pins, tool permissions), so it must not be.
+.claude/settings.local.json
 *-prompt.md
 reports/*.html
 reports/*.json
