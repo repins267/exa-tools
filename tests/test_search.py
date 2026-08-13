@@ -126,3 +126,63 @@ class TestSearchEventsResults:
         request = mock_auth.get_request(url=SEARCH_URL)
         body = json.loads(request.content)
         assert body["limit"] == 42
+
+
+class TestFieldRequestContract:
+    """The API returns ONLY requested fields, so absent reads as null.
+
+    Measured 2026-08-13 on a live tenant: 50,000 dns-response events read with
+    the default field set showed dns_domain "0% populated", which supported a
+    conclusion that the vendor's parser was dropping the queried domain.
+    Requesting the field returned it on 99.2% of the SAME events. The parser was
+    fine; the default hid the data. These tests pin the guard.
+    """
+
+    def test_filtered_fields_are_returned(self, exa, mock_auth):
+        """Filtering on a field and not getting it back is the sharp edge."""
+        import json as _json
+
+        mock_auth.add_response(
+            url=f"{BASE_URL}/search/v2/events", method="POST", json={"rows": []}
+        )
+        from exa.search.events import search_events
+
+        search_events(exa, 'activity_type:"dns-response" dns_domain:RGXi("chatgpt")')
+
+        body = _json.loads(
+            next(r for r in mock_auth.get_requests() if "search/v2/events" in str(r.url)).content
+        )
+        assert "dns_domain" in body["fields"], (
+            f"filtered on dns_domain but did not request it back: {body['fields']}"
+        )
+        assert "activity_type" in body["fields"]
+
+    def test_explicit_fields_still_win(self, exa, mock_auth):
+        import json as _json
+
+        mock_auth.add_response(
+            url=f"{BASE_URL}/search/v2/events", method="POST", json={"rows": []}
+        )
+        from exa.search.events import search_events
+
+        search_events(exa, 'categories:RGXi("Generative AI")', fields=["dns_query"])
+
+        body = _json.loads(
+            next(r for r in mock_auth.get_requests() if "search/v2/events" in str(r.url)).content
+        )
+        assert "dns_query" in body["fields"]
+        assert "categories" in body["fields"], "filter field not added to explicit list"
+        assert "user" not in body["fields"], "default set leaked in over an explicit list"
+
+    def test_eql_operators_are_not_mistaken_for_fields(self):
+        from exa.search.events import _fields_in_filter
+
+        found = _fields_in_filter(
+            'activity_type:"x" AND NOT dns_domain:RGXi("y") OR host:WLDi("*z*")'
+        )
+        assert found == ["activity_type", "dns_domain", "host"], found
+
+    def test_empty_filter_adds_nothing(self):
+        from exa.search.events import _fields_in_filter
+
+        assert _fields_in_filter("") == []
