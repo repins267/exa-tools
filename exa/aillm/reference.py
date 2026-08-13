@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.resources
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,16 @@ _DLP_IOC_VENDOR_PATTERN = re.compile(r"IOC", re.IGNORECASE)
 # External repo data takes precedence over the bundled snapshot when present.
 # Populated by `exa update` → ~/.exa/aillm-domains/data/
 _EXTERNAL_DATA_DIR = Path.home() / ".exa" / "aillm-domains" / "data"
+
+# Every file _load_json() may read. Freshness is measured across all of them
+# because `exa update` refreshes them together, and one lagging file is the
+# case worth catching.
+_REFERENCE_FILES = (
+    "known_ai_domains.json",
+    "known_ai_apps.json",
+    "known_proxy_categories.json",
+    "known_dlp_alert_patterns.json",
+)
 
 
 @dataclass
@@ -105,4 +116,68 @@ def load_reference_data() -> ReferenceData:
         applications=applications,
         excluded_domains=excluded_domains,
         excluded_dlp=excluded_dlp,
+    )
+
+
+# -- freshness ----------------------------------------------------------------
+
+# The reference data is the source of every "is this AI-related" verdict in the
+# module. Stale data does not error -- it silently under-classifies, so a domain
+# that became an AI service last month reads as ordinary web traffic and never
+# reaches a gap report. That is indistinguishable from a clean result.
+STALE_AFTER_DAYS = 30
+
+
+@dataclass(frozen=True)
+class ReferenceFreshness:
+    """Where the reference data came from and how old it is."""
+
+    source: str  # "external" or "bundled"
+    age_days: int | None  # None when unknown (bundled snapshot)
+    path: Path | None = None
+
+    @property
+    def stale(self) -> bool:
+        """Bundled data is always stale -- it is a snapshot, frozen at release."""
+        if self.source == "bundled":
+            return True
+        return self.age_days is not None and self.age_days > STALE_AFTER_DAYS
+
+    @property
+    def summary(self) -> str:
+        if self.source == "bundled":
+            return (
+                "bundled snapshot (frozen at release) -- run 'exa update' to "
+                "pull current AI/LLM reference data"
+            )
+        if self.age_days is None:
+            return f"external repo at {self.path}, age unknown"
+        if self.stale:
+            return (
+                f"external repo is {self.age_days} days old (stale after "
+                f"{STALE_AFTER_DAYS}) -- run 'exa update'"
+            )
+        return f"external repo, {self.age_days} days old"
+
+
+def reference_freshness() -> ReferenceFreshness:
+    """Report the age of the AI/LLM reference data backing this run.
+
+    Customers do not run scheduled tasks, so the data ages silently between
+    engagements. Surfacing the age is the only thing standing between a TAM and
+    reporting a confidently empty gap list built on last quarter's domain list.
+    """
+    newest: float | None = None
+    for name in _REFERENCE_FILES:
+        candidate = _EXTERNAL_DATA_DIR / name
+        if candidate.exists():
+            mtime = candidate.stat().st_mtime
+            newest = mtime if newest is None else max(newest, mtime)
+
+    if newest is None:
+        return ReferenceFreshness(source="bundled", age_days=None)
+
+    age = int((time.time() - newest) // 86400)
+    return ReferenceFreshness(
+        source="external", age_days=age, path=_EXTERNAL_DATA_DIR
     )

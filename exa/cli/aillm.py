@@ -26,6 +26,22 @@ console = Console()
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 
 
+def _warn_if_reference_stale() -> None:
+    """Print the age of the reference data behind a verdict.
+
+    Every "is this AI-related" call in the module resolves against this data.
+    When it is stale nothing errors -- a service that became an AI product last
+    month simply reads as ordinary web traffic and never reaches the report.
+    A clean result and an out-of-date result look identical, so the age has to
+    be stated next to the verdict rather than left for the reader to wonder about.
+    """
+    from exa.aillm.reference import reference_freshness
+
+    fresh = reference_freshness()
+    style = "yellow" if fresh.stale else "dim"
+    console.print(f"\n  Reference data: {fresh.summary}", style=style)
+
+
 def _make_client(tenant: str | None = None):
     """Create and authenticate an ExaClient from keyring."""
     from exa.client import ExaClient
@@ -537,6 +553,8 @@ def validate_cmd(
                 f"(0 = served from cache)",
                 style="dim",
             )
+
+        _warn_if_reference_stale()
 
         if has_dead_tables(results):
             console.print(
@@ -1124,6 +1142,7 @@ def gaps_cmd(
         f"(0 = served from cache)",
         style="dim",
     )
+    _warn_if_reference_stale()
 
 
 @gaps_app.command("apply")
@@ -1278,6 +1297,198 @@ def gaps_apply_cmd(
         "count alone does not prove a table matches live data.",
         style="dim",
     )
+
+
+@aillm_app.command("report")
+def report_cmd(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the HTML report here "
+            "[default: reports/<tenant>-aillm-<date>.html]",
+        ),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    drift: Annotated[
+        bool,
+        typer.Option(
+            "--drift/--no-drift",
+            help="Include drift analysis. --no-drift skips the gap collection "
+            "and is much faster [default: drift]",
+        ),
+    ] = True,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    save_baseline_opt: Annotated[
+        bool,
+        typer.Option(
+            "--save-baseline/--no-save-baseline",
+            help="Store this run as the baseline for the next run's change "
+            "detection [default: save-baseline]",
+        ),
+    ] = True,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Report AI/LLM state, what changed since last run, and what is drifting in.
+
+    READ-ONLY. Writes an HTML report plus a state snapshot under
+    ~/.exa/aillm-reports/<tenant>/ so the next run can show movement.
+
+    \b
+      STATE    what the tables hold and whether dashboards are fed
+      CHANGES  record-count movement since the last snapshot
+      DRIFT    values this tenant emits that neither the tables nor the
+               shipped reference data know about
+
+    Drift is narrower than a gap. A gap is anything missing from a table;
+    drift is missing from the table AND unknown to the reference data -- new to
+    us, not merely not yet applied. Nothing filters on it and no rule matches
+    it, so it renders as absence everywhere and needs asking for by name.
+
+    On a first run there is no baseline, and the report says so rather than
+    showing an empty change list that reads as "nothing changed".
+
+    \b
+    Examples:
+      uv run exa aillm report --tenant baystate
+      uv run exa aillm report --tenant baystate -o baystate.html
+      uv run exa aillm report --no-drift --tenant baystate
+      uv run exa aillm report --json --tenant baystate
+    """
+    import json as _json
+
+    from exa.aillm.report import (
+        build_report,
+        default_report_path,
+        report_to_dict,
+        save_baseline,
+        save_html_report,
+    )
+    from exa.config import get_default_tenant
+
+    # The snapshot is keyed by tenant name, so an unresolved --tenant would
+    # diff one tenant's state against another's baseline and report movement
+    # that never happened.
+    name = tenant or get_default_tenant()
+
+    client = _make_client(tenant)
+    try:
+        report = build_report(
+            client,
+            name,
+            lookback_days=lookback,
+            refresh=refresh,
+            include_drift=drift,
+        )
+    finally:
+        client.close()
+
+    path = output or default_report_path(name)
+    save_html_report(report, path)
+    snapshot = save_baseline(report) if save_baseline_opt else None
+
+    if json_out:
+        console.print_json(_json.dumps(report_to_dict(report)))
+        return
+
+    console.rule(f"AI/LLM report -- {name}")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Key attr", style="dim")
+    tbl.add_column("Records", justify="right")
+    tbl.add_column("Read by", style="dim")
+    tbl.add_column("Status")
+    for t in report.tables:
+        if not t.present:
+            status = "[red]not on tenant[/]"
+        elif t.records == 0:
+            status = "[red]empty[/]"
+        else:
+            status = "[green]populated[/]"
+        tbl.add_row(
+            t.name,
+            t.key_attr or "-",
+            f"{t.records:,}",
+            ", ".join(t.consumers) or "-",
+            status,
+        )
+    console.print(tbl)
+
+    moved = [c for c in report.changes if c.moved]
+    if not report.has_baseline:
+        console.print(
+            "\n  No previous snapshot -- this run is now the baseline. "
+            "Nothing to\n  compare against yet, which is not the same as "
+            "nothing having changed.",
+            style="yellow",
+        )
+    elif not moved:
+        console.print(
+            f"\n  No record counts moved since {report.baseline_at}.", style="dim"
+        )
+    else:
+        console.print(f"\n  Changes since {report.baseline_at}:", style="bold")
+        for c in moved:
+            style = "green" if c.delta > 0 else "red"
+            console.print(
+                f"    {c.name}: {c.before:,} -> {c.after:,} ({c.delta:+,})",
+                style=style,
+            )
+
+    if drift:
+        if report.drift:
+            bound = "+" if report.counts_are_lower_bound else ""
+            console.print(
+                f"\n  Drift -- {len(report.drift)}{bound} value(s) emitted here "
+                "but unknown to\n  both the tables and the reference data:",
+                style="bold",
+            )
+            for d in report.drift[:20]:
+                console.print(f"    {d.field_name}: {d.value}", style="yellow")
+            if len(report.drift) > 20:
+                console.print(
+                    f"    ... {len(report.drift) - 20} more -- see the report",
+                    style="dim",
+                )
+        else:
+            console.print(
+                "\n  No drift: everything AI-related this tenant emits is "
+                "already known.",
+                style="dim",
+            )
+
+    if report.counts_are_lower_bound:
+        console.print(
+            "\n  Live samples were truncated for "
+            f"{', '.join(report.truncated_fields)}.\n"
+            "  EVERY count above is a LOWER BOUND.",
+            style="yellow",
+        )
+
+    console.print(f"\n  Report: {path}", style="green")
+    if snapshot:
+        console.print(f"  Baseline stored: {snapshot}", style="dim")
+    _warn_if_reference_stale()
 
 
 @aillm_app.command("dashboard")

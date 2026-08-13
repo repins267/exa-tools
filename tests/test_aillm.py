@@ -1719,3 +1719,242 @@ class TestUniversalDashboard:
         body = config["dashboardElements"][0]["body_text"]
         for markup in ("<b>", "<br", "<div", "**", "##", "|---"):
             assert markup not in body, f"markup in text tile: {markup}"
+
+
+class TestAILLMReport:
+    """state / changes / drift.
+
+    The failure this guards is a report that reads as reassuring because it was
+    built on an absent baseline, a stale reference set, or a truncated sample.
+    All three produce a clean-looking page and none of them raise.
+    """
+
+    TABLES_URL = f"{BASE_URL}/context-management/v1/tables"
+
+    def _state(self, name, records, table_id="t1"):
+        from exa.aillm.report import TableState
+
+        return TableState(
+            name=name, table_id=table_id, key_attr="key", records=records
+        )
+
+    def _mock_tables(self, mock_auth, rows):
+        # get_tables() returns `attributes` inline, so resolve_table_schema()
+        # needs no follow-up call. A fixture omitting them passes while hiding
+        # one extra round trip per table against the real API.
+        for row in rows:
+            row.setdefault("attributes", [{"id": "key", "isKey": True}])
+        mock_auth.add_response(url=self.TABLES_URL, method="GET", json=rows)
+
+    def test_no_baseline_is_not_no_change(self, exa, mock_auth, tmp_path, monkeypatch):
+        """An empty change list on a first run must not render as 'nothing
+        moved' -- that is the difference between 'we checked' and 'we can't'."""
+        from exa.aillm import report as report_mod
+
+        monkeypatch.setattr(report_mod, "SNAPSHOT_DIR", tmp_path)
+        self._mock_tables(
+            mock_auth,
+            [{"id": "a", "name": "AI/LLM Applications", "totalItems": 5}],
+        )
+
+        rep = report_mod.build_report(exa, "acme", include_drift=False)
+
+        assert not rep.has_baseline
+        assert rep.changes == []
+        html = report_mod.generate_html_report(rep)
+        assert "No previous snapshot" in html
+        assert "nothing to compare" in html.lower()
+
+    def test_baseline_round_trip_reports_movement(
+        self, exa, mock_auth, tmp_path, monkeypatch
+    ):
+        from exa.aillm import report as report_mod
+
+        monkeypatch.setattr(report_mod, "SNAPSHOT_DIR", tmp_path)
+        rows = [{"id": "a", "name": "AI/LLM Applications", "totalItems": 5}]
+        self._mock_tables(mock_auth, rows)
+        first = report_mod.build_report(exa, "acme", include_drift=False)
+        report_mod.save_baseline(first)
+
+        rows[0]["totalItems"] = 9
+        self._mock_tables(mock_auth, rows)
+        second = report_mod.build_report(exa, "acme", include_drift=False)
+
+        assert second.has_baseline
+        moved = [c for c in second.changes if c.moved]
+        assert len(moved) == 1
+        assert moved[0].before == 5
+        assert moved[0].after == 9
+        assert moved[0].delta == 4
+
+    def test_corrupt_baseline_does_not_read_as_unchanged(
+        self, exa, mock_auth, tmp_path, monkeypatch
+    ):
+        """A truncated snapshot file must degrade to 'no baseline', never to an
+        empty diff that implies stability."""
+        from exa.aillm import report as report_mod
+
+        monkeypatch.setattr(report_mod, "SNAPSHOT_DIR", tmp_path)
+        snap = tmp_path / "acme" / "state.json"
+        snap.parent.mkdir(parents=True)
+        snap.write_text("{not json", encoding="utf-8")
+
+        self._mock_tables(
+            mock_auth, [{"id": "a", "name": "AI/LLM Applications", "totalItems": 5}]
+        )
+        rep = report_mod.build_report(exa, "acme", include_drift=False)
+
+        assert not rep.has_baseline
+
+    def test_uses_total_items_not_num_records(self, exa, mock_auth, tmp_path, monkeypatch):
+        """numRecords does not exist. Reading it yields 0 for every table and
+        reports a fully populated tenant as empty."""
+        from exa.aillm import report as report_mod
+
+        monkeypatch.setattr(report_mod, "SNAPSHOT_DIR", tmp_path)
+        self._mock_tables(
+            mock_auth,
+            [
+                {
+                    "id": "a",
+                    "name": "AI/LLM Applications",
+                    "totalItems": 162,
+                    "numRecords": 0,
+                }
+            ],
+        )
+
+        rep = report_mod.build_report(exa, "acme", include_drift=False)
+
+        state = next(t for t in rep.tables if t.name == "AI/LLM Applications")
+        assert state.records == 162
+
+    def test_absent_table_is_reported_not_silently_zero(
+        self, exa, mock_auth, tmp_path, monkeypatch
+    ):
+        from exa.aillm import report as report_mod
+
+        monkeypatch.setattr(report_mod, "SNAPSHOT_DIR", tmp_path)
+        self._mock_tables(mock_auth, [])
+
+        rep = report_mod.build_report(exa, "acme", include_drift=False)
+
+        assert rep.missing_tables, "every table absent but none reported missing"
+        html = report_mod.generate_html_report(rep)
+        assert "absent from this tenant" in html
+
+    def test_truncation_marks_every_count_a_lower_bound(self):
+        """A drift list presented as complete retires a question still open."""
+        from exa.aillm.report import AILLMReport, DriftItem, generate_html_report
+
+        rep = AILLMReport(
+            tenant="acme",
+            collected_at="2026-08-13T00:00:00+00:00",
+            lookback_days=30,
+            drift=[DriftItem(field_name="web_domain", value="new-ai.example")],
+            truncated_fields=["web_domain"],
+        )
+
+        assert rep.counts_are_lower_bound
+        html = generate_html_report(rep)
+        assert "lower bound" in html.lower()
+        assert "1+" in html, "drift count not marked as bounded"
+
+    def test_stale_reference_is_stated_next_to_drift(self):
+        """Drift is measured against the reference data, so its age qualifies
+        the result. A clean drift list off stale data looks like good news."""
+        from exa.aillm.report import AILLMReport, generate_html_report
+
+        rep = AILLMReport(
+            tenant="acme",
+            collected_at="2026-08-13T00:00:00+00:00",
+            lookback_days=30,
+            reference_summary="bundled snapshot (frozen at release)",
+            reference_stale=True,
+        )
+
+        html = generate_html_report(rep)
+        assert "Reference data is stale" in html
+
+    def test_html_escapes_values(self):
+        """Drift values are free text from the source product."""
+        from exa.aillm.report import AILLMReport, DriftItem, generate_html_report
+
+        rep = AILLMReport(
+            tenant="acme",
+            collected_at="2026-08-13T00:00:00+00:00",
+            lookback_days=30,
+            drift=[
+                DriftItem(field_name="alert_name", value="<script>alert(1)</script>")
+            ],
+        )
+
+        html = generate_html_report(rep)
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+
+    def test_html_defines_colors_outside_media_query(self):
+        """A color defined only inside prefers-color-scheme renders one theme's
+        text on the other theme's ground for viewers on the default setting."""
+        from exa.aillm.report import AILLMReport, generate_html_report
+
+        html = generate_html_report(
+            AILLMReport(
+                tenant="acme",
+                collected_at="2026-08-13T00:00:00+00:00",
+                lookback_days=30,
+            )
+        )
+        base = html.split("@media")[0]
+        for token in ("--bg:", "--fg:", "--muted:", "--line:", "--panel:"):
+            assert token in base, f"{token} only defined inside a media query"
+
+    def test_default_report_path_shape(self):
+        from exa.aillm.report import default_report_path
+
+        path = default_report_path("baystate", "2026-08-13")
+        assert path.name == "baystate-aillm-2026-08-13.html"
+        assert path.parent.name == "reports"
+
+
+class TestReferenceFreshness:
+    def test_bundled_is_always_stale(self, monkeypatch, tmp_path):
+        """The bundled snapshot is frozen at release, so it can never be
+        current -- saying otherwise invites trusting it."""
+        from exa.aillm import reference
+
+        monkeypatch.setattr(reference, "_EXTERNAL_DATA_DIR", tmp_path / "nope")
+
+        fresh = reference.reference_freshness()
+
+        assert fresh.source == "bundled"
+        assert fresh.stale
+        assert "exa update" in fresh.summary
+
+    def test_fresh_external_is_not_stale(self, monkeypatch, tmp_path):
+        from exa.aillm import reference
+
+        (tmp_path / "known_ai_domains.json").write_text("[]", encoding="utf-8")
+        monkeypatch.setattr(reference, "_EXTERNAL_DATA_DIR", tmp_path)
+
+        fresh = reference.reference_freshness()
+
+        assert fresh.source == "external"
+        assert not fresh.stale
+
+    def test_old_external_is_stale(self, monkeypatch, tmp_path):
+        import os
+        import time
+
+        from exa.aillm import reference
+
+        old = tmp_path / "known_ai_domains.json"
+        old.write_text("[]", encoding="utf-8")
+        stamp = time.time() - (reference.STALE_AFTER_DAYS + 5) * 86400
+        os.utime(old, (stamp, stamp))
+        monkeypatch.setattr(reference, "_EXTERNAL_DATA_DIR", tmp_path)
+
+        fresh = reference.reference_freshness()
+
+        assert fresh.stale
+        assert "exa update" in fresh.summary
