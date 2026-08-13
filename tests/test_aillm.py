@@ -1527,3 +1527,195 @@ class TestGapsApply:
 
         assert results[0].errors == 1
         assert not results[0].ok
+
+
+class TestUniversalDashboard:
+    """build_dashboard -- CP4: two tenants, one config.
+
+    The hand-built Landscapes these replace carried hardcoded domains, one
+    tenant's action vocabulary, and pasted category strings. Point either at
+    another customer and panels go blank silently, because a filter matching
+    nothing renders as an empty chart rather than an error. These tests pin the
+    properties that prevent that from creeping back.
+    """
+
+    TABLES_URL = f"{BASE_URL}/context-management/v1/tables"
+
+    ALL_TABLES = (
+        "AI/LLM Web Domains",
+        "Public AI Domains and Risk",
+        "AI/LLM Proxy Categories",
+        "AI/LLM Applications",
+        "AI/LLM DLP Rulesets",
+    )
+
+    def _mock_tables(self, mock_auth, ids, *, use_display_name=True):
+        rows = []
+        for name, tid in ids.items():
+            row = {"id": tid, "name": name}
+            row["displayName"] = name if use_display_name else None
+            rows.append(row)
+        mock_auth.add_response(url=self.TABLES_URL, method="GET", json=rows)
+
+    def _ids(self, prefix):
+        return {name: f"{prefix}-{i}" for i, name in enumerate(self.ALL_TABLES)}
+
+    def test_two_tenants_differ_only_in_table_ids(self, exa, mock_auth):
+        """CP4. Opaque 10-char IDs hide differences from the naked eye, so the
+        comparison has to be mechanical."""
+        from exa.aillm.dashboard import build_dashboard, portable_form
+
+        self._mock_tables(mock_auth, self._ids("aaa"))
+        first = build_dashboard(exa).config
+
+        self._mock_tables(mock_auth, self._ids("zzz"))
+        second = build_dashboard(exa).config
+
+        assert first != second, "table IDs should differ between tenants"
+        assert portable_form(first) == portable_form(second), (
+            "configs differ by something other than resolved table IDs"
+        )
+
+    def test_no_panel_hardcodes_a_tenant_value(self, exa, mock_auth):
+        """The specific values that made the hand-built versions unportable."""
+        import json as _json
+
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"))
+        blob = _json.dumps(build_dashboard(exa).config).lower()
+
+        for banned in (
+            "deepseek.ai",
+            "stablediffusionweb",
+            "openai.com",
+            "character.ai",
+            "check point",
+            "zscaler",
+            "purview",
+            "generative ai and ml applications",
+        ):
+            assert banned not in blob, f"tenant-specific value leaked in: {banned}"
+
+    def test_outcome_is_pivoted_never_filtered(self, exa, mock_auth):
+        """action vocabulary is vendor-specific -- Accept/Prevent at Check Point,
+        Allowed/Blocked at Zscaler. Filtering on it is what broke portability."""
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"))
+        config = build_dashboard(exa).config
+
+        for element in config["dashboardElements"]:
+            filters = element.get("filters") or {}
+            assert "event.action" not in filters, (
+                f"panel {element.get('title')!r} filters on action"
+            )
+            assert "event.result" not in filters, (
+                f"panel {element.get('title')!r} filters on result, which no "
+                "Microsoft-sourced agent telemetry populates"
+            )
+
+        pivoted = [
+            e
+            for e in config["dashboardElements"]
+            if "event.action" in (e.get("pivots") or [])
+        ]
+        assert pivoted, "no panel pivots on action"
+
+    def test_every_vis_panel_is_scoped(self, exa, mock_auth):
+        """An unfiltered panel renders every event on the tenant and looks like
+        a working AI panel -- how one OOTB dashboard came to report ~200M/day
+        beside a pie reporting 551."""
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"))
+        config = build_dashboard(exa).config
+
+        for element in config["dashboardElements"]:
+            if element.get("type") != "vis":
+                continue
+            filters = element.get("filters") or {}
+            scoping = set(filters) - {"event.approx_log_time"}
+            assert scoping, (
+                f"panel {element.get('title')!r} has only a time filter -- it "
+                "would plot total tenant ingest"
+            )
+
+    def test_context_panels_set_apply_context_rule(self, exa, mock_auth):
+        """context_rule without apply_context_rule=Yes is ignored silently."""
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"))
+        config = build_dashboard(exa).config
+
+        for element in config["dashboardElements"]:
+            filters = element.get("filters") or {}
+            if "event.context_rule" in filters:
+                assert filters.get("event.apply_context_rule") == "Yes", (
+                    f"panel {element.get('title')!r} binds a table but never "
+                    "applies it"
+                )
+
+    def test_missing_table_skips_the_panel(self, exa, mock_auth):
+        """Never emit the panel unfiltered as a fallback."""
+        from exa.aillm.dashboard import build_dashboard
+
+        ids = self._ids("t")
+        del ids["AI/LLM DLP Rulesets"]
+        self._mock_tables(mock_auth, ids)
+
+        build = build_dashboard(exa)
+
+        assert any("DLP Rulesets" in s for s in build.skipped)
+        titles = [e.get("title", "") for e in build.config["dashboardElements"]]
+        assert not any("DLP Alerts" in t for t in titles)
+
+    def test_tenant_with_null_display_names_still_resolves(self, exa, mock_auth):
+        """displayName is null on entire tenants (EXA-DISPLAYNAME-UNDOCUMENTED).
+        Falling back to name is what keeps every panel from being skipped."""
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"), use_display_name=False)
+
+        build = build_dashboard(exa)
+
+        assert not build.skipped, f"skipped on null-displayName tenant: {build.skipped}"
+        assert len(build.resolved) == len(self.ALL_TABLES)
+
+    def test_category_binds_to_proxy_categories_not_web_categories(
+        self, exa, mock_auth
+    ):
+        """CP0. Web Categories feeds analytics rules; the dashboards read Proxy
+        Categories for event.category. One hand-built Landscape bound this to
+        the rules table and rendered a plausible but wrong slice."""
+        from exa.aillm.dashboard import build_dashboard
+
+        ids = self._ids("t")
+        ids["AI/LLM Web Categories"] = "wrong-table"
+        self._mock_tables(mock_auth, ids)
+
+        build = build_dashboard(exa)
+
+        assert build.resolved["AI/LLM Proxy Categories"]
+        assert "AI/LLM Web Categories" not in build.resolved
+
+    def test_context_rule_encoding(self):
+        from exa.aillm.dashboard import build_context_rule
+
+        assert build_context_rule("web_domain", "JfPvofJzKB") == (
+            "web_domainContextRuleSeparatorinContextRuleSeparatorcustom"
+            "ContextRuleSeparatorraw_entity_other_customContextRuleSeparator"
+            "JfPvofJzKB"
+        )
+
+    def test_header_tile_carries_no_markup(self, exa, mock_auth):
+        """The text tile renders neither HTML nor markdown -- proven in a live
+        tenant. Markup ships as literal characters."""
+        from exa.aillm.dashboard import build_dashboard
+
+        self._mock_tables(mock_auth, self._ids("t"))
+        config = build_dashboard(exa).config
+
+        body = config["dashboardElements"][0]["body_text"]
+        for markup in ("<b>", "<br", "<div", "**", "##", "|---"):
+            assert markup not in body, f"markup in text tile: {markup}"

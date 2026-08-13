@@ -1280,6 +1280,129 @@ def gaps_apply_cmd(
     )
 
 
+@aillm_app.command("dashboard")
+def dashboard_cmd(
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the dashboard .config here [default: aillm-landscape.config]",
+        ),
+    ] = Path("aillm-landscape.config"),
+    title: Annotated[
+        str,
+        typer.Option(
+            "--title",
+            help="Dashboard title. Leave at the default to keep two tenants' "
+            "configs diffable [default: AI/LLM Landscape]",
+        ),
+    ] = "AI/LLM Landscape",
+    lookback: Annotated[
+        str,
+        typer.Option("--lookback", help="Relative timeframe [default: 30 day]"),
+    ] = "30 day",
+    header: Annotated[
+        bool,
+        typer.Option(
+            "--header/--no-header",
+            help="Include the explanatory text tile [default: header]",
+        ),
+    ] = True,
+    portable: Annotated[
+        bool,
+        typer.Option(
+            "--portable/--no-portable",
+            help="Strip resolved table IDs, for diffing two tenants' output. "
+            "NOT importable [default: no-portable]",
+        ),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Generate an AI/LLM Landscape dashboard that is identical on every tenant.
+
+    READ-ONLY -- resolves context table IDs and writes a file. Import it from
+    the Exabeam UI (Dashboards -> Import).
+
+    Every panel filters through a context table, so the only tenant-specific
+    values in the output are the resolved table IDs. Anything that varies by
+    tenant -- outcome vocabulary, vendor, category strings -- is a group-by or
+    a pivot instead. That is what makes the same config work at a Check Point
+    site and a Zscaler site with no edit, and it moves customisation into
+    Context Management where the customer can do it themselves.
+
+    A panel whose table is absent is SKIPPED and reported, never emitted
+    unfiltered. An unfiltered panel renders every event on the tenant and looks
+    like a working AI panel.
+
+    \b
+    Examples:
+      uv run exa aillm dashboard --tenant baystate
+      uv run exa aillm dashboard --tenant baystate -o bs.config
+      uv run exa aillm dashboard --tenant geha --lookback "7 day"
+      uv run exa aillm dashboard --tenant baystate --portable -o bs.portable.json
+    """
+    import json as _json
+
+    from exa.aillm.dashboard import build_dashboard, portable_form
+
+    client = _make_client(tenant)
+    try:
+        build = build_dashboard(
+            client, title=title, lookback=lookback, include_header=header
+        )
+    finally:
+        client.close()
+
+    payload = portable_form(build.config) if portable else build.config
+    output.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+
+    console.rule("AI/LLM Landscape dashboard")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Context table", style="cyan", no_wrap=True)
+    tbl.add_column("Resolved ID", style="dim")
+    for name, table_id in sorted(build.resolved.items()):
+        tbl.add_row(name, table_id)
+    console.print(tbl)
+
+    console.print(f"\n  {build.panel_count} panel(s) written to {output}", style="green")
+
+    if build.skipped:
+        console.print(
+            f"\n  {len(build.skipped)} panel(s) SKIPPED -- table missing on this "
+            "tenant:",
+            style="yellow",
+        )
+        for s in build.skipped:
+            console.print(f"    - {s}", style="yellow")
+        console.print(
+            "  Skipped rather than emitted unfiltered: an unfiltered panel "
+            "renders\n  every event on the tenant and reads as working.",
+            style="dim",
+        )
+
+    if portable:
+        console.print(
+            "\n  --portable strips table IDs for diffing. This file will NOT "
+            "import.",
+            style="yellow",
+        )
+    else:
+        console.print(
+            "\n  Import via Dashboards -> Import in the Exabeam UI.", style="dim"
+        )
+    console.print(
+        "  A blank panel means its table holds nothing this tenant emits -- "
+        "run\n  'exa aillm gaps' before concluding there is no activity.",
+        style="dim",
+    )
+
+
 @aillm_app.command("status")
 def status_cmd(
     tenant: Annotated[
