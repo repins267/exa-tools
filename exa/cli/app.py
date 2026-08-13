@@ -267,6 +267,13 @@ from exa.cli.aillm import aillm_app  # noqa: E402
 
 app.add_typer(aillm_app)
 
+
+# -- Health / licence --------------------------------------------------------
+
+from exa.cli.health import health_app  # noqa: E402
+
+app.add_typer(health_app)
+
 # -- Threat Center (cases + alerts + case triage) ----------------------------
 
 from exa.cli.case import case_app  # noqa: E402
