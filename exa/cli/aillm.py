@@ -1299,6 +1299,209 @@ def gaps_apply_cmd(
     )
 
 
+@aillm_app.command("watch")
+def watch_cmd(
+    out_dir: Annotated[
+        Path,
+        typer.Option(
+            "--out-dir",
+            "-o",
+            help="Directory for per-tenant reports and the index "
+            "[default: reports/aillm-watch]",
+        ),
+    ] = Path("reports/aillm-watch"),
+    tenant: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tenant",
+            "-t",
+            help="Restrict to this tenant; repeatable [default: every configured tenant]",
+        ),
+    ] = None,
+    skip: Annotated[
+        list[str] | None,
+        typer.Option("--skip", help="Exclude this tenant; repeatable [default: none]"),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    drift: Annotated[
+        bool,
+        typer.Option(
+            "--drift/--no-drift",
+            help="Include drift analysis. Roughly ten API calls per tenant, so it "
+            "is off by default across a whole estate [default: no-drift]",
+        ),
+    ] = False,
+    save_baselines: Annotated[
+        bool,
+        typer.Option(
+            "--save-baselines/--no-save-baselines",
+            help="Store each run as the next run's comparison point "
+            "[default: save-baselines]",
+        ),
+    ] = True,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+) -> None:
+    """Report on every configured tenant in one pass, newest concerns first.
+
+    READ-ONLY against tenants. Writes one HTML report per tenant plus an index
+    page showing which need attention, and stores a baseline per tenant so the
+    next run can show movement.
+
+    Built for a scheduled weekly run -- Windows Task Scheduler or cron. Note it
+    is exa-tools that should be scheduled, not a Claude Desktop MCP session: this
+    mints and refreshes its own token per run, whereas a Desktop MCP config holds
+    a static ~4h bearer that is expired by Monday morning.
+
+    \b
+    Four states, and the third is not the second:
+      moved        counts changed since the stored baseline
+      quiet        baseline exists, nothing moved
+      no baseline  first run -- cannot be compared, which is NOT "nothing changed"
+      failed       auth, network or data error on that tenant only
+
+    One tenant failing never stops the run. A watch that aborts on tenant 3 of 10
+    reports on 2 and looks like it covered everything, so failures are collected
+    and listed rather than raised.
+
+    \b
+    Examples:
+      uv run exa aillm watch
+      uv run exa aillm watch --tenant baystate --tenant geha
+      uv run exa aillm watch --skip sademodev22 --skip sademodev23
+      uv run exa aillm watch --drift -o C:\\Reports\\weekly
+    """
+    import json as _json
+
+    from exa.aillm.watch import (
+        FAILED,
+        MOVED,
+        NO_BASELINE,
+        QUIET,
+        configured_tenants,
+        save_index,
+        watch_tenants,
+        watch_to_dict,
+    )
+
+    names = list(tenant) if tenant else configured_tenants()
+    if skip:
+        names = [n for n in names if n not in set(skip)]
+
+    if not names:
+        console.print(
+            "  No tenants to watch. Run 'exa config tenants' to see what is "
+            "configured.",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+
+    if not json_out:
+        console.rule(f"AI/LLM watch -- {len(names)} tenant(s)")
+        console.print(f"  {', '.join(names)}\n", style="dim")
+
+    run = watch_tenants(
+        names,
+        out_dir=out_dir,
+        lookback_days=lookback,
+        drift=drift,
+        save_baselines=save_baselines,
+    )
+    index = save_index(run, out_dir)
+
+    if json_out:
+        payload = watch_to_dict(run)
+        payload["index"] = str(index)
+        console.print_json(_json.dumps(payload))
+        return
+
+    styles = {
+        MOVED: "yellow",
+        QUIET: "green",
+        NO_BASELINE: "dim",
+        FAILED: "red",
+    }
+    labels = {
+        MOVED: "moved",
+        QUIET: "quiet",
+        NO_BASELINE: "no baseline",
+        FAILED: "FAILED",
+    }
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Tenant", style="cyan", no_wrap=True)
+    tbl.add_column("State")
+    tbl.add_column("Records", justify="right")
+    tbl.add_column("Detail")
+
+    for t in run.ordered:
+        if t.state == FAILED:
+            detail = t.error
+        elif t.state == NO_BASELINE:
+            detail = "first run -- baseline stored"
+        elif t.state == MOVED:
+            detail = f"{t.changed_tables} table(s) changed"
+        else:
+            detail = "no counts moved"
+        if t.missing_tables:
+            detail += f" | {len(t.missing_tables)} table(s) absent"
+        tbl.add_row(
+            t.tenant,
+            f"[{styles[t.state]}]{labels[t.state]}[/]",
+            f"{t.total_records:,}{'+' if t.lower_bound else ''}",
+            detail,
+        )
+    console.print(tbl)
+
+    attention = [t for t in run.tenants if t.needs_attention]
+    if attention:
+        console.print(
+            f"\n  {len(attention)} tenant(s) need attention: "
+            f"{', '.join(t.tenant for t in attention)}",
+            style="yellow",
+        )
+    else:
+        console.print("\n  Nothing needs attention this run.", style="green")
+
+    failed = run.by_state(FAILED)
+    if failed:
+        console.print(
+            f"\n  {len(failed)} tenant(s) FAILED and were not reported on:",
+            style="red",
+        )
+        for t in failed:
+            console.print(f"    {t.tenant}: {t.error}", style="red")
+
+    if run.by_state(NO_BASELINE):
+        console.print(
+            f"\n  {len(run.by_state(NO_BASELINE))} tenant(s) had no baseline -- "
+            "stored now.\n  Not counted as quiet: 'cannot compare yet' is not "
+            "'nothing changed'.",
+            style="dim",
+        )
+
+    if run.any_lower_bound:
+        console.print(
+            "\n  Records marked '+' are LOWER BOUNDS (truncated live sample).\n"
+            "  Deliberately not summed -- a total built from floors reads as exact.",
+            style="yellow",
+        )
+
+    if not drift:
+        console.print(
+            "\n  Drift not collected (--drift to include; ~10 API calls per tenant).",
+            style="dim",
+        )
+
+    console.print(f"\n  Index: {index}", style="green")
+    _warn_if_reference_stale()
+
+
 @aillm_app.command("report")
 def report_cmd(
     output: Annotated[

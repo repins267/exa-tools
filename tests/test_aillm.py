@@ -1958,3 +1958,179 @@ class TestReferenceFreshness:
 
         assert fresh.stale
         assert "exa update" in fresh.summary
+
+
+class TestAILLMWatch:
+    """watch -- one pass over every tenant.
+
+    Each test guards a way this could under-report while looking complete: a run
+    that stops early, a first run that reads as reassuring, or a floor presented
+    as a total.
+    """
+
+    def _reports(self, monkeypatch, mapping):
+        """Stub build_report per tenant. mapping: name -> report or Exception."""
+        from exa.aillm import report as report_mod
+
+        def fake_client(name=None):
+            class _C:
+                def close(self):
+                    return None
+
+            return _C()
+
+        def fake_build(client, tenant, **kw):
+            outcome = mapping[tenant]
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome
+
+        # watch_tenants imports these inside the function body, so patching the
+        # source modules is what takes effect at call time.
+        monkeypatch.setattr("exa.cli.app._make_client", fake_client)
+        monkeypatch.setattr(report_mod, "build_report", fake_build)
+        monkeypatch.setattr(report_mod, "save_baseline", lambda r: None)
+        monkeypatch.setattr(report_mod, "save_html_report", lambda r, p: None)
+
+    def _report(self, tenant, *, baseline=True, moved=0, truncated=False, missing=()):
+        from exa.aillm.report import AILLMReport, TableChange
+
+        changes = [
+            TableChange(name=f"t{i}", before=1, after=2) for i in range(moved)
+        ]
+        return AILLMReport(
+            tenant=tenant,
+            collected_at="2026-08-13T00:00:00+00:00",
+            lookback_days=30,
+            changes=changes,
+            baseline_at="2026-08-01T00:00:00+00:00" if baseline else None,
+            truncated_fields=["web_domain"] if truncated else [],
+            tables=[],
+        )
+
+    def test_one_tenant_failing_does_not_abort_the_run(
+        self, monkeypatch, tmp_path
+    ):
+        """A watch that stops on tenant 2 of 4 reports on 1 and looks complete."""
+        from exa.aillm.watch import FAILED, watch_tenants
+
+        self._reports(
+            monkeypatch,
+            {
+                "a": self._report("a"),
+                "b": RuntimeError("auth failed"),
+                "c": self._report("c", moved=2),
+                "d": self._report("d", baseline=False),
+            },
+        )
+
+        run = watch_tenants(["a", "b", "c", "d"], out_dir=tmp_path)
+
+        assert run.attempted == 4, "a failure ended the run early"
+        assert [t.tenant for t in run.by_state(FAILED)] == ["b"]
+        assert "auth failed" in run.by_state(FAILED)[0].error
+
+    def test_failed_tenant_appears_in_the_index(self, monkeypatch, tmp_path):
+        """A tenant that could not be reached must be visible, not absent --
+        absence reads as 'nothing to say about it'."""
+        from exa.aillm.watch import generate_index_html, watch_tenants
+
+        self._reports(
+            monkeypatch, {"a": self._report("a"), "b": RuntimeError("boom")}
+        )
+        run = watch_tenants(["a", "b"], out_dir=tmp_path)
+
+        html = generate_index_html(run)
+        assert "b" in html
+        assert "failed" in html.lower()
+        assert "boom" in html
+
+    def test_no_baseline_is_its_own_state_not_quiet(self, monkeypatch, tmp_path):
+        """Folding 'cannot compare' into 'nothing changed' turns an open
+        question into a reassurance."""
+        from exa.aillm.watch import NO_BASELINE, QUIET, watch_tenants
+
+        self._reports(
+            monkeypatch,
+            {"fresh": self._report("fresh", baseline=False), "old": self._report("old")},
+        )
+
+        run = watch_tenants(["fresh", "old"], out_dir=tmp_path)
+
+        assert [t.tenant for t in run.by_state(NO_BASELINE)] == ["fresh"]
+        assert [t.tenant for t in run.by_state(QUIET)] == ["old"]
+
+    def test_moved_and_failed_sort_before_quiet(self, monkeypatch, tmp_path):
+        """Reading order, not run order -- the point is which accounts need you."""
+        from exa.aillm.watch import watch_tenants
+
+        self._reports(
+            monkeypatch,
+            {
+                "quiet1": self._report("quiet1"),
+                "moved1": self._report("moved1", moved=1),
+                "bad1": RuntimeError("x"),
+            },
+        )
+
+        run = watch_tenants(["quiet1", "moved1", "bad1"], out_dir=tmp_path)
+
+        assert [t.tenant for t in run.ordered][:2] == ["bad1", "moved1"]
+        assert run.ordered[-1].tenant == "quiet1"
+
+    def test_lower_bounds_are_marked_and_not_summed(self, monkeypatch, tmp_path):
+        """A cross-tenant total built from floors is a floor, and printing it as
+        a figure reads as exact."""
+        from exa.aillm.watch import generate_index_html, watch_tenants
+
+        self._reports(
+            monkeypatch,
+            {"a": self._report("a", truncated=True), "b": self._report("b")},
+        )
+
+        run = watch_tenants(["a", "b"], out_dir=tmp_path)
+
+        assert run.any_lower_bound
+        html = generate_index_html(run)
+        assert "lower bound" in html.lower()
+        assert "not summed" in html.lower()
+
+    def test_missing_tables_flag_attention_even_when_quiet(
+        self, monkeypatch, tmp_path
+    ):
+        """A tenant whose tables are absent has nothing to move, so 'quiet' would
+        be the most misleading possible label."""
+        from exa.aillm.watch import watch_tenants
+
+        rep = self._report("a")
+        rep.tables = []
+        self._reports(monkeypatch, {"a": rep})
+        run = watch_tenants(["a"], out_dir=tmp_path)
+        run.tenants[0].missing_tables = ["AI/LLM DLP Rulesets"]
+
+        assert run.tenants[0].needs_attention
+
+    def test_index_is_written_and_self_contained(self, monkeypatch, tmp_path):
+        from exa.aillm.watch import save_index, watch_tenants
+
+        self._reports(monkeypatch, {"a": self._report("a")})
+        run = watch_tenants(["a"], out_dir=tmp_path)
+        path = save_index(run, tmp_path)
+
+        html = path.read_text(encoding="utf-8")
+        assert path.name == "index.html"
+        assert "http://" not in html and "https://" not in html
+        assert "<script" not in html
+
+    def test_configured_tenants_reads_the_same_source_as_config_tenants(
+        self, monkeypatch
+    ):
+        """A divergence here silently skips accounts the user believes covered."""
+        from exa.aillm import watch as watch_mod
+
+        monkeypatch.setattr(
+            "exa.config._read_config_file",
+            lambda: {"tenants": {"zeta": {}, "alpha": {}}},
+        )
+
+        assert watch_mod.configured_tenants() == ["alpha", "zeta"]
