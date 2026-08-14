@@ -97,13 +97,13 @@ def test(
     
     Examples:
       uv run exa endpoint test --tenant sademodev22
-      uv run exa endpoint test --spec "Threat Center" --tenant sademodev22
+      uv run exa endpoint test --spec threat-center --tenant sademodev22
       uv run exa endpoint test --findings-only --tenant sademodev22
       uv run exa endpoint test --json --tenant sademodev22 > audit.json"""
     import json as _json
 
     from exa.client import ExaClient
-    from exa.endpoint.catalog import filter_catalog, load_catalog
+    from exa.endpoint.catalog import filter_catalog, known_specs, load_catalog
     from exa.endpoint.runner import run_audit, save_audit
 
     # Load catalog
@@ -122,6 +122,20 @@ def test(
         path_filter=endpoint_filter,
         include_destructive=destructive,
     )
+
+    # A filter that matches nothing must FAIL, not report a clean audit. Running
+    # with a mistyped --spec previously printed "0 OK, 0 new finding(s)" and saved
+    # a results file -- indistinguishable from "everything passed".
+    if not filtered and (spec or endpoint_filter):
+        console.print("[red]No endpoints matched the filter -- nothing was tested.[/red]")
+        if spec:
+            console.print(f"  --spec [cyan]{spec}[/cyan] matched no endpoint.")
+            console.print("  Valid values (slug or title):")
+            for name in known_specs(catalog):
+                console.print(f"    {name}", style="dim")
+        if endpoint_filter:
+            console.print(f"  --endpoint [cyan]{endpoint_filter}[/cyan] matched no path.")
+        raise typer.Exit(1)
 
     total = len(filtered)
     skipped_count = sum(1 for e in filtered if e.get("_skipped"))
@@ -248,12 +262,12 @@ def list_endpoints(
     
     Examples:
       uv run exa endpoint list
-      uv run exa endpoint list --spec "Context"
+      uv run exa endpoint list --spec context-management
       uv run exa endpoint list --json | jq '.[].path'"""
     import json as _json
     import sys
 
-    from exa.endpoint.catalog import load_catalog
+    from exa.endpoint.catalog import load_catalog, spec_matches
 
     cat_path = Path(catalog_path) if catalog_path else None
     catalog = load_catalog(cat_path)
@@ -263,7 +277,7 @@ def list_endpoints(
         raise typer.Exit(1)
 
     if spec:
-        catalog = [e for e in catalog if e.get("spec", "").lower() == spec.lower()]
+        catalog = [e for e in catalog if spec_matches(e, spec)]
 
     if json_output:
         print(_json.dumps(catalog, indent=2), file=sys.stdout)
