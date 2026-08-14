@@ -41,10 +41,33 @@ class TestScenarios:
         assert "Impact" in stages
         assert "Credential Access" in stages
 
-    def test_every_behavior_names_a_rule(self):
+    def test_every_behavior_has_a_verifiable_outcome(self):
+        """A behavior must be checkable after it is sent.
+
+        Rule-backed behaviors verify by the named rule firing. Table-backed ones
+        (the AI tooling scenario) have no Sigma rule -- they verify by their
+        process_name becoming discoverable in a context table. Either satisfies
+        the invariant; neither does not, because a behavior with no expected
+        outcome cannot be told apart from one that silently failed to parse.
+        """
         for behavior in list_behaviors():
-            assert behavior.rule_name, f"{behavior.key} has no rule_name"
+            assert behavior.rule_name or behavior.feeds_table, (
+                f"{behavior.key} has neither rule_name nor feeds_table"
+            )
             assert behavior.attack.startswith("T")
+
+    def test_table_backed_behaviors_name_a_real_table(self):
+        from exa.aillm.sync import TABLE_MAP
+
+        known = set(TABLE_MAP.values()) | {
+            "AI Agent Process Names",
+            "AI Dev Framework Process Names",
+        }
+        for behavior in list_behaviors():
+            if behavior.feeds_table:
+                assert behavior.feeds_table in known, (
+                    f"{behavior.key} targets unknown table {behavior.feeds_table!r}"
+                )
 
     def test_events_satisfy_sysmon_parser_conditions(self):
         """All four parser match conditions must appear in the raw JSON."""
