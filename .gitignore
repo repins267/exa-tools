@@ -30,3 +30,28 @@ reports/*.json
 *.converted.json
 sademodev22-*.html
 test_results.txt
+
+# --- Local working artifacts, 2026-08-14 -------------------------------------
+# ~35 untracked files were sitting in this checkout with no rule covering them:
+# command references as .docx, a personal feedback .xlsx, Grafana dashboard JSON,
+# one-off probe scripts, and a LogRhythm PowerShell tool that belongs to a
+# different product entirely. One `git add .` publishes all of it. Same failure as
+# the *.bak rule above -- an untracked file in a public checkout is one careless
+# stage away from being a published file.
+#
+# NOTE: scripts/ is deliberately NOT ignored -- gen_api_kb.py and
+# sanitize_audit_artifact.py are meant to be tracked.
+*.docx
+*.xlsx
+*.ps1
+probe_*.py
+probe_*.md
+probe_output/
+_tmp_*.md
+_tier1_parts.txt
+verify_api.py
+full_audit.py
+build_inventory.py
+show_help.py
+api-audit-new-findings.json
+ng-beam-*.json

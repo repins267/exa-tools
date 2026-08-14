@@ -4542,8 +4542,8 @@
         "500"
       ],
       "observed_in_response": [
-        "HTTP 404 on US-West (sademodev22, confirmed 2026-05-08)",
-        "HTTP 200 on SA (csnsafusion, confirmed 2026-05-28)"
+        "HTTP 404 on US-West (a US-West tenant, confirmed 2026-05-08)",
+        "HTTP 200 on SA (an SA tenant, confirmed 2026-05-28)"
       ],
       "gap": "Spec documents 404 as a valid error response (resource not found). US-West returned 404 persistently \u2014 endpoint was not deployed/routed there. SA returns 200. Regional deployment inconsistency, not a spec defect."
     },
@@ -4640,9 +4640,9 @@
         "lastUpdated"
       ],
       "observed_in_response": [
-        "displayName: null on ALL 109 tables (csnsafusion)"
+        "displayName: null on ALL 109 tables (an SA tenant)"
       ],
-      "gap": "displayName is NOT in the Table schema in the spec. It is an undocumented field that the live API returns (with null values on csnsafusion). Spec schema: ['id', 'name', 'contextType', 'source', 'attributes', 'attributeMapping', 'totalItems', 'status', 'lastUpdated']. Code that relies on displayName for table lookup has no spec backing \u2014 should fall back to name field which IS documented."
+      "gap": "displayName is NOT in the Table schema in the spec. It is an undocumented field that the live API returns (with null values on an SA tenant). Spec schema: ['id', 'name', 'contextType', 'source', 'attributes', 'attributeMapping', 'totalItems', 'status', 'lastUpdated']. Code that relies on displayName for table lookup has no spec backing \u2014 should fall back to name field which IS documented."
     }
   ],
   "inventory_meta": {
