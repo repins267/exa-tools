@@ -22,6 +22,7 @@ from rich.console import Console
 
 from exa.aillm.merge import merge_aillm_data
 from exa.aillm.reference import load_reference_data
+from exa.context.safe_replace import ReplaceAbortedError, is_managed, replace_table
 from exa.context.tables import (
     add_records,
     create_table,
@@ -62,11 +63,17 @@ def _resolve_tables(
     buckets: list[str],
     known_attr_ids: dict[str, str],
     existing_tables: list[dict[str, Any]],
+    *,
+    dry_run: bool = False,
 ) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
     """Resolve or create all target tables.
 
     Returns (bucket -> table_id, bucket -> full table object from list endpoint).
     The full table objects include the `attributes` array used for schema resolution.
+
+    `dry_run` must suppress creation. This function is the only write in the
+    resolve phase, and a preview that silently creates tables would be a worse
+    bug than the one the dry-run rework was fixing.
     """
     # Match on displayName OR name. displayName is null on some tenants
     # (EXA-DISPLAYNAME-UNDOCUMENTED — all 109 tables on csnsafusion), while other
@@ -87,6 +94,17 @@ def _resolve_tables(
             table_ids[bucket] = existing[exa_name]["id"]
             table_objects[bucket] = existing[exa_name]
             console.print(f"  Found: {exa_name} ({existing[exa_name]['id']})", style="green")
+            # Say so up front. On an Exabeam-managed table an entry can be added
+            # but never removed or edited in place (EXA-COLLECTOR-API-9), which
+            # changes what a later correction will cost.
+            if is_managed(existing[exa_name]):
+                console.print(
+                    "    Exabeam-managed: appends work, edits and removals need a "
+                    "full-table replace",
+                    style="dim",
+                )
+        elif dry_run:
+            console.print(f"  WOULD CREATE: {exa_name} (does not exist)", style="yellow")
         else:
             console.print(f"  Creating: {exa_name}...", style="yellow", end="")
             attrs: list[dict[str, Any]] = [{"id": "key", "isKey": True}]
@@ -162,10 +180,13 @@ def sync_aillm_context_tables(
         discovered_apps: App names from log discovery to merge.
         risk_override_path: Path to customer risk override JSON.
         force: Use 'replace' instead of 'append' operation.
-        dry_run: Preview what would be synced without writing.
+        dry_run: Query the tenant read-only and report the real new-vs-present
+            delta per table. Does NOT write. Still resolves tables and reads
+            existing keys, so it costs API calls.
 
     Returns:
-        List of SyncResult per table (empty list if dry_run=True).
+        List of SyncResult per table. On a dry run, `upserted` is what WOULD
+        be written rather than what was.
     """
     all_buckets = list(TABLE_MAP.keys())
     sync_buckets = buckets or all_buckets
@@ -175,6 +196,14 @@ def sync_aillm_context_tables(
     prefix = "[DRY RUN] " if dry_run else ""
     console.rule(f"{prefix}AI/LLM Context Table Sync")
     console.print(f"  Tables: {len(sync_buckets)} | Operation: {operation}")
+    if operation == "replace":
+        console.print(
+            "  --force REPLACES each table in full. Exabeam-managed tables lose "
+            "their shipped defaults and deleteRecords cannot undo it "
+            "(EXA-COLLECTOR-API-9). A rollback manifest is written per table "
+            "before each write.",
+            style="yellow",
+        )
 
     # Phase 1: Load reference data
     console.print("\n[1/4] Loading reference data...", style="yellow")
@@ -204,24 +233,12 @@ def sync_aillm_context_tables(
             f"  Discovered: {ms.discovered_apps_new} new apps from {ms.discovered_apps_total}"
         )
 
-    # Dry run: show what would be written and return early
-    if dry_run:
-        from rich.table import Table as RichTable
-
-        console.print()
-        tbl = RichTable(show_header=True, header_style="bold", box=None)
-        tbl.add_column("Table", style="cyan", no_wrap=True)
-        tbl.add_column("Records", justify="right")
-        total = 0
-        for bucket in sync_buckets:
-            exa_name = TABLE_MAP[bucket]
-            records: list[dict[str, str]] = getattr(merged, bucket)
-            tbl.add_row(exa_name, str(len(records)))
-            total += len(records)
-        console.print(tbl)
-        console.print(f"\n  Total: {total} records across {len(sync_buckets)} tables")
-        console.print("  Dry run — no changes made.", style="dim")
-        return []
+    # A dry run does NOT return early here. It used to, stopping at [2/4] before
+    # the tenant was ever queried, so it printed the reference-data size as though
+    # every record would be written -- "600 records across 6 tables" when `sync`
+    # skips keys already present. A preview that overstates its own effect is
+    # worse than no preview. It now runs phases 3 and 4 read-only and reports the
+    # real new-vs-already-present delta, the way `gaps apply` does.
 
     # Phase 3: Resolve tables
     console.print("\n[3/4] Resolving target context tables...", style="yellow")
@@ -239,7 +256,7 @@ def sync_aillm_context_tables(
     except Exception:
         pass
     table_ids, table_objects = _resolve_tables(
-        client, sync_buckets, known_attr_ids, all_tenant_tables
+        client, sync_buckets, known_attr_ids, all_tenant_tables, dry_run=dry_run
     )
 
     # Resolve Public AI Domains attribute IDs from the already-fetched schema
@@ -308,6 +325,18 @@ def sync_aillm_context_tables(
             continue
 
         if bucket not in table_ids:
+            if dry_run:
+                console.print(
+                    f"    WOULD CREATE table, then upload {len(records)} records",
+                    style="yellow",
+                )
+                results.append(SyncResult(
+                    table_name=exa_name,
+                    reference_entries=ref_count,
+                    merged_total=len(records),
+                    upserted=len(records),
+                ))
+                continue
             console.print("    SKIP: Table not resolved", style="red")
             results.append(
                 SyncResult(table_name=exa_name, errors=1, error_detail="Table not resolved")
@@ -342,11 +371,12 @@ def sync_aillm_context_tables(
             client.batch_write_sleep()
             continue
 
-        console.print(f"    Uploading {len(records)} records ({operation})...", end="")
-
-        try:
-            add_records(client, table_id, records, operation=operation)
-            console.print(" OK", style="green")
+        if dry_run:
+            console.print(
+                f"    WOULD UPLOAD {len(records)} new records ({operation})"
+                f" -- {skipped} already present",
+                style="yellow",
+            )
             results.append(SyncResult(
                 table_name=exa_name,
                 reference_entries=ref_count,
@@ -354,6 +384,49 @@ def sync_aillm_context_tables(
                 upserted=len(records),
                 skipped=skipped,
             ))
+            continue
+
+        console.print(f"    Uploading {len(records)} records ({operation})...", end="")
+
+        try:
+            if operation == "replace":
+                # A replace rewrites the WHOLE table. On an Exabeam-managed table
+                # that discards the shipped defaults, and deleteRecords cannot undo
+                # it (EXA-COLLECTOR-API-9), so snapshot to a rollback manifest
+                # first -- the same guarantee `exa hotkey` has always had.
+                manifest_path = replace_table(
+                    client,
+                    table_id,
+                    records,
+                    tenant=client.tenant or "default",
+                    display_name=exa_name,
+                    source=str((table_objects.get(bucket) or {}).get("source") or ""),
+                    reason="exa aillm sync --force",
+                )
+                console.print(" OK", style="green")
+                console.print(f"    rollback manifest: {manifest_path}", style="dim")
+            else:
+                add_records(client, table_id, records, operation=operation)
+                console.print(" OK", style="green")
+            results.append(SyncResult(
+                table_name=exa_name,
+                reference_entries=ref_count,
+                merged_total=merged_total,
+                upserted=len(records),
+                skipped=skipped,
+            ))
+        except ReplaceAbortedError as e:
+            console.print(f" ABORTED (nothing written): {e}", style="red")
+            results.append(SyncResult(
+                table_name=exa_name,
+                reference_entries=ref_count,
+                merged_total=merged_total,
+                skipped=skipped,
+                errors=1,
+                error_detail=f"replace aborted: {e}",
+            ))
+            client.batch_write_sleep()
+            continue
         except Exception as e:
             console.print(f" FAILED: {e}", style="red")
             results.append(SyncResult(
@@ -368,9 +441,17 @@ def sync_aillm_context_tables(
         client.batch_write_sleep()
 
     # Summary
-    console.rule("Sync Complete", style="green")
+    console.rule("Dry Run Complete" if dry_run else "Sync Complete", style="green")
     total_upserted = sum(r.upserted for r in results)
+    total_skipped = sum(r.skipped for r in results)
     total_errors = sum(r.errors for r in results)
-    console.print(f"  Total upserted: {total_upserted} | Errors: {total_errors}")
+    if dry_run:
+        console.print(
+            f"  Would upsert: {total_upserted} | Already present: {total_skipped}"
+            f" | Errors: {total_errors}"
+        )
+        console.print("  Dry run -- nothing was written.", style="dim")
+    else:
+        console.print(f"  Total upserted: {total_upserted} | Errors: {total_errors}")
 
     return results

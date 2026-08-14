@@ -244,33 +244,88 @@ class TestSyncIntegration:
         assert results[0].upserted == 0
         assert results[0].skipped == len(existing)
 
-    @pytest.mark.skip(reason="requires live tenant / reference data")
-    def test_dry_run_returns_empty_no_api_writes(self, exa, mock_auth):
-        """Dry run must not call any write endpoints."""
-        from exa.aillm.sync import sync_aillm_context_tables
-
-        results = sync_aillm_context_tables(exa, dry_run=True)
-        # Dry run returns empty list
-        assert results == []
-        # No write requests should have been made
-        requests = mock_auth.get_requests()
-        write_requests = [r for r in requests if r.method in ("POST", "PUT", "PATCH", "DELETE")]
-        assert write_requests == [], f"Unexpected write requests: {write_requests}"
-
-    @pytest.mark.skip(reason="requires live tenant / reference data")
-    def test_dry_run_with_discovered_domains_no_writes(self, exa, mock_auth):
-        """Dry run with discovered domains still makes no API writes."""
-        from exa.aillm.sync import sync_aillm_context_tables
-
-        results = sync_aillm_context_tables(
-            exa,
-            dry_run=True,
-            discovered_domains=["new-ai-tool.example.com"],
+    # These two were @pytest.mark.skip("requires live tenant / reference data") and so
+    # never ran. That is why nothing caught the dry run reaching the table-CREATE path
+    # when it stopped returning early. A skipped safety test is not a safety test.
+    def _mock_tenant_with_table(self, mock_auth, *, existing_keys: list[str]) -> None:
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=[{"name": "AI/LLM Applications", "id": "apps-123"}],
         )
-        assert results == []
-        requests = mock_auth.get_requests()
-        write_requests = [r for r in requests if r.method in ("POST", "PUT", "PATCH", "DELETE")]
-        assert write_requests == []
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/attributes/Other",
+            method="GET",
+            json={"attributes": []},
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables/apps-123/records?limit=100000&offset=0",
+            method="GET",
+            json={"records": [{"key": k} for k in existing_keys]},
+        )
+
+    @staticmethod
+    def _writes(mock_auth) -> list:
+        """Requests that would CHANGE tenant state. Reads are expected on a dry run."""
+        return [
+            r for r in mock_auth.get_requests()
+            if r.method in ("PUT", "PATCH", "DELETE")
+            or (r.method == "POST" and "/auth/" not in str(r.url))
+        ]
+
+    def test_dry_run_makes_no_writes(self, exa, mock_auth):
+        """A dry run reads the tenant but must never write to it."""
+        self._mock_tenant_with_table(mock_auth, existing_keys=[])
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["applications"], dry_run=True)
+
+        assert self._writes(mock_auth) == [], "dry run issued a write request"
+        # It must still report a real, non-empty preview -- the old behavior
+        # returned [] and never queried the tenant at all.
+        assert len(results) == 1
+        assert results[0].upserted > 0
+
+    def test_dry_run_reports_delta_not_reference_size(self, exa, mock_auth):
+        """The preview counts NEW records, not the whole reference set.
+
+        The old dry run returned at phase [2/4] and printed the reference-data
+        size, so a table where every key was already present still read as
+        'N records would be written'.
+        """
+        from exa.aillm.reference import load_reference_data
+
+        all_keys = [r["key"] for r in load_reference_data().applications]
+        self._mock_tenant_with_table(mock_auth, existing_keys=all_keys)
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["applications"], dry_run=True)
+
+        assert self._writes(mock_auth) == []
+        assert results[0].upserted == 0, "everything already present -- nothing to add"
+        assert results[0].skipped == len(all_keys)
+
+    def test_dry_run_does_not_create_a_missing_table(self, exa, mock_auth):
+        """Table creation is a write. A preview must not perform it."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=[],  # target table absent -- a real sync would CREATE it
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/attributes/Other",
+            method="GET",
+            json={"attributes": []},
+        )
+
+        from exa.aillm.sync import sync_aillm_context_tables
+
+        results = sync_aillm_context_tables(exa, buckets=["applications"], dry_run=True)
+
+        assert self._writes(mock_auth) == [], "dry run created a table"
+        assert results[0].upserted > 0  # reported as "would create, then upload"
 
 
 class TestGetAILLMTableStatus:
