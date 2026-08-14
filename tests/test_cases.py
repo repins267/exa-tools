@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from exa.case import (
@@ -16,6 +17,7 @@ from exa.case import (
     update_case,
 )
 from exa.cli.cases import alerts_app, cases_app
+from exa.exceptions import ExaAPIError
 
 BASE_URL = "https://api.us-west.exabeam.cloud"
 
@@ -188,7 +190,7 @@ class TestUpdateCase:
     def test_update_stage(self, exa, mock_auth):
         updated = {**CASE_ROW, "stage": "CLOSED", "closedReason": "False Positive"}
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001",
+            url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001",
             method="POST",
             json=updated,
         )
@@ -202,7 +204,7 @@ class TestUpdateCase:
     def test_update_priority_and_assignee(self, exa, mock_auth):
         updated = {**CASE_ROW, "priority": "CRITICAL", "assignee": "senior@corp.com"}
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001",
+            url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001",
             method="POST",
             json=updated,
         )
@@ -216,25 +218,25 @@ class TestUpdateCase:
 
     def test_only_provided_fields_sent(self, exa, mock_auth):
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001",
+            url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001",
             method="POST",
             json=CASE_ROW,
         )
         update_case(exa, "case-uuid-001", tags=["reviewed"])
         import json
-        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001")
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001")
         body = json.loads(request.content)
         assert body == {"tags": ["reviewed"]}
 
     def test_update_name_uses_alert_name_key(self, exa, mock_auth):
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001",
+            url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001",
             method="POST",
             json=CASE_ROW,
         )
         update_case(exa, "case-uuid-001", name="New Case Name")
         import json
-        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001")
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001")
         body = json.loads(request.content)
         assert "alertName" in body
         assert body["alertName"] == "New Case Name"
@@ -247,7 +249,7 @@ class TestUpdateCase:
 class TestCreateCase:
     def test_create_minimal(self, exa, mock_auth):
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases",
+            url=f"{BASE_URL}/threat-center/v2/cases",
             method="POST",
             json={**CASE_ROW, "caseId": "new-case-uuid"},
         )
@@ -256,7 +258,7 @@ class TestCreateCase:
 
     def test_create_with_options(self, exa, mock_auth):
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases",
+            url=f"{BASE_URL}/threat-center/v2/cases",
             method="POST",
             json={**CASE_ROW, "caseId": "new-case-uuid"},
         )
@@ -267,7 +269,7 @@ class TestCreateCase:
             queue="Tier-1",
         )
         import json
-        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases")
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v2/cases")
         body = json.loads(request.content)
         assert body["alertId"] == "alert-uuid-001"
         assert body["stage"] == "IN PROGRESS"
@@ -276,15 +278,77 @@ class TestCreateCase:
 
     def test_request_body_contains_alert_id(self, exa, mock_auth):
         mock_auth.add_response(
-            url=f"{BASE_URL}/threat-center/v1/cases",
+            url=f"{BASE_URL}/threat-center/v2/cases",
             method="POST",
             json=CASE_ROW,
         )
         create_case(exa, "my-alert-id")
         import json
-        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v1/cases")
+        request = mock_auth.get_request(url=f"{BASE_URL}/threat-center/v2/cases")
         body = json.loads(request.content)
         assert body["alertId"] == "my-alert-id"
+
+
+# ---------------------------------------------------------------------------
+# v2 -> v1 fallback for case writes
+#
+# v1 create/update were scheduled for removal 2026-04-15. Neither v1 nor v2
+# write paths have ever been probed live (both are `skipped: write` in
+# api-verification-results.json), so v2 is documented, not proven, and v1
+# remains as a fallback. These tests pin WHEN the fallback is allowed to fire.
+# ---------------------------------------------------------------------------
+
+class TestCaseWriteFallback:
+    @pytest.mark.parametrize("absent_status", [404, 405, 501])
+    def test_falls_back_to_v1_when_v2_absent(self, exa, mock_auth, absent_status):
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v2/cases",
+            method="POST",
+            status_code=absent_status,
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/cases",
+            method="POST",
+            json=CASE_ROW,
+        )
+        assert create_case(exa, "alert-1") == CASE_ROW
+
+    # 401 is deliberately absent: ExaClient intercepts it to refresh the token and
+    # retry, so it never reaches the fallback branch.
+    @pytest.mark.parametrize("real_error", [400, 403, 409, 500])
+    def test_does_not_fall_back_on_a_real_error(self, exa, mock_auth, real_error):
+        """A 500 may mean the case WAS created. Retrying v1 would duplicate it."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v2/cases",
+            method="POST",
+            status_code=real_error,
+        )
+        with pytest.raises(ExaAPIError) as exc:
+            create_case(exa, "alert-1")
+        assert exc.value.status_code == real_error
+
+    def test_update_falls_back_to_v1_when_v2_absent(self, exa, mock_auth):
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v2/cases/case-uuid-001",
+            method="POST",
+            status_code=404,
+        )
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v1/cases/case-uuid-001",
+            method="POST",
+            json=CASE_ROW,
+        )
+        assert update_case(exa, "case-uuid-001", stage="CLOSED") == CASE_ROW
+
+    def test_v2_is_tried_first(self, exa, mock_auth):
+        mock_auth.add_response(
+            url=f"{BASE_URL}/threat-center/v2/cases",
+            method="POST",
+            json=CASE_ROW,
+        )
+        create_case(exa, "alert-1")
+        # v1 has no mock registered -- reaching it would raise, not fall through.
+        assert mock_auth.get_request(url=f"{BASE_URL}/threat-center/v2/cases") is not None
 
 
 # ---------------------------------------------------------------------------
