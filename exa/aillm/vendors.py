@@ -79,6 +79,15 @@ class VendorPack:
     # still returns HTTP 200 — worth recording where the answer is known.
     parser: str | None = None
     parser_conditions: tuple[str, ...] = ()
+    # Raw wire shape for simulation. Declaring it here rather than writing a
+    # per-vendor emitter is what keeps adding a vendor a reviewable JSON edit
+    # instead of a new module -- 22 packs would otherwise mean 22 emitters, each
+    # drifting with parser version. `wire_template` is a str.format template
+    # whose rendered output must satisfy every string in `parser_conditions`;
+    # exa/simulate/vendor.py asserts exactly that before anything is sent.
+    wire_format: str = ""          # "kv", "json", "cef" -- informational
+    wire_time_format: str = ""     # strftime for the {time} placeholder
+    wire_template: str = ""
     unpopulated_fields: tuple[str, ...] = ()
     notes: str = ""
     observed_on: tuple[str, ...] = ()
@@ -155,6 +164,9 @@ def load_vendor_packs() -> dict[str, VendorPack]:
             provides_fields=_tup(body, "provides_fields"),
             parser=body.get("parser") or None,
             parser_conditions=_tup(body, "parser_conditions"),
+            wire_format=str(body.get("wire_format") or ""),
+            wire_time_format=str(body.get("wire_time_format") or ""),
+            wire_template=str(body.get("wire_template") or ""),
             unpopulated_fields=_tup(body, "unpopulated_fields"),
             notes=str(body.get("notes") or ""),
             observed_on=_tup(body, "observed_on"),

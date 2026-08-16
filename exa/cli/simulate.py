@@ -296,6 +296,123 @@ def aba_simulation(
         "nganalytics\" AND src_product:\"Observra\".", style="dim")
 
 
+@simulate_app.command("vendor")
+def vendor_simulation(
+    pack: Annotated[
+        str,
+        typer.Option(
+            "--pack", "-p",
+            help="Vendor pack key, e.g. 'Zscaler/Zscaler Internet Access'",
+        ),
+    ] = "Zscaler/Zscaler Internet Access",
+    tenant: Annotated[
+        str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)
+    ] = None,
+    marker: Annotated[
+        str,
+        typer.Option("--marker", help="Tag written to location= [default: EXA-SIMULATION]"),
+    ] = "EXA-SIMULATION",
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run/--no-dry-run",
+                     help="Build without sending [default: dry-run]"),
+    ] = True,
+    out: Annotated[
+        Path | None, typer.Option("--out", help="Write the raw log lines to a file")
+    ] = None,
+    no_prompt: Annotated[
+        bool,
+        typer.Option("--no-prompt/--prompt", help="Fail instead of prompting for token"),
+    ] = False,
+) -> None:
+    """Emit vendor-shaped AI traffic so the AI/LLM context tables have values to find.
+
+    Renders raw log lines from the pack's wire_template and refuses to send anything
+    that would fail the parser's match conditions -- that failure is invisible after
+    the fact (parsed:false, no fields, HTTP 200).
+
+    One Zscaler event feeds six tables: Web Domains, Public AI Domains and Risk, Web
+    Categories, Proxy Categories, Applications and DLP Rulesets.
+
+    Examples:
+      uv run exa simulate vendor --tenant sademodev22
+      uv run exa simulate vendor --tenant sademodev22 --no-dry-run
+    """
+    from exa.simulate.vendor import (
+        ConditionsNotMetError,
+        NoTemplateError,
+        ai_seed_rows,
+        get_pack,
+        render_many,
+    )
+    from exa.simulate.webhook import resolve_ingest_url, send_events
+
+    try:
+        vpack = get_pack(pack)
+        events = render_many(pack, ai_seed_rows(marker=marker))
+    except (ValueError, NoTemplateError) as e:
+        console.print(str(e), style="red")
+        raise typer.Exit(1) from None
+    except ConditionsNotMetError as e:
+        console.print(f"[red]Refusing to send:[/red] {e}")
+        raise typer.Exit(1) from None
+
+    console.print(f"[bold]{pack}[/bold]  parser: {vpack.parser}")
+    console.print(f"  conditions: {' | '.join(vpack.parser_conditions)}", style="dim")
+
+    table = Table(title=f"Vendor events ({len(events)})", show_header=True,
+                  header_style="bold")
+    table.add_column("#", width=3)
+    table.add_column("web_domain")
+    table.add_column("app")
+    table.add_column("category")
+    for i, ev in enumerate(events, start=1):
+        x = ev.expects
+        table.add_row(str(i), x.get("web_domain", "-"), x.get("app", "-"),
+                      x.get("category", "-"))
+    console.print(table)
+
+    if out is not None:
+        out.write_text("\n".join(e.raw for e in events), encoding="utf-8")
+        console.print(f"Wrote {len(events)} log lines to {out}", style="green")
+
+    from exa.cli.app import _make_client
+
+    client = _make_client(tenant)
+    try:
+        url = resolve_ingest_url(client, fmt="raw")
+    except ValueError as e:
+        console.print(str(e), style="red")
+        raise typer.Exit(1) from None
+
+    if dry_run:
+        console.print(f"\nDry run -- nothing sent. Target would be:\n  {url}",
+                      style="yellow")
+        console.print("Re-run with --no-dry-run to send.", style="dim")
+        return
+
+    token = _resolve_token(no_prompt=no_prompt)
+    console.print(f"\nSending {len(events)} log lines to {url} ...")
+
+    from exa.exceptions import ExaAPIError
+
+    try:
+        result = send_events(client, [e.raw for e in events], token=token, fmt="raw")
+    except ExaAPIError as e:
+        console.print(f"Ingest failed: {e}", style="red")
+        raise typer.Exit(1) from None
+
+    console.print(f"Sent {result['sent']} line(s) in {result['batches']} batch(es).",
+                  style="green")
+    console.print(
+        "HTTP 200 only means ingest accepted them. Confirm they PARSED before "
+        "concluding anything:\n"
+        f"  exa search 'web_domain:\"claude.ai\"' --fields web_domain,category,app "
+        f"--tenant {tenant or '<tenant>'}\n"
+        "Request the fields explicitly -- an unrequested field is indistinguishable "
+        "from an empty one.", style="dim")
+
+
 @simulate_app.command("list")
 def list_scenarios() -> None:
     """List available scenarios and the rules each behavior exercises.

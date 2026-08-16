@@ -4,6 +4,37 @@
   "packs": {
     "Zscaler/Zscaler Internet Access": {
       "role": "proxy",
+      "parser": "zscaler-ia-str-http-session-dlp-ai-apps",
+      "parser_conditions": [
+        "module=AI & ML Apps",
+        "action=",
+        "DLPEng=",
+        "url=",
+        "login="
+      ],
+      "wire_format": "kv",
+      "wire_time_format": "%a %b %d %H:%M:%S %Y",
+      "wire_template_note": "Field order matters. Every field regex terminates on (\\s+\\w+=|\\s*$), but the app field is keyed 'appName =' WITH A SPACE before the equals. A field placed immediately before it cannot terminate: \\s+\\w+ matches ' appName' then requires '=' and finds a space, so that field silently fails to extract. 'appName =' therefore goes LAST, terminating on $, with the disposable ua= in front of it. Do not reorder without re-reading the parser.",
+      "wire_template": "{time} module={module} action={action} reason={reason} DLPEng={dlp_engine} url={url} login={login} dname={dname} urlCat={url_cat} urlSuperCat={url_super_cat} appClass={app_class} proto={proto} reqMethod={method} respCode={resp_code} sip={sip} dip={dip} reqSize={req_size} responseSize={resp_size} totalSize={total_size} location={location} dept={dept} ua={user_agent} appName ={app_name}",
+      "activity_types": ["http-session"],
+      "domain_fields": ["web_domain"],
+      "provides_fields": [
+        "web_domain",
+        "url",
+        "category",
+        "categories",
+        "app",
+        "app_type",
+        "app_group",
+        "alert_name",
+        "policy_name",
+        "email_address",
+        "action",
+        "result",
+        "bytes_in",
+        "bytes_out",
+        "method"
+      ],
       "category_fields": ["category"],
       "ai_categories": [
         "Generative AI and ML Applications",
