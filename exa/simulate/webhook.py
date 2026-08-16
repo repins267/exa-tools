@@ -55,13 +55,19 @@ def resolve_ingest_url(client: ExaClient, *, fmt: str = "json") -> str:
     return f"{api2}/cloud-collectors/v1/logs/{fmt}"
 
 
-def _batch(events: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+def _wire_len(event: dict[str, Any] | str) -> int:
+    """Bytes this event contributes, measured as it will actually be sent."""
+    text = event if isinstance(event, str) else json.dumps(event)
+    return len(text.encode("utf-8")) + 1
+
+
+def _batch(events: list[Any]) -> list[list[Any]]:
     """Split events into batches below the uncompressed size limit."""
-    batches: list[list[dict[str, Any]]] = []
-    current: list[dict[str, Any]] = []
+    batches: list[list[Any]] = []
+    current: list[Any] = []
     size = 0
     for event in events:
-        encoded = len(json.dumps(event).encode("utf-8")) + 1
+        encoded = _wire_len(event)
         if current and size + encoded > _MAX_UNCOMPRESSED_BYTES:
             batches.append(current)
             current = []
@@ -75,7 +81,7 @@ def _batch(events: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
 
 def send_events(
     client: ExaClient,
-    events: list[dict[str, Any]],
+    events: list[dict[str, Any]] | list[str],
     *,
     token: str,
     fmt: str = "json",
@@ -85,7 +91,8 @@ def send_events(
 
     Args:
         client: authenticated ExaClient; used only to resolve the tenant region.
-        events: Sysmon-shaped event dicts from ``exa.simulate.scenarios``.
+        events: event dicts (``exa.simulate.scenarios``) for ``fmt='json'``, or
+            raw log lines (``exa.simulate.vendor``) for ``fmt='raw'``.
         token: webhook collector bearer token. Never persisted by this module.
         fmt: ``json`` or ``raw``.
         dry_run: build and size the payload without sending.
@@ -122,7 +129,15 @@ def send_events(
         if fmt == "json":
             payload = json.dumps(batch).encode("utf-8")
         else:
-            payload = "\n".join(json.dumps(e) for e in batch).encode("utf-8")
+            # raw means log LINES. A str event is sent verbatim -- json.dumps would
+            # wrap it in quotes and escape it, and the parser would then evaluate
+            # its match conditions against an escaped JSON string rather than
+            # against the log, so every condition would miss and the event would
+            # land parsed:false with HTTP 200. Dicts still get NDJSON, which is
+            # what the Sysmon path has always sent.
+            payload = "\n".join(
+                e if isinstance(e, str) else json.dumps(e) for e in batch
+            ).encode("utf-8")
         body = gzip.compress(payload)
 
         last_error: Exception | None = None
