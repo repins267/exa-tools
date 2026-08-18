@@ -41,6 +41,13 @@ def _ok_obj(data: Any) -> list[TextContent]:
     return _ok(data)
 
 
+# The tools that mutate live tenant data. In read-only mode these are neither
+# advertised (see visible_tools) nor dispatched (see dispatch_tool) -- a HARD
+# gate, unlike the in-prompt SOFT gate carried in each tool's description.
+WRITE_TOOLS: frozenset[str] = frozenset(
+    {"create_case", "update_case", "update_alert", "add_case_note"}
+)
+
 
 TOOL_DEFS: list[Tool] = [
     Tool(
@@ -396,10 +403,28 @@ TOOL_DEFS: list[Tool] = [
 ]
 
 
+def visible_tools(*, read_only: bool) -> list[Tool]:
+    """Tools to advertise to the MCP client.
+
+    In read-only mode the four write tools are withheld entirely, so the model
+    never sees them and cannot attempt a write. dispatch_tool enforces the same
+    rule server-side as defense in depth.
+    """
+    if read_only:
+        return [t for t in TOOL_DEFS if t.name not in WRITE_TOOLS]
+    return list(TOOL_DEFS)
+
+
 async def dispatch_tool(
-    client: ExaClient, name: str, arguments: dict[str, Any]
+    client: ExaClient, name: str, arguments: dict[str, Any], *, read_only: bool = False
 ) -> list[TextContent]:
     """Route a tool call to the corresponding exa-tools function."""
+    if read_only and name in WRITE_TOOLS:
+        return _err(
+            f"Refused: '{name}' modifies live tenant data and this MCP server is "
+            "running in READ-ONLY mode. Restart the server with --allow-writes to "
+            "enable write tools."
+        )
     try:
         match name:
             case "search_alerts":

@@ -12,30 +12,37 @@ if TYPE_CHECKING:
     from exa.client import ExaClient
 
 
-def _build_mcp_server(client: ExaClient, server_name: str):
-    """Construct and return a configured mcp.server.Server instance."""
+def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = False):
+    """Construct and return a configured mcp.server.Server instance.
+
+    When read_only is True the four write tools are neither advertised nor
+    dispatched -- a hard gate enforced regardless of what the client requests.
+    """
     from mcp.server import Server
 
-    from exa.mcp.tools import TOOL_DEFS, dispatch_tool
+    from exa.mcp.tools import dispatch_tool, visible_tools
 
     server = Server(server_name)
+    tools = visible_tools(read_only=read_only)
 
     @server.list_tools()
     async def handle_list_tools():
-        return TOOL_DEFS
+        return tools
 
     @server.call_tool()
     async def handle_call_tool(name: str, arguments: dict):
-        return await dispatch_tool(client, name, arguments or {})
+        return await dispatch_tool(client, name, arguments or {}, read_only=read_only)
 
     return server
 
 
-async def run_server(client: ExaClient, server_name: str = "exabeam") -> None:
+async def run_server(
+    client: ExaClient, server_name: str = "exabeam", *, read_only: bool = False
+) -> None:
     """Run the Exabeam MCP server over stdio (Claude Desktop subprocess mode)."""
     from mcp.server.stdio import stdio_server
 
-    server = _build_mcp_server(client, server_name)
+    server = _build_mcp_server(client, server_name, read_only=read_only)
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,
@@ -49,6 +56,8 @@ async def run_sse_server(
     server_name: str = "exabeam",
     host: str = "127.0.0.1",
     port: int = 8765,
+    *,
+    read_only: bool = False,
 ) -> None:
     """Run the Exabeam MCP server over HTTP/SSE (remote connector mode).
 
@@ -61,7 +70,7 @@ async def run_sse_server(
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
 
-    server = _build_mcp_server(client, server_name)
+    server = _build_mcp_server(client, server_name, read_only=read_only)
     sse = SseServerTransport("/messages/")
 
     async def handle_sse(request):

@@ -25,6 +25,8 @@ mcp_app = typer.Typer(
     no_args_is_help=True,
 )
 console = Console()
+# stdio mode uses stdout as the MCP protocol channel; status must go to stderr.
+err_console = Console(stderr=True)
 
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 _DOCS_MCP_URL = "https://developers.exabeam.com/mcp"
@@ -43,7 +45,9 @@ def _exa_executable() -> Path:
     return root / ".venv" / "bin" / "exa"
 
 
-def _generate_config(tenant: str | None, server_name: str) -> dict:
+def _generate_config(
+    tenant: str | None, server_name: str, allow_writes: bool = False
+) -> dict:
     """Generate the MCP client config dict for the local stdio server."""
     exe = _exa_executable()
     if exe.exists():
@@ -57,6 +61,8 @@ def _generate_config(tenant: str | None, server_name: str) -> dict:
         args += ["--tenant", tenant]
     if server_name != "exabeam":
         args += ["--name", server_name]
+    if allow_writes:
+        args += ["--allow-writes"]
 
     return {
         "mcpServers": {
@@ -134,6 +140,16 @@ def serve(
         str,
         typer.Option("--host", help="Host to bind when using --port [default: 127.0.0.1]"),
     ] = "127.0.0.1",
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help=(
+                "Enable the four write tools (create_case, update_case, update_alert, "
+                "add_case_note). Default: read-only -- write tools are hidden and refused."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Start the Exabeam MCP server.
 
@@ -147,9 +163,10 @@ def serve(
     With --port: HTTP/SSE mode — add http://HOST:PORT/sse as a custom connector
     in Claude Desktop settings.
 
-    Exposes 9 tools: search_alerts, get_alert, search_cases, get_case,
-    search_events, create_case, update_case, update_alert, add_case_note.
-    Token refresh is handled automatically — the server runs indefinitely.
+    Exposes 18 tools (14 read + 4 write). Read-only is the DEFAULT: the four
+    write tools (create_case, update_case, update_alert, add_case_note) are
+    hidden and refused unless --allow-writes is passed -- a hard gate, not just
+    the in-prompt ask. Token refresh is automatic; the server runs indefinitely.
     """
     import asyncio
 
@@ -157,6 +174,21 @@ def serve(
 
     client = ExaClient(tenant=tenant)
     client.authenticate()
+
+    read_only = not allow_writes
+    if read_only:
+        err_console.print(
+            "  Mode: READ-ONLY -- write tools hidden and refused. "
+            "Restart with --allow-writes to enable them.",
+            style="green",
+        )
+    else:
+        err_console.print(
+            "  Mode: WRITES ENABLED -- create/update/close cases and alerts are live. "
+            "This is a soft posture; confirm the tenant before every write.",
+            style="yellow",
+        )
+
     try:
         if port is not None:
             from exa.mcp.server import run_sse_server
@@ -170,11 +202,19 @@ def serve(
                 "in Claude Desktop settings.",
                 style="dim",
             )
-            asyncio.run(run_sse_server(client, server_name=name, host=host, port=port))
+            asyncio.run(
+                run_sse_server(
+                    client,
+                    server_name=name,
+                    host=host,
+                    port=port,
+                    read_only=read_only,
+                )
+            )
         else:
             from exa.mcp.server import run_server
 
-            asyncio.run(run_server(client, server_name=name))
+            asyncio.run(run_server(client, server_name=name, read_only=read_only))
     finally:
         client.close()
 
@@ -199,6 +239,13 @@ def config_cmd(
             help="Output Exabeam API docs MCP config instead [default: no-docs]",
         ),
     ] = False,
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help="Add --allow-writes to the server args [default: read-only]",
+        ),
+    ] = False,
 ) -> None:
     """Print the MCP client config JSON to stdout.
 
@@ -216,7 +263,7 @@ def config_cmd(
         docs_name = name if name != "exabeam" else "exabeam-docs"
         cfg = _generate_docs_config(server_name=docs_name)
     else:
-        cfg = _generate_config(tenant=tenant, server_name=name)
+        cfg = _generate_config(tenant=tenant, server_name=name, allow_writes=allow_writes)
 
     sys.stdout.write(json.dumps(cfg, indent=2) + "\n")
 
@@ -241,6 +288,13 @@ def install(
             help="Install Exabeam API docs MCP server instead [default: no-docs]",
         ),
     ] = False,
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help="Configure the server to allow write tools [default: read-only]",
+        ),
+    ] = False,
 ) -> None:
     """Install the MCP server config into Claude Desktop.
 
@@ -261,7 +315,9 @@ def install(
         cfg_block = _generate_docs_config(server_name=server_name)
     else:
         server_name = name
-        cfg_block = _generate_config(tenant=tenant, server_name=server_name)
+        cfg_block = _generate_config(
+            tenant=tenant, server_name=server_name, allow_writes=allow_writes
+        )
 
     server_config = cfg_block["mcpServers"][server_name]
     config_path = _claude_config_path()

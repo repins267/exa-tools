@@ -306,3 +306,90 @@ class TestDispatchTool:
         payload = json.loads(result[0].text)
         assert "error" in payload
         assert "boom" in payload["error"]
+
+
+# ---------------------------------------------------------------------------
+# Read-only / --allow-writes hard gate
+# ---------------------------------------------------------------------------
+
+
+class TestReadOnlyGate:
+    def test_visible_tools_hides_writes_when_read_only(self):
+        from exa.mcp.tools import visible_tools
+
+        names = {t.name for t in visible_tools(read_only=True)}
+        assert names & WRITE_TOOLS == set(), "write tools must not be advertised read-only"
+        assert names == READ_TOOLS
+
+    def test_visible_tools_includes_writes_when_allowed(self):
+        from exa.mcp.tools import visible_tools
+
+        names = {t.name for t in visible_tools(read_only=False)}
+        assert names == WRITE_TOOLS | READ_TOOLS
+
+    @pytest.mark.parametrize("tool", sorted(WRITE_TOOLS))
+    def test_dispatch_refuses_writes_in_read_only(self, tool):
+        from exa.mcp.tools import dispatch_tool
+
+        mock_client = MagicMock()
+        result = asyncio.run(
+            dispatch_tool(mock_client, tool, {}, read_only=True)
+        )
+        payload = json.loads(result[0].text)
+        assert "error" in payload
+        assert "read-only" in payload["error"].lower()
+        # The refusal must short-circuit before touching the client at all.
+        mock_client.post.assert_not_called()
+        mock_client.get.assert_not_called()
+
+    def test_dispatch_allows_writes_when_not_read_only(self):
+        """With writes enabled the gate does not fire -- the call reaches the tool.
+
+        add_case_note posts directly via the client, so a stubbed post proves the
+        guard let it through rather than refusing.
+        """
+        from exa.mcp.tools import dispatch_tool
+
+        mock_client = MagicMock()
+        mock_client.post.return_value = {"noteId": "n1"}
+        result = asyncio.run(
+            dispatch_tool(
+                mock_client,
+                "add_case_note",
+                {"case_id": "c1", "content": "hello"},
+                read_only=False,
+            )
+        )
+        mock_client.post.assert_called_once()
+        payload = json.loads(result[0].text)
+        assert payload == {"noteId": "n1"}
+
+    def test_read_tool_works_in_read_only(self):
+        from exa.mcp.tools import dispatch_tool
+        from unittest.mock import patch
+
+        mock_client = MagicMock()
+        with patch("exa.case.alerts.search_alerts", return_value=[{"alertId": "a"}]):
+            result = asyncio.run(
+                dispatch_tool(mock_client, "search_alerts", {}, read_only=True)
+            )
+        payload = json.loads(result[0].text)
+        assert payload == [{"alertId": "a"}]
+
+
+class TestGenerateConfigAllowWrites:
+    def test_read_only_by_default_omits_flag(self):
+        from exa.cli.mcp import _generate_config
+
+        args = _generate_config(tenant="sademodev22", server_name="exabeam")[
+            "mcpServers"
+        ]["exabeam"]["args"]
+        assert "--allow-writes" not in args
+
+    def test_allow_writes_adds_flag(self):
+        from exa.cli.mcp import _generate_config
+
+        args = _generate_config(
+            tenant="sademodev22", server_name="exabeam", allow_writes=True
+        )["mcpServers"]["exabeam"]["args"]
+        assert "--allow-writes" in args
