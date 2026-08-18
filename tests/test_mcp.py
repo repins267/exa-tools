@@ -143,6 +143,26 @@ class TestInstallConfig:
 # ---------------------------------------------------------------------------
 
 
+WRITE_TOOLS = {"create_case", "update_case", "update_alert", "add_case_note"}
+
+READ_TOOLS = {
+    "search_alerts",
+    "get_alert",
+    "search_cases",
+    "get_case",
+    "search_events",
+    "get_license_consumption",
+    "get_app_status",
+    "list_collectors",
+    "aillm_sources",
+    "aillm_validate",
+    "aillm_rules",
+    "aillm_risk",
+    "aillm_gaps",
+    "list_detection_rules",
+}
+
+
 class TestToolDefs:
     def test_all_tools_have_required_fields(self):
         from exa.mcp.tools import TOOL_DEFS
@@ -169,28 +189,55 @@ class TestToolDefs:
         from exa.mcp.tools import TOOL_DEFS
 
         names = {t.name for t in TOOL_DEFS}
-        expected = {
-            "search_alerts",
-            "get_alert",
-            "search_cases",
-            "get_case",
-            "search_events",
-            "create_case",
-            "update_case",
-            "update_alert",
-            "add_case_note",
-        }
-        assert names == expected
+        assert names == WRITE_TOOLS | READ_TOOLS
 
-    def test_read_tools_not_marked_as_write(self):
+    def test_every_tool_has_a_dispatch_case(self):
+        """A tool advertised with no handler fails only when someone calls it.
+
+        The client lists it, the model picks it, and the call returns "Unknown
+        tool" at runtime -- so the gap shows up in front of a user rather than
+        in CI. Pin the two lists together instead.
+        """
+        import re
+        from pathlib import Path
+
         from exa.mcp.tools import TOOL_DEFS
 
-        read_tools = {"search_alerts", "get_alert", "search_cases", "get_case", "search_events"}
+        source = Path("exa/mcp/tools.py").read_text(encoding="utf-8")
+        cases = set(re.findall(r'case "([a-z_]+)":', source))
+        names = {t.name for t in TOOL_DEFS}
+        assert names - cases == set(), f"advertised with no handler: {names - cases}"
+        assert cases - names == set(), f"handler with no tool: {cases - names}"
+
+    def test_read_tools_not_marked_as_write(self):
+        """Derived from WRITE_TOOLS, not a second hand-maintained list.
+
+        The previous version named the five read tools explicitly, so a newly
+        added read tool was simply not checked -- the assertion silently covered
+        less over time.
+        """
+        from exa.mcp.tools import TOOL_DEFS
+
         for tool in TOOL_DEFS:
-            if tool.name in read_tools:
+            if tool.name not in WRITE_TOOLS:
                 assert "MODIFIES LIVE DATA" not in tool.description, (
-                    f"Read tool {tool.name} should not have approval warning"
+                    f"Read tool {tool.name} should not carry the write warning"
                 )
+
+    def test_write_gate_is_imperative_and_honest(self):
+        """The gate must instruct the model, and admit it is soft.
+
+        "requires human approval" states a fact about the world. In Claude
+        Desktop there is no harness rule behind it, so the wording has to tell
+        the model to stop and wait, and say plainly that this is the only lock.
+        """
+        from exa.mcp.tools import TOOL_DEFS
+
+        for tool in TOOL_DEFS:
+            if tool.name in WRITE_TOOLS:
+                d = tool.description
+                assert "STOP and ask" in d, f"{tool.name} gate is not imperative"
+                assert "SOFT gate" in d, f"{tool.name} does not admit it is soft"
 
 
 # ---------------------------------------------------------------------------

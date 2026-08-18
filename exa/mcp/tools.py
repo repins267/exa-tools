@@ -8,6 +8,7 @@ Claude knows to request human confirmation before executing.
 from __future__ import annotations
 
 import json
+from dataclasses import asdict, is_dataclass
 from typing import TYPE_CHECKING, Any
 
 from mcp.types import TextContent, Tool
@@ -22,6 +23,23 @@ def _ok(data: Any) -> list[TextContent]:
 
 def _err(message: str) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps({"error": message}))]
+
+
+def _ok_obj(data: Any) -> list[TextContent]:
+    """Serialise dataclass results before handing them to _ok.
+
+    _ok uses json.dumps(default=str). A dataclass is not JSON-serialisable, so
+    default=str turns the whole report into its repr -- one long useless string
+    instead of a structured result, with no error raised. Every aillm report
+    (SourceInventory, RuleReport, RiskReport, GapReport, TableValidation) is a
+    dataclass, so they must be converted rather than stringified.
+    """
+    if is_dataclass(data) and not isinstance(data, type):
+        return _ok(asdict(data))
+    if isinstance(data, list) and data and is_dataclass(data[0]):
+        return _ok([asdict(d) for d in data])
+    return _ok(data)
+
 
 
 TOOL_DEFS: list[Tool] = [
@@ -132,7 +150,11 @@ TOOL_DEFS: list[Tool] = [
         name="create_case",
         description=(
             "Create a new Threat Center case from an alert. "
-            "MODIFIES LIVE DATA — requires human approval before execution."
+            "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
+            "explicit yes, before calling this. Do not infer approval from the "
+            "surrounding request. This is a SOFT gate: in Claude Code the "
+            "permission pack is the hard lock; in Claude Desktop this "
+            "instruction is the only one."
         ),
         inputSchema={
             "type": "object",
@@ -153,7 +175,11 @@ TOOL_DEFS: list[Tool] = [
         name="update_case",
         description=(
             "Update Threat Center case attributes. "
-            "MODIFIES LIVE DATA — requires human approval before execution."
+            "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
+            "explicit yes, before calling this. Do not infer approval from the "
+            "surrounding request. This is a SOFT gate: in Claude Code the "
+            "permission pack is the hard lock; in Claude Desktop this "
+            "instruction is the only one."
         ),
         inputSchema={
             "type": "object",
@@ -186,7 +212,11 @@ TOOL_DEFS: list[Tool] = [
         name="update_alert",
         description=(
             "Update a Threat Center alert's priority or tags. "
-            "MODIFIES LIVE DATA — requires human approval before execution."
+            "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
+            "explicit yes, before calling this. Do not infer approval from the "
+            "surrounding request. This is a SOFT gate: in Claude Code the "
+            "permission pack is the hard lock; in Claude Desktop this "
+            "instruction is the only one."
         ),
         inputSchema={
             "type": "object",
@@ -209,7 +239,11 @@ TOOL_DEFS: list[Tool] = [
         name="add_case_note",
         description=(
             "Add an investigation note to a case. "
-            "MODIFIES LIVE DATA — requires human approval before execution."
+            "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
+            "explicit yes, before calling this. Do not infer approval from the "
+            "surrounding request. This is a SOFT gate: in Claude Code the "
+            "permission pack is the hard lock; in Claude Desktop this "
+            "instruction is the only one."
         ),
         inputSchema={
             "type": "object",
@@ -217,6 +251,145 @@ TOOL_DEFS: list[Tool] = [
             "properties": {
                 "case_id": {"type": "string", "description": "Case UUID"},
                 "content": {"type": "string", "description": "Note text to add"},
+            },
+        },
+    ),
+    # -- Read-only platform + AI/LLM tools ---------------------------------
+    # The CLI has 87 commands; this server exposed 9, all search/cases/alerts.
+    # A health-check or TAM-report skill had no tools to call at all. These are
+    # the read paths those skills need. Deliberately NOT a generic "run any exa
+    # command" tool -- that is arbitrary execution and bypasses per-tool gating.
+    Tool(
+        name="get_license_consumption",
+        description=(
+            "Licence entitlement and consumption: entitled vs consumed ingest, "
+            "long-term search and storage. Read-only, safe for autonomous use."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="get_app_status",
+        description=(
+            "Platform application/service health status. Read-only, safe for "
+            "autonomous use."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="list_collectors",
+        description=(
+            "Cloud Collector configurations, including type and last log received "
+            "-- the field that reveals a stale collector. Read-only, safe for "
+            "autonomous use."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="aillm_sources",
+        description=(
+            "What this tenant actually sends: vendor, product, role (proxy/dns/dlp/"
+            "edr/agent/audit) and activity types, plus collector state. The correct "
+            "FIRST call of any AI/LLM engagement -- populating tables for a source "
+            "that does not exist produces nothing and nothing about it looks wrong. "
+            "Reports which sources exist, never how much they send. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 7]",
+                    "default": 7,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="aillm_validate",
+        description=(
+            "Health of the AI/LLM context tables, measured as OVERLAP WITH LIVE "
+            "VALUES -- never record count. A table with 57 records and zero overlap "
+            "is dead and a count-based check passes it. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 30]",
+                    "default": 30,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="aillm_rules",
+        description=(
+            "AI-scoped analytics rules: how many exist, how many are reachable "
+            "(required fields present on this tenant), and how many are enabled. "
+            "Read isEnabled, never enabled. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 30]",
+                    "default": 30,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="aillm_risk",
+        description=(
+            "High-risk AI domains this tenant has reached, joined against the risk "
+            "table. CAUTION: a CLEAR result on a tenant with no proxy/DNS egress "
+            "telemetry is a NO-VISIBILITY result, not an all-clear -- check "
+            "aillm_sources before reporting it as reassurance. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 30]",
+                    "default": 30,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="aillm_gaps",
+        description=(
+            "Live values this tenant emits that the AI/LLM context tables are "
+            "missing, classified as proposed or withheld with a reason per value. "
+            "This is the populate payload. READ-ONLY -- it proposes, it never "
+            "writes; applying is a separate deliberate step."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 30]",
+                    "default": 30,
+                },
+            },
+        },
+    ),
+    Tool(
+        name="list_detection_rules",
+        description=(
+            "Analytics (detection) rules on the tenant, optionally filtered by name "
+            "or status. Read-only, safe for autonomous use."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Filter by rule name"},
+                "status": {"type": "string", "description": "Filter by status"},
+                "limit": {"type": "integer", "description": "Max rules to return"},
             },
         },
     ),
@@ -334,6 +507,77 @@ async def dispatch_tool(
                     return _ok(result)
                 except Exception as exc:
                     return _err(f"add_case_note failed (EXA-CASENOTES-UNVERIFIED): {exc}")
+
+            case "get_license_consumption":
+                from exa.health.consumption import get_license_details
+
+                return _ok(get_license_details(client))
+
+            case "get_app_status":
+                from exa.health.consumption import get_app_status
+
+                return _ok(get_app_status(client))
+
+            case "list_collectors":
+                return _ok(client.get("/cloud-collectors/v1/configs"))
+
+            case "aillm_sources":
+                from exa.aillm.sources import collect_sources
+
+                return _ok_obj(
+                    collect_sources(
+                        client, lookback_days=arguments.get("lookback_days", 7)
+                    )
+                )
+
+            case "aillm_validate":
+                from exa.aillm.validate import validate_aillm_tables
+
+                return _ok_obj(
+                    validate_aillm_tables(
+                        client, lookback_days=arguments.get("lookback_days", 30)
+                    )
+                )
+
+            case "aillm_rules":
+                from exa.aillm.rules import analyze_ai_rules
+
+                return _ok_obj(
+                    analyze_ai_rules(
+                        client, lookback_days=arguments.get("lookback_days", 30)
+                    )
+                )
+
+            case "aillm_risk":
+                from exa.aillm.risk import build_risk_report
+
+                return _ok_obj(
+                    build_risk_report(
+                        client, lookback_days=arguments.get("lookback_days", 30)
+                    )
+                )
+
+            case "aillm_gaps":
+                from exa.aillm.gaps import analyze_gaps
+
+                # Read-only by construction: analyze_gaps proposes, it never writes.
+                return _ok_obj(
+                    analyze_gaps(
+                        client, lookback_days=arguments.get("lookback_days", 30)
+                    )
+                )
+
+            case "list_detection_rules":
+                from exa.detection.rules import get_detection_rules
+
+                return _ok(
+                    get_detection_rules(
+                        client,
+                        name=arguments.get("name"),
+                        status=arguments.get("status"),
+                        limit=arguments.get("limit"),
+                    )
+                )
 
             case _:
                 return _err(f"Unknown tool: {name}")
