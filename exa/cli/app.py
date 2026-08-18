@@ -298,6 +298,15 @@ from exa.cli.endpoint import endpoint_app  # noqa: E402
 app.add_typer(endpoint_app)
 
 
+# -- Behavior verification ----------------------------------------------------
+# `verify`, not `search verify`: `search` is a command with a positional query, so
+# it cannot also be a group.
+
+from exa.cli.verify import verify_app  # noqa: E402
+
+app.add_typer(verify_app)
+
+
 # -- Search -------------------------------------------------------------------
 
 _SEARCH_DEFAULT_API_FIELDS = ["user", "host", "activity_type", "outcome"]

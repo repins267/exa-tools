@@ -113,7 +113,11 @@ def sync_dlp_ruleset(
         client: Authenticated ExaClient.
         lookback_days: How far back to search for alerts (default 90).
         keywords: Alert name substrings to match (default: DEFAULT_KEYWORDS).
-        limit: Max alerts to pull per search call (max 3000).
+        limit: Max alerts to pull per search call (default 3000). 3000 is the API's
+            default when no limit is set, NOT a ceiling -- higher values are honored
+            (verified live 2026-08-17: limit=10000 returned 10000 rows). Must be
+            positive: a non-positive limit returns HTTP 200 with zero rows rather
+            than an error, so a computed value must be checked before the call.
         dry_run: Preview matched names without writing.
         force: Replace all existing records instead of appending new ones.
 

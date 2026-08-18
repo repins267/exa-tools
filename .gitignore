@@ -55,3 +55,15 @@ build_inventory.py
 show_help.py
 api-audit-new-findings.json
 ng-beam-*.json
+
+# Tenant data pulled into the checkout by a CLI run. This is a PUBLIC repo:
+# alert, case, rule and zone exports are live customer data and must never be
+# committed. Keep them outside the checkout -- C:\Users\<you>\ExaData on Windows.
+# These patterns are a backstop, not the control.
+*_alerts_*.json
+*_cases_*.json
+*_enabled_rules.csv
+zones-*.csv
+zones-*.json
+tests/*.csv
+tests/*.json

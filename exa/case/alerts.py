@@ -36,7 +36,11 @@ def search_alerts(
         order_by: Sort fields, e.g. ["riskScore DESC"].
         start_time/end_time: Absolute time range (UTC).
         lookback_days: Days to look back from now (default 30).
-        limit: Max alerts to return (default 500, max 3000).
+        limit: Max alerts to return (default 500). 3000 is the API's default when
+            no limit is set, NOT a ceiling -- higher values are honored (verified
+            live 2026-08-17: limit=10000 returned 10000 rows). Must be positive:
+            a non-positive limit returns HTTP 200 with zero rows rather than an
+            error, which is indistinguishable from "no matching alerts".
         raw: Return raw API response dict instead of rows list.
 
     Returns:
