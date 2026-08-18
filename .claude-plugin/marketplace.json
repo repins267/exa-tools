@@ -1,0 +1,20 @@
+{
+  "name": "exa-tools",
+  "owner": {
+    "name": "Cyrus Field",
+    "url": "https://github.com/repins267"
+  },
+  "metadata": {
+    "description": "exa-tools plugins for Exabeam New-Scale TAM work. Add this repo as a marketplace -- locally by path for testing, or by URL once pushed."
+  },
+  "plugins": [
+    {
+      "name": "exa-tools",
+      "source": "./plugin",
+      "description": "Health checks, AI/LLM posture and customer call prep as agentic skills, backed by the exa-tools MCP server.",
+      "license": "MIT",
+      "keywords": ["exabeam", "siem", "tam", "ai-llm", "mcp"],
+      "category": "security"
+    }
+  ]
+}
