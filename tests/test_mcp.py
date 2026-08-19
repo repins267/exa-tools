@@ -160,6 +160,9 @@ READ_TOOLS = {
     "aillm_risk",
     "aillm_gaps",
     "list_detection_rules",
+    "get_active_tenant",
+    "list_tenants",
+    "set_active_tenant",
 }
 
 
@@ -393,3 +396,161 @@ class TestGenerateConfigAllowWrites:
             tenant="sademodev22", server_name="exabeam", allow_writes=True
         )["mcpServers"]["exabeam"]["args"]
         assert "--allow-writes" in args
+
+
+
+# ---------------------------------------------------------------------------
+# Tenant awareness / switching tools
+# ---------------------------------------------------------------------------
+
+
+class _FakeClient:
+    def __init__(self, tenant, base_url="https://api.us-west.exabeam.cloud", exp=0.0):
+        self.tenant = tenant
+        self.base_url = base_url
+        self._expires_at = exp
+
+    def close(self):
+        pass
+
+
+class TestTenantTools:
+    def test_get_active_tenant_reports_binding(self):
+        import time as _t
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22", exp=_t.time() + 1800)
+        out = json.loads(
+            asyncio.run(dispatch_tool(c, "get_active_tenant", {}, read_only=True))[0].text
+        )
+        assert out["active_tenant"] == "sademodev22"
+        assert out["api_server"] == "https://api.us-west.exabeam.cloud"
+        assert out["writes_enabled"] is False
+        assert out["token_ttl_seconds"] is not None and out["token_ttl_seconds"] > 0
+
+    def test_get_active_tenant_writes_enabled_flag(self):
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("csnafusion")
+        out = json.loads(
+            asyncio.run(dispatch_tool(c, "get_active_tenant", {}, read_only=False))[0].text
+        )
+        assert out["writes_enabled"] is True
+
+    def test_list_tenants_marks_active_and_default(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        entries = {
+            "sademodev22": {"api_server": "https://api.us-west.exabeam.cloud", "region": "US-West"},
+            "lvcva": {"api_server": "https://api.us-west.exabeam.cloud", "region": "US-West"},
+        }
+        c = _FakeClient("lvcva")
+        with patch("exa.config.list_tenants", return_value=entries), patch(
+            "exa.config.get_default_tenant", return_value="sademodev22"
+        ):
+            out = json.loads(
+                asyncio.run(dispatch_tool(c, "list_tenants", {}, read_only=True))[0].text
+            )
+        assert out["active"] == "lvcva"
+        assert out["default"] == "sademodev22"
+        by_name = {r["tenant"]: r for r in out["tenants"]}
+        assert by_name["lvcva"]["active"] is True and by_name["lvcva"]["default"] is False
+        assert by_name["sademodev22"]["default"] is True and by_name["sademodev22"]["active"] is False
+
+    def test_set_active_tenant_requires_session(self):
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22")
+        out = json.loads(
+            asyncio.run(dispatch_tool(c, "set_active_tenant", {"tenant": "lvcva"}))[0].text
+        )
+        assert "error" in out
+        assert "only available" in out["error"].lower()
+
+    def test_set_active_tenant_rejects_unknown_tenant(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        class _Session:
+            def __init__(self):
+                self.client = _FakeClient("sademodev22")
+                self.read_only = True
+                self.switched_to = None
+
+            def switch(self, t):
+                self.switched_to = t
+
+        sess = _Session()
+        with patch("exa.config.list_tenants", return_value={"sademodev22": {}, "lvcva": {}}):
+            out = json.loads(
+                asyncio.run(
+                    dispatch_tool(
+                        sess.client, "set_active_tenant", {"tenant": "not-a-tenant"}, session=sess
+                    )
+                )[0].text
+            )
+        assert "error" in out
+        assert "unknown tenant" in out["error"].lower()
+        assert sess.switched_to is None  # never attempted the switch
+
+    def test_set_active_tenant_switches_and_reports(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        class _Session:
+            def __init__(self):
+                self.client = _FakeClient("sademodev22")
+                self.read_only = False
+
+            def switch(self, t):
+                self.client = _FakeClient(t, base_url="https://api.us-east.exabeam.cloud")
+
+        sess = _Session()
+        entries = {"lvcva": {"api_server": "https://api.us-west.exabeam.cloud", "region": "US-West", "kind": "customer"}}
+        with patch("exa.config.list_tenants", return_value={"sademodev22": {}, "lvcva": entries["lvcva"]}):
+            out = json.loads(
+                asyncio.run(
+                    dispatch_tool(sess.client, "set_active_tenant", {"tenant": "lvcva"}, session=sess)
+                )[0].text
+            )
+        assert out["active_tenant"] == "lvcva"
+        assert out["kind"] == "customer"
+        assert out["writes_enabled"] is True
+
+    def test_tenant_tools_visible_in_read_only(self):
+        from exa.mcp.tools import visible_tools
+
+        names = {t.name for t in visible_tools(read_only=True)}
+        assert {"get_active_tenant", "list_tenants", "set_active_tenant"} <= names
+
+
+class TestResultSizeGuard:
+    def test_small_result_untouched(self):
+        from exa.mcp.tools import _ok
+        import json as _j
+
+        data = {"a": 1, "b": [1, 2, 3]}
+        out = _j.loads(_ok(data)[0].text)
+        assert out == data
+
+    def test_oversize_result_is_bounded_and_marked(self):
+        from exa.mcp.tools import _ok, _MAX_RESULT_BYTES
+
+        # A payload that dwarfs the cap: computed scalars + a huge raw list.
+        data = {"table": "AI Domains", "records": 90000, "overlap": 3,
+                "missing": [f"value-{i}-xxxxxxxxxxxxxxxxxxxx" for i in range(200000)]}
+        text = _ok(data)[0].text
+        assert len(text.encode("utf-8")) <= _MAX_RESULT_BYTES
+        # scalar summary survives; the array is truncated with a marker
+        assert '"records": 90000' in text or '"records":90000' in text
+        assert "_truncated" in text or "_size_capped" in text
+
+    def test_truncate_lists_preserves_scalars_and_counts(self):
+        from exa.mcp.tools import _truncate_lists
+
+        out = _truncate_lists({"n": 5, "xs": list(range(100))}, 10)
+        assert out["n"] == 5
+        assert len(out["xs"]) == 11  # 10 items + 1 marker
+        marker = out["xs"][-1]
+        assert marker["_truncated"] is True and marker["_omitted"] == 90 and marker["_total"] == 100

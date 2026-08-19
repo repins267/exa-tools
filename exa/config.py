@@ -286,6 +286,41 @@ def set_default_tenant(tenant: str) -> None:
     _write_config_file(config)
 
 
+TENANT_KINDS: frozenset[str] = frozenset({"demo", "customer"})
+
+
+def set_tenant_kind(tenant: str, kind: str) -> None:
+    """Tag a configured tenant as 'demo' or 'customer' in ~/.exa/config.json.
+
+    Surfaced by the MCP get_active_tenant / list_tenants tools so the model can
+    tell a customer tenant from a demo one before writing. Non-secret metadata.
+    """
+    kind = kind.strip().lower()
+    if kind not in TENANT_KINDS:
+        raise ExaConfigError(
+            f"kind must be one of {sorted(TENANT_KINDS)}, got '{kind}'."
+        )
+    config = _read_config_file()
+    tenants = config.get("tenants", {})
+    if tenant not in tenants:
+        raise ExaConfigError(
+            f"Unknown tenant '{tenant}'. Run 'exa config tenants' to list configured tenants."
+        )
+    tenants[tenant]["kind"] = kind
+    _write_config_file(config)
+
+
+def list_tenants() -> "dict[str, dict[str, Any]]":
+    """Return every configured tenant as {nickname: non-secret entry}.
+
+    Reads ~/.exa/config.json. NEVER returns secrets -- client_id/secret live in
+    the OS credential store, not here -- so the result is safe to surface to an
+    MCP client. Each entry carries api_server and, when set, fqdn / region / kind.
+    """
+    config = _read_config_file()
+    return dict(config.get("tenants", {}))
+
+
 def get_default_tenant() -> str:
     """Get the default tenant name from config.json.
 

@@ -12,6 +12,44 @@ if TYPE_CHECKING:
     from exa.client import ExaClient
 
 
+class TenantSession:
+    """Mutable holder for the active ExaClient.
+
+    The MCP server is long-lived and can be re-pointed at a different tenant at
+    runtime via the set_active_tenant tool. Handlers read `session.client` on
+    every call, so a switch takes effect for all subsequent tool calls. The
+    read_only posture is fixed for the process (set at serve time) and does not
+    change on a tenant switch.
+    """
+
+    def __init__(self, client: "ExaClient", *, read_only: bool = False) -> None:
+        self._client = client
+        self.read_only = read_only
+
+    @property
+    def client(self) -> "ExaClient":
+        return self._client
+
+    def switch(self, tenant: str) -> "ExaClient":
+        """Point at a different configured tenant and refresh its token.
+
+        Creates a fresh ExaClient (credentials loaded from the OS credential
+        store by nickname), authenticates it, then swaps it in and closes the
+        old one. Raises on unknown tenant or auth failure -- the caller keeps
+        the previous client if this raises before the swap.
+        """
+        from exa.client import ExaClient
+
+        new = ExaClient(tenant=tenant)
+        new.authenticate()
+        old, self._client = self._client, new
+        try:
+            old.close()
+        except Exception:
+            pass
+        return new
+
+
 def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = False):
     """Construct and return a configured mcp.server.Server instance.
 
@@ -22,6 +60,7 @@ def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = 
 
     from exa.mcp.tools import dispatch_tool, visible_tools
 
+    session = TenantSession(client, read_only=read_only)
     server = Server(server_name)
     tools = visible_tools(read_only=read_only)
 
@@ -31,7 +70,13 @@ def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = 
 
     @server.call_tool()
     async def handle_call_tool(name: str, arguments: dict):
-        return await dispatch_tool(client, name, arguments or {}, read_only=read_only)
+        return await dispatch_tool(
+            session.client,
+            name,
+            arguments or {},
+            read_only=session.read_only,
+            session=session,
+        )
 
     return server
 

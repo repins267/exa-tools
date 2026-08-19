@@ -17,8 +17,48 @@ if TYPE_CHECKING:
     from exa.client import ExaClient
 
 
+# Claude Desktop caps a single tool result at 1 MB and the stdio client's read
+# buffer at 32 MB; a raw aillm table dump blows past both and kills the transport
+# (ReadBuffer exceeded -> Server disconnected). Bound every result: keep the
+# computed summary fields (overlap, status, counts are scalars) and cap long
+# arrays to the first N with an explicit _omitted count, so a verdict still gets
+# through and the model can see the list was truncated.
+_MAX_RESULT_BYTES = 800_000
+_MAX_LIST_ITEMS = 50
+
+
+def _truncate_lists(obj: Any, max_items: int) -> Any:
+    """Recursively cap any list longer than max_items, tagging what was dropped."""
+    if isinstance(obj, dict):
+        return {k: _truncate_lists(v, max_items) for k, v in obj.items()}
+    if isinstance(obj, list):
+        if len(obj) > max_items:
+            head = [_truncate_lists(x, max_items) for x in obj[:max_items]]
+            head.append(
+                {"_truncated": True, "_omitted": len(obj) - max_items, "_total": len(obj)}
+            )
+            return head
+        return [_truncate_lists(x, max_items) for x in obj]
+    return obj
+
+
 def _ok(data: Any) -> list[TextContent]:
-    return [TextContent(type="text", text=json.dumps(data, default=str))]
+    text = json.dumps(data, default=str)
+    if len(text.encode("utf-8")) > _MAX_RESULT_BYTES:
+        for cap in (_MAX_LIST_ITEMS, 10, 0):
+            text = json.dumps(_truncate_lists(data, cap), default=str)
+            if len(text.encode("utf-8")) <= _MAX_RESULT_BYTES:
+                break
+        else:
+            text = json.dumps(
+                {
+                    "error": "Result exceeded the size limit even after truncation. "
+                    "Narrow the request (shorter lookback, a name/status filter, or a "
+                    "single table) and retry.",
+                    "_size_capped": True,
+                }
+            )
+    return [TextContent(type="text", text=text)]
 
 
 def _err(message: str) -> list[TextContent]:
@@ -400,7 +440,76 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="get_active_tenant",
+        description=(
+            "Which tenant is this connector bound to RIGHT NOW. Returns the active "
+            "tenant nickname, api_server, region, kind (demo/customer if tagged), "
+            "whether writes are enabled, and token time-to-live. Call this before "
+            "reporting on a tenant or performing any write, and state the tenant in "
+            "the reply -- the analyst cannot otherwise see which tenant you are on. "
+            "Read-only, safe for autonomous use."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="list_tenants",
+        description=(
+            "The tenants configured on THIS machine (nickname, fqdn, region, kind, "
+            "and which is active/default). Credentials are never returned -- they "
+            "live in the OS credential store. Use to offer the analyst a choice "
+            "before set_active_tenant. Read-only, safe for autonomous use."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    ),
+    Tool(
+        name="set_active_tenant",
+        description=(
+            "Switch which configured tenant every subsequent tool call runs against, "
+            "and refresh its token (runs the equivalent of 'exa auth' for the chosen "
+            "tenant, loading its client credentials from the OS credential store -- no "
+            "secret passes through you). Only tenants already configured on this "
+            "machine are accepted; pass a nickname from list_tenants. This is a "
+            "CONTEXT change, not a data write, but it can point you at a CUSTOMER "
+            "tenant: after switching, state the new tenant and its kind before doing "
+            "anything, and never write to a customer tenant without an explicit yes."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "type": "string",
+                    "description": "Tenant nickname to switch to (must be configured).",
+                },
+            },
+            "required": ["tenant"],
+        },
+    ),
 ]
+
+
+def _active_tenant_info(client: "ExaClient", read_only: bool) -> dict:
+    """Non-secret snapshot of the tenant a client is bound to."""
+    import time
+
+    exp = getattr(client, "_expires_at", 0.0) or 0.0
+    ttl = max(0, int(exp - time.time())) if exp else None
+    entry: dict = {}
+    try:
+        from exa.config import list_tenants
+
+        entry = list_tenants().get(client.tenant or "", {})
+    except Exception:
+        entry = {}
+    return {
+        "active_tenant": client.tenant,
+        "api_server": getattr(client, "base_url", None),
+        "region": entry.get("region"),
+        "fqdn": entry.get("fqdn"),
+        "kind": entry.get("kind"),
+        "writes_enabled": not read_only,
+        "token_ttl_seconds": ttl,
+    }
 
 
 def visible_tools(*, read_only: bool) -> list[Tool]:
@@ -416,7 +525,12 @@ def visible_tools(*, read_only: bool) -> list[Tool]:
 
 
 async def dispatch_tool(
-    client: ExaClient, name: str, arguments: dict[str, Any], *, read_only: bool = False
+    client: ExaClient,
+    name: str,
+    arguments: dict[str, Any],
+    *,
+    read_only: bool = False,
+    session: "object | None" = None,
 ) -> list[TextContent]:
     """Route a tool call to the corresponding exa-tools function."""
     if read_only and name in WRITE_TOOLS:
@@ -602,6 +716,55 @@ async def dispatch_tool(
                         status=arguments.get("status"),
                         limit=arguments.get("limit"),
                     )
+                )
+
+            case "get_active_tenant":
+                return _ok(_active_tenant_info(client, read_only))
+
+            case "list_tenants":
+                from exa.config import get_default_tenant, list_tenants
+
+                try:
+                    default = get_default_tenant()
+                except Exception:
+                    default = None
+                active = getattr(client, "tenant", None)
+                rows = []
+                for nick, e in sorted(list_tenants().items()):
+                    rows.append(
+                        {
+                            "tenant": nick,
+                            "fqdn": e.get("fqdn", f"{nick}.exabeam.cloud"),
+                            "region": e.get("region"),
+                            "api_server": e.get("api_server"),
+                            "kind": e.get("kind"),
+                            "active": nick == active,
+                            "default": nick == default,
+                        }
+                    )
+                return _ok({"tenants": rows, "active": active, "default": default})
+
+            case "set_active_tenant":
+                if session is None:
+                    return _err(
+                        "set_active_tenant is only available when running as the MCP "
+                        "server (no mutable session in this context)."
+                    )
+                from exa.config import list_tenants
+
+                target = arguments["tenant"]
+                configured = list_tenants()
+                if target not in configured:
+                    return _err(
+                        f"Unknown tenant '{target}'. Configured on this machine: "
+                        f"{sorted(configured)}. Add one with 'exa configure'."
+                    )
+                try:
+                    session.switch(target)
+                except Exception as exc:
+                    return _err(f"Failed to switch to '{target}': {exc}")
+                return _ok(
+                    _active_tenant_info(session.client, session.read_only)
                 )
 
             case _:
