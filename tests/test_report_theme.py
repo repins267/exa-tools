@@ -146,6 +146,21 @@ class TestSourceDetail:
         assert "no detection return" in html.lower() or "Trim candidate" in html
 
 
+class TestAbvReport:
+    def test_renders_branded_self_contained(self):
+        from exa.report.abv import render_abv
+        html = render_abv()
+        assert html.lstrip().startswith("<!DOCTYPE html>")
+        assert "src=\"http" not in html  # self-contained (logo embedded)
+        # scorecard + findings + verdict present
+        for token in ("Remit coverage scorecard", "Findings register", "ABV-004", "Policy holds", "RESOLVED"):
+            assert token in html
+        # every clause id shows up in the scorecard
+        from exa.report.abv import ABV
+        for c in ABV["clauses"]:
+            assert c["id"] in html
+
+
 class TestDashboardPreview:
     def test_renders_panels_and_sections(self):
         from exa.report.dashboard import dashboard_preview_html
