@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-1005%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1009%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -38,12 +38,13 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 **Guardrails & audit** (adapted from [socxen](https://github.com/open-agent-ai-security/socxen) / [observra](https://github.com/open-agent-ai-security/observra)) — every tool **result** is canonicalized (invisible smuggling code points stripped, NFC-normalized) so injection hidden in a log field can't reach the model; free-text **write** inputs are neutralized (spreadsheet formulas quote-prefixed, links defanged, secrets redacted) before they persist. A metadata-only **audit log** (default on, fail-open, rotating JSONL at `~/.exa/audit.jsonl`) records every call — tool, tenant/kind, read/write, duration, status, result size, and safe id fields — **never** notes, secrets, or payloads. Disable with `EXA_AUDIT=off`. Both guardrails are regression-tested against socxen's red-team attack corpus (`tests/redteam/`) — zero-width, formula/link injection, and secret/PII leak fixtures. `security/` also carries a CycloneDX **AI-BOM** (`uv run security/gen_aibom.py`) and a Praxen **Agent Behavior Verification** report (`security/praxen/`) checking declared policy against actual behavior.
 
-**Tools (31)**
+**Tools (33)**
 
 | Group | Tools |
 | --- | --- |
 | Search / cases / alerts | `search_alerts` `get_alert` `search_cases` `get_case` `search_events` `create_case`\* `update_case`\* `update_alert`\* `add_case_note`\* |
 | Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` `source_detail` |
+| Identity / context | `identity_health` `context_table` |
 | SOC / tuning | `soc_kpis` `tuning_report` (NYMM) |
 | AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` `ai_domain_lookup` |
 | Detection | `list_detection_rules` |
@@ -52,7 +53,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 \* write tools, gated behind `--allow-writes`.
 
-**Skills (11)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-detection` (Code-first), `exa-compliance` (Code-first). The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+**Skills (12)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first). The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
 
 **Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON. Rendered output is auto-organized under `reports/{kind}/{tenant}/` (e.g. `reports/customer/baystate/`) — the tenant's kind tag and nickname, with intermediate directories created automatically; pass `output_path` to override.
 
