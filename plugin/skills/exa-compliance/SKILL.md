@@ -19,12 +19,20 @@ per-tenant via Field Oracle concept resolution — controls match the `activity_
 actually present, so a missing log source shows as an honest **gap**, not a false negative
 from a wrong query. Code-first: use the `exa compliance` CLI.
 
-## Preflight
+## Preflight & warm-up
 
-`exa frameworks` — list the 11 built-in frameworks and their SIEM coverage; pick the one
-the customer is measured against. Confirm the tenant (`exa config tenants`, `exa auth`).
-`sync-ootb` / `sync-identity` **write context tables** — confirm the tenant first; `audit`
-and `status` are read-only.
+Run these first (in Claude Code / a terminal in the repo — `uv run` uses the project venv):
+
+- `uv run exa config tenants` — which tenants are configured + which is active/default.
+- `uv run exa auth --tenant <t>` — confirm credentials work before anything else.
+- `uv run exa frameworks` — list the 11 built-in frameworks + their SIEM coverage; pick the
+  one the customer is measured against.
+- `uv run exa compliance status --tenant <t>` — record counts + health of the 6 compliance
+  identity tables. **If empty/stale the audit under-reports** — say so, or re-sync first.
+
+`frameworks`, `status`, and `audit` are read-only. **`sync-identity` / `sync-ootb` WRITE
+context tables to the tenant and have no `--allow-writes` gate** — confirm the tenant first,
+and never sync a customer tenant just to demo it.
 
 ## The workflow
 

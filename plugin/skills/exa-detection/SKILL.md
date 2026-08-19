@@ -18,11 +18,21 @@ Oracle (raw→CIM2 field mappings from Exabeam's own parsers). This skill is Cod
 use the `exa` CLI (~15 detection commands), not the guarded MCP surface, because conversion
 and deploy need the full command set. Run in Claude Code with the repo checked out.
 
-## Preflight
+## Preflight & warm-up
 
-Confirm the tenant: `exa config tenants` (which is active) and `exa auth` (creds work).
-Conversion is offline and safe; **deploy writes analytics rules to the tenant** — confirm
-the tenant + that this is intended before any `deploy`/`import`/`enable` command.
+Run these first (in Claude Code / a terminal in the repo — `uv run` uses the project venv):
+
+- `uv run exa config tenants` — which tenants are configured + which is active/default.
+- `uv run exa auth --tenant <t>` — confirm credentials work before anything else.
+- `uv run exa detection list --tenant <t>` — inventory the current rules (and warm the
+  detection profile) so later reads are fast.
+- `uv run exa detection export <bundle.json> --tenant <t>` — **do this before any change**:
+  a rollback point.
+
+Conversion (`sigma convert`, `splunk one/convert`) and `simulate` are offline/safe.
+**Deploy / import / enable / disable / snapshot WRITE analytics rules to the tenant and
+have no `--allow-writes` gate** — name the tenant, confirm it's intended, and confirm it's
+not a customer tenant you're about to change unattended, before any of those commands.
 
 ## Convert (offline, always safe)
 
