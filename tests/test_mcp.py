@@ -566,6 +566,38 @@ class TestResultSizeGuard:
         assert marker["_truncated"] is True and marker["_omitted"] == 90 and marker["_total"] == 100
 
 
+class TestReportPath:
+    def test_path_is_kind_tenant_scoped_and_created(self, tmp_path, monkeypatch):
+        import exa.config as C
+        from exa.mcp import tools as T
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(C, "list_tenants", lambda: {"baystate": {"kind": "customer"}})
+        client = MagicMock()
+        client.tenant = "baystate"
+        p = T._report_path(client, "ingest-value.html")
+        assert p.parts[-3:] == ("customer", "baystate", "ingest-value.html")
+        assert p.parent.is_dir()  # intermediate dirs created, so save never fails
+
+    def test_untagged_tenant_falls_back(self, tmp_path, monkeypatch):
+        import exa.config as C
+        from exa.mcp import tools as T
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(C, "list_tenants", lambda: {"sadem20": {}})
+        client = MagicMock()
+        client.tenant = "sadem20"
+        p = T._report_path(client, "x.html")
+        assert p.parts[-3:] == ("untagged", "sadem20", "x.html")
+
+    def test_safe_seg_blocks_traversal_and_separators(self):
+        from exa.mcp.tools import _safe_seg
+
+        assert _safe_seg("../etc") == "etc"
+        assert "/" not in _safe_seg("a/b") and "\\" not in _safe_seg("a\\b")
+        assert _safe_seg("") == "x"
+
+
 class TestSetTenantKind:
     def test_tags_named_tenant(self):
         from unittest.mock import patch

@@ -81,6 +81,36 @@ def _ok_obj(data: Any) -> list[TextContent]:
     return _ok(data)
 
 
+def _safe_seg(s: Any) -> str:
+    """Filesystem-safe path segment."""
+    seg = "".join(c if (c.isalnum() or c in "-_.") else "-" for c in str(s)).strip("-. ")
+    return seg or "x"
+
+
+def _report_path(client: Any, filename: str):
+    """Default save path for a rendered report: reports/{kind}/{tenant}/{filename}.
+
+    Sorts output by tenant kind (demo/customer, or 'untagged') and tenant nickname so
+    reports stay organized per account. Intermediate directories are created here, so a
+    brand-new tenant/kind folder never causes a save to fail. The path is relative to the
+    process CWD -- on Claude Desktop that is the app directory, so files land under
+    <app>/reports/{kind}/{tenant}/. Pass an explicit output_path to override.
+    """
+    from pathlib import Path
+
+    tenant = getattr(client, "tenant", None) or "tenant"
+    kind = "untagged"
+    try:
+        from exa.config import list_tenants
+
+        kind = (list_tenants().get(tenant, {}) or {}).get("kind") or "untagged"
+    except Exception:
+        pass
+    p = Path("reports") / _safe_seg(kind) / _safe_seg(tenant) / filename
+    p.parent.mkdir(parents=True, exist_ok=True)
+    return p
+
+
 # The tools that mutate live tenant data. In read-only mode these are neither
 # advertised (see visible_tools) nor dispatched (see dispatch_tool) -- a HARD
 # gate, unlike the in-prompt SOFT gate carried in each tool's description.
@@ -562,7 +592,7 @@ TOOL_DEFS: list[Tool] = [
                 },
                 "output_path": {
                     "type": "string",
-                    "description": "Where to save the HTML [default: reports/<title-slug>.html].",
+                    "description": "Where to save the HTML [default: reports/{kind}/{tenant}/<title-slug>.html, e.g. reports/customer/baystate/...]. Intermediate dirs are created automatically.",
                 },
             },
         },
@@ -639,7 +669,7 @@ TOOL_DEFS: list[Tool] = [
             "properties": {
                 "config": {"type": "object", "description": "The dashboard config JSON object."},
                 "config_path": {"type": "string", "description": "Path to a .config file (if not passing config)."},
-                "output_path": {"type": "string", "description": "Where to save the preview HTML [default: reports/<title>-preview.html]."},
+                "output_path": {"type": "string", "description": "Where to save the preview HTML [default: reports/{kind}/{tenant}/<title>-preview.html]. Intermediate dirs are created automatically."},
             },
         },
     ),
@@ -1055,7 +1085,13 @@ async def dispatch_tool(
                 spec = arguments.get("spec") or {}
                 if not isinstance(spec, dict) or not spec.get("title"):
                     return _err("render_report needs a spec object with at least a title.")
-                path = save_report(spec, arguments.get("output_path"))
+                op = arguments.get("output_path")
+                if not op:
+                    import re as _re
+
+                    slug = _re.sub(r"[^a-z0-9]+", "-", str(spec.get("title", "report")).lower()).strip("-")[:60] or "report"
+                    op = str(_report_path(client, f"{slug}.html"))
+                path = save_report(spec, op)
                 return _ok({
                     "saved": str(path.resolve()),
                     "note": "Branded HTML saved. Open it, or print to PDF (light theme prints cleanest).",
@@ -1078,10 +1114,7 @@ async def dispatch_tool(
                     from exa.report.build import save_report
 
                     spec_html = render_ingest_value(iv)
-                    from pathlib import Path as _P
-
-                    rp = _P("reports") / f"{(iv.tenant or 'tenant')}-ingest-value.html"
-                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp = _report_path(client, "ingest-value.html")
                     rp.write_text(spec_html, encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
@@ -1101,13 +1134,10 @@ async def dispatch_tool(
                 )
                 out = source_detail_summary(sd)
                 if arguments.get("render"):
-                    from pathlib import Path as _P
-
                     from exa.health.source_detail import render_source_detail
 
-                    slug = (sd.source or "source").lower().replace(" · ", "-").replace(" ", "-")
-                    rp = _P("reports") / f"{(sd.tenant or 'tenant')}-source-{slug}.html"
-                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    slug = _safe_seg((sd.source or "source").lower().replace(" · ", "-").replace(" ", "-"))
+                    rp = _report_path(client, f"source-{slug}.html")
                     rp.write_text(render_source_detail(sd), encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
@@ -1128,8 +1158,11 @@ async def dispatch_tool(
                 if not isinstance(cfg, dict):
                     return _err("render_dashboard needs a config object or a config_path.")
                 slug = _re.sub(r"[^a-z0-9]+", "-", str(cfg.get("title", "dashboard")).lower()).strip("-")[:60] or "dashboard"
-                outp = _P(arguments.get("output_path") or f"reports/{slug}-preview.html")
-                outp.parent.mkdir(parents=True, exist_ok=True)
+                if arguments.get("output_path"):
+                    outp = _P(arguments["output_path"])
+                    outp.parent.mkdir(parents=True, exist_ok=True)
+                else:
+                    outp = _report_path(client, f"{slug}-preview.html")
                 outp.write_text(dashboard_preview_html(cfg, client=client), encoding="utf-8")
                 panels = len([e for e in (cfg.get("dashboardElements") or []) if e.get("type") == "vis"])
                 return _ok({
@@ -1154,12 +1187,9 @@ async def dispatch_tool(
                 k = collect_soc_kpis(client, lookback_days=arguments.get("lookback_days", 30))
                 out = soc_kpis_summary(k)
                 if arguments.get("render"):
-                    from pathlib import Path as _P
-
                     from exa.case.soc_kpis import render_soc_kpis
 
-                    rp = _P("reports") / f"{(k.tenant or 'tenant')}-soc-kpis.html"
-                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp = _report_path(client, "soc-kpis.html")
                     rp.write_text(render_soc_kpis(k), encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
@@ -1171,12 +1201,9 @@ async def dispatch_tool(
                                     top_n=arguments.get("top_n", 20))
                 out = tuning_summary(tr)
                 if arguments.get("render"):
-                    from pathlib import Path as _P
-
                     from exa.case.tuning import render_tuning
 
-                    rp = _P("reports") / f"{(tr.tenant or 'tenant')}-tuning.html"
-                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp = _report_path(client, "tuning.html")
                     rp.write_text(render_tuning(tr), encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
