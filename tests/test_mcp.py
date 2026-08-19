@@ -595,6 +595,16 @@ class TestOutputPathContainment:
         assert p.parent.is_dir()
 
 
+class TestConfigPathGuard:
+    def test_rejects_non_config_extension(self):
+        from exa.mcp.tools import dispatch_tool
+
+        out = json.loads(asyncio.run(dispatch_tool(
+            MagicMock(), "render_dashboard", {"config_path": "/etc/passwd"}, read_only=True
+        ))[0].text)
+        assert "error" in out and ".json or .config" in out["error"]
+
+
 class TestErrCanonicalizes:
     def test_err_strips_smuggling(self):
         from exa.mcp.tools import _err

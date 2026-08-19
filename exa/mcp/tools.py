@@ -1313,8 +1313,16 @@ async def dispatch_tool(
 
                 cfg = arguments.get("config")
                 if not cfg and arguments.get("config_path"):
+                    # config_path is model-supplied; refuse anything that isn't a small
+                    # dashboard config file so it can't read arbitrary host files into an
+                    # HTML artifact (PRAX-2026-08-19-002).
+                    cp = _P(arguments["config_path"])
+                    if cp.suffix.lower() not in (".json", ".config"):
+                        return _err("config_path must be a .json or .config file.")
                     try:
-                        cfg = _json.loads(_P(arguments["config_path"]).read_text(encoding="utf-8"))
+                        if cp.stat().st_size > 5_000_000:
+                            return _err("config_path file is too large to be a dashboard config (>5 MB).")
+                        cfg = _json.loads(cp.read_text(encoding="utf-8"))
                     except Exception as exc:
                         return _err(f"could not read config_path: {exc}")
                 if not isinstance(cfg, dict):

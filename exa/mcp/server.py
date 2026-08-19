@@ -122,10 +122,26 @@ async def run_sse_server(
       GET  /sse        — SSE connection endpoint (add this URL to Claude Desktop)
       POST /messages/  — message ingestion endpoint
     """
+    import sys
+
     import uvicorn
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
+
+    # The SSE transport has no authentication and shares ONE mutable tenant session
+    # across every connected client -- a set_active_tenant by any client repoints them
+    # all (PRAX-2026-08-19-009). It is for local, single-operator development only.
+    sys.stderr.write(
+        "  WARNING: SSE transport is UNAUTHENTICATED and shares one tenant session across "
+        "all clients. Local, single-operator use only.\n"
+    )
+    if host not in ("127.0.0.1", "::1", "localhost"):
+        sys.stderr.write(
+            f"  DANGER: binding to {host} exposes this unauthenticated server beyond localhost -- "
+            "anyone who can reach it can read your tenant and switch it. Bind 127.0.0.1 unless you "
+            "have put your own auth in front.\n"
+        )
 
     server = _build_mcp_server(client, server_name, read_only=read_only)
     sse = SseServerTransport("/messages/")

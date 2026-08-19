@@ -139,9 +139,9 @@ def render_abv(data: dict = ABV) -> str:
         'this manual pass and surfaced additional findings the manual pass missed — 1 HIGH '
         '(model-supplied <code>output_path</code> escaping the <code>reports/</code> root), plus MEDIUM/LOW '
         'items (error-path not canonicalized, assignee/queue not neutralized, SSE transport unauthenticated, '
-        'and this report\'s own hardcoded drift). Those are remediated separately; results in '
-        '<code>security/praxen/results/</code>. Treat this manual scorecard as one input, not the whole '
-        'assurance picture — the independent scan is the fuller check.</div>'
+        'and this report\'s own hardcoded drift). All ten have since been remediated or hardened '
+        '(results and the findings JSON in <code>security/praxen/results/</code>). Treat this manual '
+        'scorecard as one input, not the whole assurance picture — the independent scan is the fuller check.</div>'
     )
 
     panels = "".join([
