@@ -539,6 +539,32 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="render_report",
+        description=(
+            "Render a report as a branded, self-contained HTML file (the Exabeam house "
+            "style: dark by default with a light toggle, logo, KPI cards, tables) and save "
+            "it to disk. USE THIS FOR EVERY REPORT so output is on-brand -- do not hand-write "
+            "HTML/CSS. Pass a spec: {title, subtitle?, cards:[{label,value,status?,hint?}] "
+            "(status is good|warn|bad), sections:[{title, subtitle?, note?, coverage_pct?, "
+            "table?:[{col:val,...}]}], meta?:[str], theme?}. Returns the saved file path; open "
+            "it or print to PDF."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["spec"],
+            "properties": {
+                "spec": {
+                    "type": "object",
+                    "description": "The report spec (title/cards/sections/meta).",
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": "Where to save the HTML [default: reports/<title-slug>.html].",
+                },
+            },
+        },
+    ),
 ]
 
 
@@ -889,6 +915,18 @@ async def dispatch_tool(
                     error_limit=arguments.get("error_limit", 5000),
                 )
                 return _ok(_parser_health_summary(h))
+
+            case "render_report":
+                from exa.report import save_report
+
+                spec = arguments.get("spec") or {}
+                if not isinstance(spec, dict) or not spec.get("title"):
+                    return _err("render_report needs a spec object with at least a title.")
+                path = save_report(spec, arguments.get("output_path"))
+                return _ok({
+                    "saved": str(path.resolve()),
+                    "note": "Branded HTML saved. Open it, or print to PDF (light theme prints cleanest).",
+                })
 
             case _:
                 return _err(f"Unknown tool: {name}")

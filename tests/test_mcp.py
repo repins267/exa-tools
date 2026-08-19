@@ -166,6 +166,7 @@ READ_TOOLS = {
     "set_active_tenant",
     "set_tenant_kind",
     "parser_health",
+    "render_report",
 }
 
 

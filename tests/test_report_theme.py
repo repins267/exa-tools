@@ -56,3 +56,35 @@ class TestPage:
 
     def test_title_escaped(self):
         assert "<img onerror" not in page('<img onerror=x>')
+
+
+class TestReportFromSpec:
+    def test_spec_renders_branded_html(self):
+        from exa.report import report_from_spec
+
+        spec = {
+            "title": "exa-tools · Baystate · Ingest Overage",
+            "subtitle": "US East · read-only",
+            "cards": [
+                {"label": "Entitled", "value": "500 GB/day"},
+                {"label": "Consumed", "value": "518 GB/day", "status": "bad", "hint": "5/7 days over"},
+            ],
+            "sections": [
+                {"title": "Top sources", "coverage_pct": 59,
+                 "table": [{"Source": "Check Point NGFW", "% of ingest": "59.3%", "Rec": "Trim"}]},
+            ],
+            "meta": ["baystate · customer", "read-only"],
+        }
+        html = report_from_spec(spec)
+        assert html.startswith("<!DOCTYPE html>")
+        assert "logo-dark" in html and "__toggleTheme" in html  # branded + toggle
+        assert "Check Point NGFW" in html and "59.3%" in html
+        assert 'data-theme="dark"' in html
+
+    def test_save_report_writes_file(self, tmp_path):
+        from exa.report import save_report
+
+        out = tmp_path / "r.html"
+        p = save_report({"title": "T", "cards": [], "sections": []}, out)
+        assert p == out and out.exists()
+        assert out.read_text(encoding="utf-8").startswith("<!DOCTYPE html>")
