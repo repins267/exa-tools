@@ -586,6 +586,25 @@ TOOL_DEFS: list[Tool] = [
         },
     ),
     Tool(
+        name="tuning_report",
+        description=(
+            "Detection-tuning insight for the active NSA tenant (read-only) -- the "
+            "replacement for the legacy Mouton rules analysis. Ranks alert drivers by "
+            "volume vs. how rarely they escalate to a case (high volume + low escalation "
+            "+ low risk = noise to tune/disable -- the NSA stand-in for "
+            "NotableReductionOnDeletion), with a per-driver Keep/Review/Tune recommendation. "
+            "Set render=true to also save a branded HTML report."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {"type": "integer", "description": "Days to look back [default: 30]", "default": 30},
+                "top_n": {"type": "integer", "description": "Top alert drivers to return [default: 20]", "default": 20},
+                "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
+            },
+        },
+    ),
+    Tool(
         name="source_detail",
         description=(
             "Deep-dive one log source (by vendor, optionally product): top msg_types, action "
@@ -1130,6 +1149,23 @@ async def dispatch_tool(
                     rp = _P("reports") / f"{(k.tenant or 'tenant')}-soc-kpis.html"
                     rp.parent.mkdir(parents=True, exist_ok=True)
                     rp.write_text(render_soc_kpis(k), encoding="utf-8")
+                    out["report_saved"] = str(rp.resolve())
+                return _ok(out)
+
+            case "tuning_report":
+                from exa.case.tuning import collect_tuning, tuning_summary
+
+                tr = collect_tuning(client, lookback_days=arguments.get("lookback_days", 30),
+                                    top_n=arguments.get("top_n", 20))
+                out = tuning_summary(tr)
+                if arguments.get("render"):
+                    from pathlib import Path as _P
+
+                    from exa.case.tuning import render_tuning
+
+                    rp = _P("reports") / f"{(tr.tenant or 'tenant')}-tuning.html"
+                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp.write_text(render_tuning(tr), encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
 

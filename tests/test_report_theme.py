@@ -207,3 +207,26 @@ class TestSocKpis:
         from exa.case.soc_kpis import _ts_s
         assert abs(_ts_s(1787000000_000000) - 1787000000) < 1  # micro -> sec
         assert abs(_ts_s(1787000000) - 1787000000) < 1          # already sec
+
+
+class TestNymmTuning:
+    def test_classify_and_rollup(self):
+        from unittest.mock import patch
+        from exa.case import tuning as t
+        alerts = (
+            [{"name": "Noisy", "riskScore": 20, "priority": "MEDIUM"}] * 60 +  # 60% no escalation
+            [{"name": "Real", "riskScore": 90, "priority": "CRITICAL", "caseId": "c1"}] * 40
+        )
+        with patch("exa.case.alerts.search_alerts", return_value=alerts), \
+             patch("exa.detection.rules.get_detection_rules", return_value=[]):
+            tr = t.collect_tuning(object(), lookback_days=30)
+        by = {d.name: d for d in tr.drivers}
+        assert by["Noisy"].recommendation == "Tune / disable"   # 60% vol, 0% escalation
+        assert by["Real"].recommendation == "Keep"              # escalates, high risk
+        assert tr.total_alerts == 100 and tr.escalated_alerts == 40
+        assert tr.escalation_rate == 40.0
+
+    def test_report_is_nymm_branded(self):
+        from exa.case.tuning import TuningReport, render_tuning
+        html = render_tuning(TuningReport(tenant="t", total_alerts=1))
+        assert "NYMM" in html and html.startswith("<!DOCTYPE html>")
