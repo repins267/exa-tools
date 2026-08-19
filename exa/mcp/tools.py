@@ -485,6 +485,30 @@ TOOL_DEFS: list[Tool] = [
             "required": ["tenant"],
         },
     ),
+    Tool(
+        name="set_tenant_kind",
+        description=(
+            "Tag a configured tenant as 'demo' or 'customer' so the demo/customer "
+            "guardrail can see it. Writes non-secret metadata to the LOCAL exa-tools "
+            "config -- it does NOT touch tenant data. If 'tenant' is omitted, tags the "
+            "currently active tenant. Only 'demo' or 'customer' are accepted."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "type": "string",
+                    "description": "Tenant nickname to tag [default: the active tenant].",
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": ["demo", "customer"],
+                    "description": "'demo' or 'customer'.",
+                },
+            },
+            "required": ["kind"],
+        },
+    ),
 ]
 
 
@@ -765,6 +789,21 @@ async def dispatch_tool(
                     return _err(f"Failed to switch to '{target}': {exc}")
                 return _ok(
                     _active_tenant_info(session.client, session.read_only)
+                )
+
+            case "set_tenant_kind":
+                from exa.config import list_tenants, set_tenant_kind
+
+                target = arguments.get("tenant") or getattr(client, "tenant", None)
+                if not target:
+                    return _err("No tenant given and no active tenant to tag.")
+                try:
+                    set_tenant_kind(target, arguments.get("kind", ""))
+                except Exception as exc:
+                    return _err(str(exc))
+                entry = list_tenants().get(target, {})
+                return _ok(
+                    {"tenant": target, "kind": entry.get("kind"), "updated": True}
                 )
 
             case _:

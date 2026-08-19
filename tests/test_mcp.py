@@ -163,6 +163,7 @@ READ_TOOLS = {
     "get_active_tenant",
     "list_tenants",
     "set_active_tenant",
+    "set_tenant_kind",
 }
 
 
@@ -554,3 +555,50 @@ class TestResultSizeGuard:
         assert len(out["xs"]) == 11  # 10 items + 1 marker
         marker = out["xs"][-1]
         assert marker["_truncated"] is True and marker["_omitted"] == 90 and marker["_total"] == 100
+
+
+class TestSetTenantKind:
+    def test_tags_named_tenant(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22")
+        captured = {}
+
+        def fake_set(t, k):
+            captured["t"], captured["k"] = t, k
+
+        with patch("exa.config.set_tenant_kind", side_effect=fake_set), patch(
+            "exa.config.list_tenants", return_value={"lvcva": {"kind": "customer"}}
+        ):
+            out = json.loads(
+                asyncio.run(
+                    dispatch_tool(c, "set_tenant_kind", {"tenant": "lvcva", "kind": "customer"})
+                )[0].text
+            )
+        assert captured == {"t": "lvcva", "k": "customer"}
+        assert out == {"tenant": "lvcva", "kind": "customer", "updated": True}
+
+    def test_defaults_to_active_tenant(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev24")
+        captured = {}
+        with patch("exa.config.set_tenant_kind", side_effect=lambda t, k: captured.update(t=t, k=k)), patch(
+            "exa.config.list_tenants", return_value={"sademodev24": {"kind": "demo"}}
+        ):
+            out = json.loads(
+                asyncio.run(dispatch_tool(c, "set_tenant_kind", {"kind": "demo"}))[0].text
+            )
+        assert captured["t"] == "sademodev24"
+        assert out["tenant"] == "sademodev24" and out["kind"] == "demo"
+
+    def test_invalid_kind_errors(self):
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22")
+        out = json.loads(
+            asyncio.run(dispatch_tool(c, "set_tenant_kind", {"kind": "prod"}))[0].text
+        )
+        assert "error" in out
