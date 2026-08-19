@@ -107,3 +107,18 @@ class TestIngestValue:
         assert out["tenant"] == "t"
         assert out["sources"][0]["recommendation"] == "Trim"
         assert out["sources"][0]["feeds_enabled_rule"] is False
+
+
+class TestSourceDetail:
+    def test_summary_pcts_and_shape(self):
+        from exa.health.source_detail import SourceDetail, source_detail_summary
+        sd = SourceDetail(tenant="t", vendor="Check Point", product="NGFW",
+                          total_events=100, unparsed=0,
+                          actions=[("accept", 90), ("drop", 10)],
+                          activity_types=[("network-traffic", 100)],
+                          feeding_rules=["R1", "R2"], feeding_rule_types=["factFeature"])
+        out = source_detail_summary(sd)
+        assert out["source"] == "Check Point · NGFW"
+        assert out["actions"][0] == {"value": "accept", "events": 90, "pct": 90.0}
+        assert out["feeds_enabled_rules"] == 2
+        assert out["activity_types"][0]["pct"] == 100.0

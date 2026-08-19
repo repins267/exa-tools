@@ -168,6 +168,7 @@ READ_TOOLS = {
     "parser_health",
     "render_report",
     "ingest_value",
+    "source_detail",
 }
 
 

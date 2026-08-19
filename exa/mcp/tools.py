@@ -585,6 +585,25 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="source_detail",
+        description=(
+            "Deep-dive one log source (by vendor, optionally product): top msg_types, action "
+            "mix (e.g. Drop vs Accept), activity_types, unparsed %, and which ENABLED rules "
+            "consume its activity_types (and their rule types). Read-only. Use to judge a "
+            "source's value vs waste during an overage review -- one call instead of several "
+            "manual aggregate searches."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["vendor"],
+            "properties": {
+                "vendor": {"type": "string", "description": "Vendor, e.g. \"Check Point\"."},
+                "product": {"type": "string", "description": "Product, e.g. \"Check Point NGFW\" [optional]."},
+                "lookback_days": {"type": "integer", "description": "Days to look back [default: 7]", "default": 7},
+            },
+        },
+    ),
 ]
 
 
@@ -993,6 +1012,21 @@ async def dispatch_tool(
                     rp.write_text(spec_html, encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
+
+            case "source_detail":
+                from exa.health.source_detail import (
+                    collect_source_detail,
+                    source_detail_summary,
+                )
+
+                vendor = arguments.get("vendor")
+                if not vendor:
+                    return _err("source_detail needs a vendor.")
+                sd = collect_source_detail(
+                    client, vendor, arguments.get("product", ""),
+                    lookback_days=arguments.get("lookback_days", 7),
+                )
+                return _ok(source_detail_summary(sd))
 
             case _:
                 return _err(f"Unknown tool: {name}")
