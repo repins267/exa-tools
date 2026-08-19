@@ -565,6 +565,24 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="ingest_value",
+        description=(
+            "Ingest value / overage analysis for the active tenant (read-only): entitled vs "
+            "consumed license, top log sources by volume and % of ingest, unparsed % per source, "
+            "whether each source feeds an ENABLED detection rule, and a mechanical Keep/Review/Trim "
+            "recommendation per source. Use for an overage / cost-reduction assessment. Set "
+            "render=true to also save a branded HTML report and get its path."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {"type": "integer", "description": "Days to look back [default: 7]", "default": 7},
+                "top_n": {"type": "integer", "description": "Top sources to return [default: 15]", "default": 15},
+                "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
+            },
+        },
+    ),
 ]
 
 
@@ -927,6 +945,31 @@ async def dispatch_tool(
                     "saved": str(path.resolve()),
                     "note": "Branded HTML saved. Open it, or print to PDF (light theme prints cleanest).",
                 })
+
+            case "ingest_value":
+                from exa.health.ingest_value import (
+                    collect_ingest_value,
+                    ingest_value_summary,
+                )
+
+                iv = collect_ingest_value(
+                    client,
+                    lookback_days=arguments.get("lookback_days", 7),
+                    top_n=arguments.get("top_n", 15),
+                )
+                out = ingest_value_summary(iv)
+                if arguments.get("render"):
+                    from exa.health.ingest_value import render_ingest_value
+                    from exa.report.build import save_report
+
+                    spec_html = render_ingest_value(iv)
+                    from pathlib import Path as _P
+
+                    rp = _P("reports") / f"{(iv.tenant or 'tenant')}-ingest-value.html"
+                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp.write_text(spec_html, encoding="utf-8")
+                    out["report_saved"] = str(rp.resolve())
+                return _ok(out)
 
             case _:
                 return _err(f"Unknown tool: {name}")

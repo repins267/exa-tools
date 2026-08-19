@@ -88,3 +88,22 @@ class TestReportFromSpec:
         p = save_report({"title": "T", "cards": [], "sections": []}, out)
         assert p == out and out.exists()
         assert out.read_text(encoding="utf-8").startswith("<!DOCTYPE html>")
+
+
+class TestIngestValue:
+    def test_classify(self):
+        from exa.health.ingest_value import _classify
+        assert _classify(60, True, 80) == "Trim"     # mostly unparsed
+        assert _classify(5, False, 0) == "Trim"      # volume, no rule
+        assert _classify(0.2, False, 0) == "Review"  # tiny, no rule
+        assert _classify(30, True, 0) == "Review"    # dominates but feeds rules
+        assert _classify(3, True, 0) == "Keep"
+
+    def test_summary_shape(self):
+        from exa.health.ingest_value import IngestValue, SourceIngest, ingest_value_summary
+        iv = IngestValue(tenant="t", total_events=100, sources=[
+            SourceIngest(vendor="V", product="P", events=60, feeds_rules=False, pct_of_ingest=60.0, recommendation="Trim")])
+        out = ingest_value_summary(iv)
+        assert out["tenant"] == "t"
+        assert out["sources"][0]["recommendation"] == "Trim"
+        assert out["sources"][0]["feeds_enabled_rule"] is False
