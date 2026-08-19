@@ -170,7 +170,7 @@ TOOL_DEFS: list[Tool] = [
         name="search_events",
         description=(
             "Search raw security events using EQL. Safe for autonomous use. "
-            "Use for investigation pivots — e.g. search events for a specific user, host, or IP."
+            "Use for investigation pivots — e.g. search events for a user/host/IP. AGGREGATE with group_by plus a count in fields (e.g. fields=[vendor,product,count(id)], group_by=[vendor,product]) to get volume-by-source; the count lands in field f0_. Use parsed:\"No\" for unparsed logs."
         ),
         inputSchema={
             "type": "object",
@@ -179,6 +179,16 @@ TOOL_DEFS: list[Tool] = [
                 "filter": {
                     "type": "string",
                     "description": 'EQL expression e.g. \'user:"jsmith"\' or \'src_ip:"10.0.0.1"\'',
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "CIM fields to return; include an aggregate like count(id) for counts.",
+                },
+                "group_by": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Fields to group by (for aggregation).",
                 },
                 "lookback_days": {
                     "type": "integer",
@@ -657,6 +667,8 @@ async def dispatch_tool(
                 rows = search_events(
                     client,
                     arguments["filter"],
+                    fields=arguments.get("fields"),
+                    group_by=arguments.get("group_by"),
                     lookback_days=arguments.get("lookback_days", 1),
                     limit=arguments.get("limit", 100),
                 )
