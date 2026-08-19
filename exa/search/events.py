@@ -91,8 +91,11 @@ def search_events(
         for name in _fields_in_filter(filter):
             if name not in req_fields:
                 req_fields.append(name)
-    # approxLogTime is invalid in GROUP BY queries (not grouped, not aggregated)
-    if "approxLogTime" not in req_fields and not group_by:
+    # approxLogTime is invalid in GROUP BY queries AND in pure-aggregate queries
+    # (a count()-only select has no per-event row to carry a timestamp) -- either
+    # way it is a column that is neither grouped nor aggregated -> 400.
+    _has_plain_field = any("(" not in str(f) for f in req_fields)
+    if "approxLogTime" not in req_fields and not group_by and _has_plain_field:
         req_fields.append("approxLogTime")
 
     # Resolve time range

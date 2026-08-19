@@ -28,14 +28,45 @@ def _viz(el: dict) -> str:
     return str((el.get("vis_config") or {}).get("type") or el.get("type") or "table")
 
 
-def _dims(fields: list) -> list[str]:
-    out = []
+def _is_measure(name: str) -> bool:
+    n = str(name).lower()
+    return "count" in n or n.endswith(".sum") or n.startswith("count_") or n.endswith("_count")
+
+
+def _is_time(name: str) -> bool:
+    n = str(name).lower()
+    return any(k in n for k in ("_date", "_hour", "_time", "timestamp", "approx_log"))
+
+
+def _model_name(el: dict) -> str:
+    """The panel's data model. 'datalake' = the event/search model (sampleable);
+    'acm_bq' and friends = the alerts/analytics model (a different source)."""
+    m = str(el.get("model") or "").strip().lower()
+    if m:
+        return m
+    # no explicit model: infer from a DIMENSION field (skip measures like count_distinct_*)
+    for f in el.get("fields") or []:
+        if _is_measure(f):
+            continue
+        head = str(f).split(".", 1)[0].split("__", 1)[0]
+        return "datalake" if head == "event" else head
+    return "datalake"
+
+
+def _sampleable(el: dict) -> bool:
+    return _model_name(el) == "datalake"
+
+
+def _split_fields(fields: list) -> tuple[list[str], list[str]]:
+    """Return (dimensions, measures) with the 'event.' prefix stripped from dims."""
+    dims, measures = [], []
     for f in fields or []:
         name = str(f)
-        if name.endswith("count") or name == "event.count":
-            continue
-        out.append(name.split(".", 1)[-1] if name.startswith("event.") else name)
-    return out
+        if _is_measure(name):
+            measures.append(name)
+        else:
+            dims.append(name.split(".", 1)[-1] if name.startswith("event.") else name)
+    return dims, measures
 
 
 def _lookback(el: dict) -> int:
@@ -82,47 +113,72 @@ def _text_of(el: dict) -> str:
     return re.sub(r"[#*_>`]", "", str(t)).strip() or "Section"
 
 
+def _big_number(value: int, label: str = "") -> str:
+    return (f'<div class="chart"><div class="value good" style="font-size:34px;font-weight:800">'
+            f'{value:,}</div><div class="footer-note">{_esc_local(label)}</div></div>')
+
+
 def _render_panel(el: dict, client: "ExaClient | None", limit: int) -> str:
     from exa.report.theme import data_table, panel
 
     title = el.get("title") or "(untitled)"
     viz = _viz(el)
-    dims = _dims(el.get("fields") or [])
+    fields = el.get("fields") or []
+    dims, measures = _split_fields(fields)
+    model = _model_name(el)
     lb = _lookback(el)
-    sub = f"{viz} · {', '.join(dims) or '—'} · {lb}d · SAMPLE"
+    sub = f"{viz} · {', '.join(dims) or measures and 'measure' or '—'} · {lb}d · SAMPLE"
 
     if not client:
         return panel(title, '<div class="empty">no tenant connected — layout only</div>', sub, half=True)
-    if not dims:
-        return panel(title, '<div class="empty">no chart dimension</div>', sub, half=True)
+    if not _sampleable(el):
+        return panel(title, f'<div class="empty">{_esc_local(model)} model — not sampled (event/datalake only)</div>', sub, half=True)
 
     from exa.search.events import search_events
 
     try:
-        if "table" in viz or len(dims) > 2:
-            rows = search_events(client, "", fields=[*dims, "count(id)"], group_by=dims,
-                                 lookback_days=lb, limit=200)
-            data = [{**{d: r.get(d) for d in dims}, "count": r.get("f0_")} for r in (rows or [])]
-            data.sort(key=lambda x: -(x.get("count") or 0))
-            chart = (data_table(data[:15], f"t{id(el) & 0xffff}") if data
-                     else '<div class="empty">no data in window</div>')
-        else:
+        # single value: one measure, no dimension -> a big number
+        if "single_value" in viz or (not dims and measures):
+            rows = search_events(client, "", fields=["count(id)"], lookback_days=lb, limit=1, raw=False)
+            n = 0
+            if isinstance(rows, list) and rows:
+                n = int(rows[0].get("f0_") or rows[0].get("count(id)") or 0)
+            return panel(title, _big_number(n, f"events · {lb}d"), sub, half=True)
+
+        if not dims:
+            return panel(title, '<div class="empty">no chart dimension</div>', sub, half=True)
+
+        is_chart = any(k in viz for k in ("bar", "column", "area", "line", "pie"))
+        if is_chart and len(dims) <= 2:
             primary = dims[0]
             rows = search_events(client, "", fields=[primary, "count(id)"], group_by=[primary],
                                  lookback_days=lb, limit=200)
             pairs = [(str(r.get(primary)), int(r.get("f0_") or 0)) for r in (rows or [])]
             pairs = [p for p in pairs if p[0] and p[0] != "None"]
-            pairs.sort(key=lambda x: -x[1])
-            pairs = pairs[:limit]
+            if _is_time(primary):
+                pairs.sort(key=lambda x: x[0])            # chronological for time-series
+                pairs = pairs[-limit:]
+            else:
+                pairs.sort(key=lambda x: -x[1])
+                pairs = pairs[:limit]
             if not pairs:
                 chart = '<div class="empty">no data in window</div>'
             elif "pie" in viz:
                 chart = _pie(pairs)
             else:
-                chart = _bar(pairs)
+                chart = _bar(pairs)                        # bar / column / area / line
+            return panel(title, chart, sub, half=True)
+
+        # table / bubble / sankey / multi-dim -> table
+        rows = search_events(client, "", fields=[*dims, "count(id)"], group_by=dims,
+                             lookback_days=lb, limit=200)
+        data = [{**{d: r.get(d) for d in dims}, "count": r.get("f0_")} for r in (rows or [])]
+        data.sort(key=lambda x: -(x.get("count") or 0))
+        chart = (data_table(data[:15], f"t{id(el) & 0xffff}") if data
+                 else '<div class="empty">no data in window</div>')
+        return panel(title, chart, sub, half=True)
     except Exception as exc:
-        chart = f'<div class="empty">query failed: {_esc_local(str(exc)[:70])}</div>'
-    return panel(title, chart, sub, half=True)
+        return panel(title, f'<div class="empty">query failed: {_esc_local(str(exc)[:70])}</div>', sub, half=True)
 
 
 def dashboard_preview_html(
@@ -132,6 +188,10 @@ def dashboard_preview_html(
     from exa.report.theme import _esc, page, panel, stat_card
 
     els = config.get("dashboardElements") or config.get("elements") or []
+    if not els and (config.get("fields") or config.get("vis_config")):
+        single = dict(config)
+        single["type"] = "vis"
+        els = [single]
     vis = [e for e in els if e.get("type") == "vis"]
     texts = [e for e in els if e.get("type") == "text"]
     viz_types = sorted({_viz(e) for e in vis})
