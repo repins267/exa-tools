@@ -623,6 +623,23 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="ai_domain_lookup",
+        description=(
+            "Check one or more domains against the cached AI/LLM reference dataset (public "
+            "AI/LLM domains with risk tier, web domains, AI applications) -- the ExabeamLabs / "
+            "repins267 AI/LLM knowledge base. Use to answer 'is this a known AI domain / what "
+            "risk?' or to enrich shadow-AI findings. Read-only; matches exact and parent domain."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["domains"],
+            "properties": {
+                "domains": {"type": "array", "items": {"type": "string"},
+                            "description": "Domains to look up."},
+            },
+        },
+    ),
 ]
 
 
@@ -1072,6 +1089,16 @@ async def dispatch_tool(
                     "panels": panels,
                     "note": "Preview only. Edit the config and re-render to iterate; import the final .config via the Exabeam UI (Dashboards -> Import).",
                 })
+
+            case "ai_domain_lookup":
+                from exa.aillm.reference import lookup_ai_domains
+
+                domains = arguments.get("domains") or []
+                if not isinstance(domains, list) or not domains:
+                    return _err("ai_domain_lookup needs a non-empty 'domains' list.")
+                rows = lookup_ai_domains([str(d) for d in domains])
+                known = [r for r in rows if r["known_ai"]]
+                return _ok({"results": rows, "known": len(known), "checked": len(rows)})
 
             case _:
                 return _err(f"Unknown tool: {name}")

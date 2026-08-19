@@ -181,3 +181,42 @@ def reference_freshness() -> ReferenceFreshness:
     return ReferenceFreshness(
         source="external", age_days=age, path=_EXTERNAL_DATA_DIR
     )
+
+
+def lookup_ai_domains(domains: "list[str]") -> "list[dict]":
+    """Check domains against the cached AI/LLM reference (public AI domains + risk,
+    web domains, applications). Matches exact and parent (registered) domain.
+    Read-only; the reference is the ExabeamLabs/repins267 AI/LLM dataset cached by
+    `exa update`. Returns one row per input domain with known_ai + risk + list.
+    """
+    ref = load_reference_data()
+    risk_by: dict[str, str] = {}
+    for d in ref.public_domains:
+        k = str(d.get("key") or d.get("domain") or "").lower().strip()
+        if k:
+            risk_by[k] = d.get("risk", "")
+    web = {str(d.get("key") or d.get("domain") or "").lower().strip()
+           for d in ref.web_domains if (d.get("key") or d.get("domain"))}
+    apps = {str(a.get("key") or a.get("name") or "").lower().strip()
+            for a in ref.applications if (a.get("key") or a.get("name"))}
+
+    def _match(q: str):
+        ql = q.strip().lower()
+        cands = [ql]
+        parts = ql.split(".")
+        for i in range(1, len(parts) - 1):
+            cands.append(".".join(parts[i:]))
+        for c in cands:
+            if c in risk_by:
+                return {"list": "public_ai_domains", "risk": risk_by[c], "matched": c}
+            if c in web:
+                return {"list": "web_domains", "risk": "", "matched": c}
+            if c in apps:
+                return {"list": "applications", "risk": "", "matched": c}
+        return None
+
+    out = []
+    for q in domains:
+        hit = _match(q)
+        out.append({"domain": q, "known_ai": bool(hit), **(hit or {"list": None, "risk": None})})
+    return out

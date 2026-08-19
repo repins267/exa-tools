@@ -158,3 +158,26 @@ class TestDashboardPreview:
         from exa.report.dashboard import dashboard_preview_html
         html = dashboard_preview_html({"title": "Empty"})
         assert html.startswith("<!DOCTYPE html>")
+
+
+class TestAiDomainLookup:
+    def test_lookup_shape(self):
+        from unittest.mock import patch
+        from exa.aillm import reference
+        class R:
+            public_domains=[{"key":"chat.openai.com","risk":"medium"}]
+            web_domains=[]; applications=[]
+        with patch.object(reference, "load_reference_data", return_value=R()):
+            out=reference.lookup_ai_domains(["chat.openai.com","foo.example.com"])
+        assert out[0]["known_ai"] is True and out[0]["risk"]=="medium"
+        assert out[1]["known_ai"] is False
+
+    def test_parent_domain_match(self):
+        from unittest.mock import patch
+        from exa.aillm import reference
+        class R:
+            public_domains=[{"key":"openai.com","risk":"high"}]
+            web_domains=[]; applications=[]
+        with patch.object(reference,"load_reference_data",return_value=R()):
+            out=reference.lookup_ai_domains(["chat.openai.com"])
+        assert out[0]["known_ai"] is True and out[0]["matched"]=="openai.com"

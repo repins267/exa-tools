@@ -170,6 +170,7 @@ READ_TOOLS = {
     "ingest_value",
     "source_detail",
     "render_dashboard",
+    "ai_domain_lookup",
 }
 
 
