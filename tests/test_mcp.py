@@ -174,6 +174,8 @@ READ_TOOLS = {
     "ai_domain_lookup",
     "soc_kpis",
     "tuning_report",
+    "identity_health",
+    "context_table",
 }
 
 

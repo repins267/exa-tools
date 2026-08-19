@@ -661,6 +661,45 @@ TOOL_DEFS: list[Tool] = [
         },
     ),
     Tool(
+        name="identity_health",
+        description=(
+            "Detect AD/identity-resolution problems (read-only): (1) MERGED ENTITIES -- an "
+            "identifier (email/UPN/SAMAccountName) in an identity/User context table that maps "
+            "to 2+ distinct users, the smoking gun for two people collapsed into one entity "
+            "(usually a recycled email); (2) GUID GHOST USERS -- logins whose username is a bare "
+            "AD objectGUID, grouped by host (unresolved/orphaned AD accounts). Use when a "
+            "customer reports users merged together or EXA-INTERNAL-ERROR on an entity. The FIX "
+            "is a gated, human-confirmed remediation -- this tool only detects. Set render=true "
+            "for a branded report."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {"type": "integer", "description": "Days to look back for GUID logins [default: 7]", "default": 7},
+                "table": {"type": "string", "description": "Restrict the merge scan to one identity table by name/id [optional; default scans all User/identity tables]."},
+                "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
+            },
+        },
+    ),
+    Tool(
+        name="context_table",
+        description=(
+            "Read Context Management tables directly (read-only) -- including User Entity Links, "
+            "which is otherwise UI-only. With no arguments, lists all context tables (id, name, "
+            "type, record count). With table set, reads that table's records; add contains to "
+            "filter records whose values contain a string (e.g. a username or email) -- the "
+            "manual 'search adam.reckamp, see every identifier mapped to the entity' lookup."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "table": {"type": "string", "description": "Table name (substring) or id. Omit to list all tables."},
+                "contains": {"type": "string", "description": "Only return records with a value containing this string [optional]."},
+                "limit": {"type": "integer", "description": "Max records to return [default: 200]", "default": 200},
+            },
+        },
+    ),
+    Tool(
         name="render_dashboard",
         description=(
             "Preview an Exabeam dashboard .config (JSON) as a branded HTML file for review "
@@ -1170,6 +1209,51 @@ async def dispatch_tool(
                     rp.write_text(render_source_detail(sd), encoding="utf-8")
                     out["report_saved"] = str(rp.resolve())
                 return _ok(out)
+
+            case "identity_health":
+                from exa.health.identity import collect_identity_health, identity_summary
+
+                ih = collect_identity_health(
+                    client,
+                    lookback_days=arguments.get("lookback_days", 7),
+                    table=arguments.get("table") or None,
+                )
+                out = identity_summary(ih)
+                if arguments.get("render"):
+                    from exa.health.identity import render_identity
+
+                    rp = _report_path(client, "identity-health.html")
+                    rp.write_text(render_identity(ih), encoding="utf-8")
+                    out["report_saved"] = str(rp.resolve())
+                return _ok(out)
+
+            case "context_table":
+                from exa.context.tables import get_all_records, get_tables
+
+                table = arguments.get("table")
+                if not table:
+                    tables = get_tables(client)
+                    return _ok([
+                        {"id": t.get("id"), "name": t.get("name"),
+                         "type": t.get("contextType"), "records": t.get("totalItems") or t.get("recordCount")}
+                        for t in tables
+                    ])
+                t_l = str(table).lower()
+                match = [t for t in get_tables(client)
+                         if t_l in str(t.get("name", "")).lower() or t_l == str(t.get("id", ""))]
+                if not match:
+                    return _err(f"No context table matching '{table}'.")
+                t = match[0]
+                records = get_all_records(client, t["id"])
+                contains = (arguments.get("contains") or "").strip().lower()
+                if contains:
+                    records = [r for r in records
+                               if any(contains in str(v).lower() for v in r.values())]
+                limit = arguments.get("limit", 200)
+                return _ok({
+                    "table": t.get("name"), "id": t.get("id"), "type": t.get("contextType"),
+                    "matched_records": len(records), "records": records[:limit],
+                })
 
             case "render_dashboard":
                 import json as _json
