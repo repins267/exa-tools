@@ -602,6 +602,16 @@ class TestGuardrails:
         clean, notes = neutralize_write_args(args)
         assert clean == args and notes == []
 
+    def test_neutralize_write_args_covers_tags_list(self):
+        # ABV-004: list-valued write fields (tags) must be neutralized too.
+        from exa.mcp.guardrails import neutralize_write_args
+
+        args = {"alert_id": "a1", "tags": ["benign", '=HYPERLINK("http://evil.com","x")']}
+        clean, notes = neutralize_write_args(args)
+        assert clean["tags"][0] == "benign"                       # clean tag untouched
+        assert clean["tags"][1].startswith("'=")                  # formula neutralized
+        assert notes and any(n["field"] == "tags" for n in notes)
+
 
 class TestAuditLog:
     def _sess(self, monkeypatch, tenant="baystate", kind="customer", read_only=False):

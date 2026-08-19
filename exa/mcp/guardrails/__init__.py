@@ -26,6 +26,9 @@ _WRITE_TEXT_FIELDS = frozenset({
     "content", "note", "notes", "closed_reason", "closedReason",
     "supporting_reason", "supportingReason", "alertDescription", "description",
 })
+# List-of-string write fields — each element is a persisted sink too (e.g. a tag
+# carrying =HYPERLINK(...) would survive to export). ABV-004.
+_WRITE_LIST_FIELDS = frozenset({"tags"})
 
 
 def scrub_result(obj):
@@ -43,8 +46,9 @@ def scrub_result(obj):
 def neutralize_write_args(arguments: dict) -> tuple[dict, list]:
     """Neutralize free-text fields in a write tool's arguments before they persist.
 
-    Returns (new_arguments, notes). Only known free-text fields are touched; ids,
-    priorities, tags and everything else pass through unchanged.
+    Returns (new_arguments, notes). Known free-text string fields and the string
+    elements of known list fields (e.g. tags) are neutralized; ids, priorities, and
+    everything else pass through unchanged.
     """
     if not isinstance(arguments, dict):
         return arguments, []
@@ -56,4 +60,17 @@ def neutralize_write_args(arguments: dict) -> tuple[dict, list]:
             if clean != val:
                 out[field] = clean
                 notes.extend({**note, "field": field} for note in n)
+        elif field in _WRITE_LIST_FIELDS and isinstance(val, list):
+            new_list, changed = [], False
+            for item in val:
+                if isinstance(item, str) and item:
+                    clean, n = neutralize_output(item)
+                    if clean != item:
+                        changed = True
+                        notes.extend({**note, "field": field} for note in n)
+                    new_list.append(clean)
+                else:
+                    new_list.append(item)
+            if changed:
+                out[field] = new_list
     return out, notes
