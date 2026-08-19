@@ -65,6 +65,53 @@ def test_no_merge_when_identifiers_unique():
     assert merged == [] and scanned == ["User Entity Links"]
 
 
+def test_skips_empty_tables_and_bounds():
+    from exa.health.identity import find_merged_identifiers
+
+    tables = [
+        {"id": "empty", "name": "User Entity Links", "contextType": "User", "totalItems": 0,
+         "attributes": [{"id": "user", "isKey": True}, {"id": "email", "displayName": "Email"}]},
+        {"id": "email", "name": "Email User", "contextType": "User", "totalItems": 3,
+         "attributes": [{"id": "user", "isKey": True}, {"id": "email", "displayName": "Email"}]},
+    ]
+    recs_by_table = {
+        "email": [
+            {"user": "adam.reckamp", "email": "shared@x.com"},
+            {"user": "ryan.siebel", "email": "shared@x.com"},
+        ],
+    }
+    from unittest.mock import MagicMock
+    c = MagicMock(); c.tenant = "acme"
+
+    def _get(path, params=None):
+        if path == "/context-management/v1/tables":
+            return tables
+        if path.endswith("/records"):
+            tid = path.split("/tables/")[1].split("/records")[0]
+            return {"records": recs_by_table.get(tid, [])}
+        if "/tables/" in path:
+            tid = path.split("/tables/")[1]
+            return next((t for t in tables if t["id"] == tid), {})
+        return {}
+
+    c.get.side_effect = _get
+    merged, scanned, note = find_merged_identifiers(c)
+    # empty "User Entity Links" was skipped; only "Email User" scanned
+    assert scanned == ["Email User"]
+    assert len(merged) == 1 and merged[0].value == "shared@x.com"
+
+
+def test_guid_scan_can_be_disabled():
+    from exa.health.identity import collect_identity_health
+
+    records = [{"user": "a", "email": "s@x.com"}, {"user": "b", "email": "s@x.com"}]
+    c = _client_with(records)
+    ih = collect_identity_health(c, guid_scan=False)
+    assert ih.guid_users == []
+    assert "guid scan skipped" in ih.note
+    assert len(ih.merged) == 1
+
+
 def test_summary_shape():
     from exa.health.identity import collect_identity_health, identity_summary
 

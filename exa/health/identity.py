@@ -70,32 +70,66 @@ class IdentityHealth:
         return c.most_common()
 
 
-def find_merged_identifiers(client: "ExaClient", *, table: str | None = None, max_records: int = 200_000):
-    """Scan identity context tables for any identifier mapped to 2+ distinct users."""
-    from exa.context.tables import get_all_records, get_tables, resolve_table_schema
+def _record_count(t: dict) -> int:
+    for k in ("totalItems", "recordCount", "totalCount", "count"):
+        v = t.get(k)
+        if isinstance(v, int):
+            return v
+    return -1  # unknown
 
-    tables = get_tables(client)
-    if table:
+
+def find_merged_identifiers(
+    client: "ExaClient", *, table: str | None = None, tables: list[str] | None = None,
+    max_records_per_table: int = 25_000, max_tables: int = 8,
+):
+    """Scan identity context tables for any identifier mapped to 2+ distinct users.
+
+    Bounded for large customer tenants: reads at most ``max_records_per_table`` per table
+    (one page, not the whole table), scans at most ``max_tables`` tables, skips empty
+    tables, and does cheapest (smallest) tables first — so a big tenant returns partial
+    results with a clear note instead of blowing the MCP tool-call timeout.
+    """
+    from exa.context.tables import get_records, get_tables, resolve_table_schema
+
+    all_tables = get_tables(client)
+    if tables:
+        want = [s.lower() for s in tables]
+        cands = [t for t in all_tables
+                 if any(w in str(t.get("name", "")).lower() or w == str(t.get("id", "")) for w in want)]
+    elif table:
         t_l = table.lower()
-        cands = [t for t in tables if t_l in str(t.get("name", "")).lower() or t_l == str(t.get("id", ""))]
+        cands = [t for t in all_tables if t_l in str(t.get("name", "")).lower() or t_l == str(t.get("id", ""))]
     else:
         cands = [
-            t for t in tables
+            t for t in all_tables
             if str(t.get("contextType", "")) == "User"
             or any(h in str(t.get("name", "")).lower() for h in _IDENTITY_HINTS)
         ]
 
+    # Skip empty tables (0 records — e.g. an unused "User Entity Links"); do the smallest
+    # tables first so we get the most coverage before any time budget runs out.
+    cands = [t for t in cands if _record_count(t) != 0]
+    cands.sort(key=lambda t: (_record_count(t) if _record_count(t) >= 0 else 10**12))
+    over_cap = [str(t.get("name")) for t in cands[max_tables:]]
+    cands = cands[:max_tables]
+
     merged: list[MergedIdentifier] = []
     scanned: list[str] = []
+    capped: list[str] = []
     notes: list[str] = []
     for t in cands:
         name = str(t.get("name") or t.get("id") or "?")
         try:
             key_attr, others = resolve_table_schema(client, t)
-            records = get_all_records(client, t["id"])[:max_records]
+            resp = get_records(client, t["id"], limit=max_records_per_table, offset=0)
+            records = resp.get("records", resp) if isinstance(resp, dict) else resp
         except Exception as exc:
             notes.append(f"{name}: {exc}")
             continue
+        records = records or []
+        total = _record_count(t)
+        if total > max_records_per_table or (total < 0 and len(records) >= max_records_per_table):
+            capped.append(name)
         scanned.append(name)
         attr_display = {v: k for k, v in others.items()}
         inv: dict[tuple[str, str], set[str]] = {}
@@ -119,6 +153,13 @@ def find_merged_identifiers(client: "ExaClient", *, table: str | None = None, ma
                     value=vs, users=sorted(users),
                 ))
     merged.sort(key=lambda m: -len(m.users))
+    if capped:
+        notes.append(f"scanned only the first {max_records_per_table:,} records of: "
+                     f"{', '.join(capped)} — a merge beyond that cap could be missed "
+                     "(raise max_records_per_table or pass table= to focus)")
+    if over_cap:
+        notes.append(f"skipped {len(over_cap)} table(s) over the max_tables={max_tables} cap: "
+                     f"{', '.join(over_cap)} (pass tables=[...] to target them)")
     return merged, scanned, " | ".join(notes)
 
 
@@ -153,20 +194,36 @@ def find_guid_users(client: "ExaClient", *, lookback_days: int = 7,
     return out
 
 
-def collect_identity_health(client: "ExaClient", *, lookback_days: int = 7, table: str | None = None) -> IdentityHealth:
-    """Read-only sweep for merged entities + GUID ghost users."""
+def collect_identity_health(
+    client: "ExaClient", *, lookback_days: int = 7, table: str | None = None,
+    tables: list[str] | None = None, max_records_per_table: int = 25_000,
+    max_tables: int = 8, guid_scan: bool = True,
+) -> IdentityHealth:
+    """Read-only sweep for merged entities + GUID ghost users.
+
+    Bounded by default so it completes on a large customer tenant: caps records/table
+    and table count, and the GUID event scan can be turned off (guid_scan=False) if the
+    event query is what's timing out. Merge detection alone (context tables) is usually
+    the faster, more decisive half.
+    """
     ih = IdentityHealth(tenant=getattr(client, "tenant", None), lookback_days=lookback_days)
     notes: list[str] = []
     try:
-        ih.merged, ih.tables_scanned, n = find_merged_identifiers(client, table=table)
+        ih.merged, ih.tables_scanned, n = find_merged_identifiers(
+            client, table=table, tables=tables,
+            max_records_per_table=max_records_per_table, max_tables=max_tables,
+        )
         if n:
             notes.append(n)
     except Exception as exc:
         notes.append(f"context-table scan failed: {exc}")
-    try:
-        ih.guid_users = find_guid_users(client, lookback_days=lookback_days)
-    except Exception as exc:
-        notes.append(f"guid-user scan failed: {exc}")
+    if guid_scan:
+        try:
+            ih.guid_users = find_guid_users(client, lookback_days=lookback_days)
+        except Exception as exc:
+            notes.append(f"guid-user scan failed (event query timed out or errored): {exc}")
+    else:
+        notes.append("guid scan skipped (guid_scan=false)")
     if not ih.tables_scanned:
         notes.append("no identity/User context table found to scan for merges")
     ih.note = " | ".join(notes)

@@ -691,14 +691,20 @@ TOOL_DEFS: list[Tool] = [
             "(usually a recycled email); (2) GUID GHOST USERS -- logins whose username is a bare "
             "AD objectGUID, grouped by host (unresolved/orphaned AD accounts). Use when a "
             "customer reports users merged together or EXA-INTERNAL-ERROR on an entity. The FIX "
-            "is a gated, human-confirmed remediation -- this tool only detects. Set render=true "
-            "for a branded report."
+            "is a gated, human-confirmed remediation -- this tool only detects. Bounded for large "
+            "tenants (caps records/table and table count, skips empty tables); if it times out, "
+            "lower max_tables / max_records_per_table, pass table= or tables=[...] to focus, or set "
+            "guid_scan=false (the event query is often the slow half). Set render=true for a report."
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "lookback_days": {"type": "integer", "description": "Days to look back for GUID logins [default: 7]", "default": 7},
-                "table": {"type": "string", "description": "Restrict the merge scan to one identity table by name/id [optional; default scans all User/identity tables]."},
+                "table": {"type": "string", "description": "Restrict the merge scan to ONE identity table by name/id [optional]."},
+                "tables": {"type": "array", "items": {"type": "string"}, "description": "Restrict the merge scan to these identity tables by name/id [optional; e.g. [\"Email User\", \"User SID\"]]."},
+                "max_records_per_table": {"type": "integer", "description": "Cap records read per table [default: 25000]", "default": 25000},
+                "max_tables": {"type": "integer", "description": "Cap how many identity tables to scan (smallest first) [default: 8]", "default": 8},
+                "guid_scan": {"type": "boolean", "description": "Also run the GUID-ghost login-event scan [default: true]; set false if the event query is timing out", "default": True},
                 "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
             },
         },
@@ -1259,6 +1265,10 @@ async def dispatch_tool(
                     client,
                     lookback_days=arguments.get("lookback_days", 7),
                     table=arguments.get("table") or None,
+                    tables=arguments.get("tables") or None,
+                    max_records_per_table=arguments.get("max_records_per_table", 25_000),
+                    max_tables=arguments.get("max_tables", 8),
+                    guid_scan=arguments.get("guid_scan", True),
                 )
                 out = identity_summary(ih)
                 if arguments.get("render"):

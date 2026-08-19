@@ -33,9 +33,24 @@ without `--allow-writes` AND an explicit human confirmation of the exact record.
      is a *related but different* problem (Windows-side resolution failure), not a merge.
    Add `render=true` for a branded report.
 2. **`context_table`** — the direct lookup that used to be "UI-only". With no args it lists
-   every context table; `table="User Entity Links" contains="adam.reckamp"` returns every
-   record (and identifier) mapped to that user. Run it for **both** users and eyeball the
-   overlapping value — that is the proof, straight from the table the UI shows.
+   every context table (with record counts); `table="Email User" contains="adam.reckamp"`
+   returns every record (and identifier) mapped to that user. Run it for **both** users and
+   eyeball the overlapping value — that is the proof, straight from the table the UI shows.
+
+### Scale & timeouts (real customer tenants)
+
+- **`identity_health` is bounded** — it reads at most `max_records_per_table` (25k) per
+  table, scans at most `max_tables` (8, smallest first), and skips empty tables. On a large
+  tenant it still can time out; if so: lower `max_tables`, pass `table=`/`tables=[...]` to
+  focus, or set `guid_scan=false` (the login-event query is often the slow half; the
+  context-table merge scan is the faster, more decisive part).
+- **"User Entity Links" is often EMPTY** (it holds only *manually asserted* links). The real
+  merge evidence lives in the **auto-populated** identity tables — list them with
+  `context_table` (no args) and target the identifier-bearing ones: `Email User`,
+  `Entra ID Context`, `User SID`, `UPN`/`UID` tables. Point `identity_health tables=[...]`
+  at those, or `context_table contains=<user>` for a targeted two-user comparison.
+- **When a full scan won't complete**, the targeted `context_table contains=<username>` on
+  the two suspect users is the reliable fallback — it's one bounded call each.
 
 ## Confirm in Entra/AD (the human step)
 
