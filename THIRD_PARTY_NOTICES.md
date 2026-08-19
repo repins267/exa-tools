@@ -12,5 +12,18 @@ third-party components, which retain their own licenses.
 
 These two files are vendored substantially verbatim and remain licensed under the
 Apache License, Version 2.0. A copy of the license is available at
-https://www.apache.org/licenses/LICENSE-2.0. All other files in this repository are
-licensed under the MIT License unless stated otherwise.
+https://www.apache.org/licenses/LICENSE-2.0.
+
+## socxen — red-team attack fixtures
+
+- **Files:** `tests/redteam/*.attack.json`
+- **Source:** https://github.com/open-agent-ai-security/socxen (`security/redteam/attacks/`)
+- **Copyright:** Copyright 2026 Exabeam, Inc.
+- **License:** Apache License, Version 2.0
+
+A subset of socxen's red-team corpus (the classes a deterministic guardrail can enforce)
+is vendored verbatim as eval fixtures and remains licensed under the Apache License,
+Version 2.0.
+
+All other files in this repository are licensed under the MIT License unless stated
+otherwise.
