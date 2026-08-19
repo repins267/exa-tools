@@ -4,7 +4,7 @@
   "serialNumber": "urn:uuid:881f1581-b226-5ed9-9d35-767fa28c5f28",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-19T19:50:39Z",
+    "timestamp": "2026-08-19T21:00:51Z",
     "component": {
       "bom-ref": "pkg:pypi/exa-tools@0.1.0",
       "type": "application",
@@ -29,7 +29,7 @@
     "properties": [
       {
         "name": "exa:mcp:tools",
-        "value": "30"
+        "value": "31"
       },
       {
         "name": "exa:mcp:skills",

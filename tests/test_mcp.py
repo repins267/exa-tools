@@ -170,6 +170,7 @@ READ_TOOLS = {
     "ingest_value",
     "source_detail",
     "render_dashboard",
+    "render_abv",
     "ai_domain_lookup",
     "soc_kpis",
     "tuning_report",

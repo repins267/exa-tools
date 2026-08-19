@@ -680,6 +680,22 @@ TOOL_DEFS: list[Tool] = [
         },
     ),
     Tool(
+        name="render_abv",
+        description=(
+            "Render the Praxen Agent-Behavior-Verification (ABV) report for exa-tools as a "
+            "branded HTML file: verdict banner, remit-coverage scorecard (each declared policy "
+            "clause vs observed behavior), and the findings register. Describes the exa-tools "
+            "MCP's own security posture (read-only default, guardrails, audit privacy) -- it "
+            "does NOT scan the tenant. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "output_path": {"type": "string", "description": "Where to save the HTML [default: reports/praxen-abv.html]. Intermediate dirs are created automatically."},
+            },
+        },
+    ),
+    Tool(
         name="ai_domain_lookup",
         description=(
             "Check one or more domains against the cached AI/LLM reference dataset (public "
@@ -1182,6 +1198,24 @@ async def dispatch_tool(
                     "saved": str(outp.resolve()),
                     "panels": panels,
                     "note": "Preview only. Edit the config and re-render to iterate; import the final .config via the Exabeam UI (Dashboards -> Import).",
+                })
+
+            case "render_abv":
+                from pathlib import Path as _P
+
+                from exa.report.abv import ABV, render_abv
+
+                outp = _P(arguments.get("output_path") or "reports/praxen-abv.html")
+                outp.parent.mkdir(parents=True, exist_ok=True)
+                outp.write_text(render_abv(), encoding="utf-8")
+                held = sum(1 for c in ABV["clauses"] if c["status"] == "HELD")
+                return _ok({
+                    "saved": str(outp.resolve()),
+                    "clauses": len(ABV["clauses"]),
+                    "held": held,
+                    "findings": len(ABV["findings"]),
+                    "note": "Branded Praxen ABV report for the exa-tools MCP's own posture (not a tenant scan). "
+                            "Run the real Praxen plugin against security/praxen/WORKER_REMIT.md for an independent scan.",
                 })
 
             case "ai_domain_lookup":
