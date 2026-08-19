@@ -634,3 +634,27 @@ class TestAillmRulesColdGuard:
         # cached profile is passed through, not rebuilt
         assert mock_an.call_args.kwargs.get("profile") is sentinel
         assert out == {"total_rules": 3}
+
+
+class TestDocsConfig3p:
+    def test_proxy_uses_mcp_remote(self):
+        from exa.cli.mcp import _generate_docs_config
+
+        cfg = _generate_docs_config(proxy=True)["mcpServers"]["exabeam-docs"]
+        assert cfg["command"] == "npx"
+        assert "mcp-remote" in cfg["args"]
+        assert "transport" not in cfg and "url" not in cfg
+
+    def test_native_uses_sse_url(self):
+        from exa.cli.mcp import _generate_docs_config
+
+        cfg = _generate_docs_config(proxy=False)["mcpServers"]["exabeam-docs"]
+        assert cfg["transport"] == "sse"
+        assert cfg["url"].endswith("/mcp")
+        assert "command" not in cfg
+
+    def test_3p_detection_matches_path(self):
+        from exa.cli.mcp import _claude_config_path, _is_3p_config
+
+        # _is_3p_config is consistent with the resolved path
+        assert _is_3p_config() == ("Claude-3p" in _claude_config_path().parts)

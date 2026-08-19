@@ -74,32 +74,48 @@ def _generate_config(
     }
 
 
-def _generate_docs_config(server_name: str = "exabeam-docs") -> dict:
-    """Generate config for the Exabeam API documentation MCP server (SSE, no auth)."""
-    return {
-        "mcpServers": {
-            server_name: {
-                "url": _DOCS_MCP_URL,
-                "transport": "sse",
-            }
-        }
-    }
+def _generate_docs_config(
+    server_name: str = "exabeam-docs", *, proxy: bool | None = None
+) -> dict:
+    """Generate config for the Exabeam API docs MCP server.
+
+    The enterprise "3p" (Bedrock/Cowork) Desktop build rejects a native remote
+    entry ({url, transport} or {type: sse}) and requires the server to be proxied
+    through stdio via `mcp-remote` (needs Node/npx). Older builds accept the SSE
+    URL directly. When proxy is None it is inferred from the resolved config path.
+    """
+    if proxy is None:
+        proxy = _is_3p_config()
+    if proxy:
+        server: dict = {"command": "npx", "args": ["-y", "mcp-remote", _DOCS_MCP_URL]}
+    else:
+        server = {"url": _DOCS_MCP_URL, "transport": "sse"}
+    return {"mcpServers": {server_name: server}}
 
 
 def _claude_config_path() -> Path:
-    """Return the Claude Desktop config file path for the current OS."""
+    """Return the Claude Desktop config path, preferring the "3p" build if present.
+
+    The enterprise Bedrock/Cowork build ("Claude-3p") reads a different location
+    than the classic app. Prefer it when its directory exists.
+    """
     import os
 
     if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA", "")
+        if local and (Path(local) / "Claude-3p").exists():
+            return Path(local) / "Claude-3p" / "claude_desktop_config.json"
         appdata = os.environ.get("APPDATA", "")
         return Path(appdata) / "Claude" / "claude_desktop_config.json"
-    return (
-        Path.home()
-        / "Library"
-        / "Application Support"
-        / "Claude"
-        / "claude_desktop_config.json"
-    )
+    base = Path.home() / "Library" / "Application Support"
+    if (base / "Claude-3p").exists():
+        return base / "Claude-3p" / "claude_desktop_config.json"
+    return base / "Claude" / "claude_desktop_config.json"
+
+
+def _is_3p_config() -> bool:
+    """True when the resolved Claude Desktop config path is the 3p build's."""
+    return "Claude-3p" in _claude_config_path().parts
 
 
 def _install_config(server_name: str, server_config: dict, config_path: Path) -> None:
