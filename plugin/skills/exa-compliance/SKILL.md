@@ -6,6 +6,9 @@ description: >-
   27001, CJIS, GDPR, SOX). Use when asked to "run a compliance audit", "PCI/HIPAA gap
   analysis", "compliance report", "which controls are covered", or "framework coverage".
   Code-first: drives the `exa compliance` CLI. Queries adapt per-tenant via Field Oracle.
+  WRITE WARNING: sync-identity / sync-ootb write context tables to the tenant and have NO
+  MCP --allow-writes gate — confirm the tenant before syncing; audit and status are
+  read-only.
 ---
 
 # exa-compliance — framework audit & gap analysis

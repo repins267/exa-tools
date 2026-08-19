@@ -5,7 +5,10 @@ description: >-
   EQL, deploy, and manage/version analytics rules. Use when asked to "convert this Sigma /
   SPL rule", "deploy a detection", "port rules to Exabeam", "diff the rule bundles",
   "back up detections", or "what rules exist". Code-first: drives the `exa` CLI directly
-  (the full SPL→Sigma→EQL pipeline), not just the MCP tools.
+  (the full SPL→Sigma→EQL pipeline), not just the MCP tools. WRITE WARNING: deploy /
+  import / enable / disable / snapshot write analytics rules to the tenant and have NO
+  MCP --allow-writes gate — name the tenant and confirm before any write; convert and
+  simulate are safe. Export first for a rollback point.
 ---
 
 # exa-detection — detection engineering (Code-first)
