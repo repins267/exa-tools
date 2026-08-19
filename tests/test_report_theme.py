@@ -138,13 +138,21 @@ class TestDashboardPreview:
                  "vis_config": {"type": "table"}},
             ],
         }
-        html = dashboard_preview_html(cfg)
+        html = dashboard_preview_html(cfg)  # no client -> layout only
         assert html.startswith("<!DOCTYPE html>")
-        assert "Unsanctioned AI domains" in html
-        assert "Shadow AI" in html            # section header
-        assert "event.web_domain" in html     # fields shown
+        assert "Unsanctioned AI domains" in html          # panel title
+        assert "Shadow AI" in html                        # section header
+        assert "web_domain" in html                       # dimension in subtitle
+        assert "layout only" in html                      # no-tenant state
         assert "Dashboards" in html and "Import" in html  # import note
         assert "http://" not in html and "https://" not in html  # self-contained
+
+    def test_bar_and_pie_helpers(self):
+        from exa.report.dashboard import _bar, _pie
+        bar = _bar([("a", 10), ("b", 5)])
+        assert 'class="fill"' in bar and "width:100.0%" in bar
+        pie = _pie([("a", 3), ("b", 1)])
+        assert "conic-gradient(" in pie and "75.0%" in pie
 
     def test_empty_config_safe(self):
         from exa.report.dashboard import dashboard_preview_html

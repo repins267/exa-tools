@@ -94,6 +94,22 @@ table.data-table thead th{text-align:left;background:var(--thead);color:var(--mu
 table.data-table tbody td{padding:9px 10px;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);vertical-align:top}
 table.data-table tbody tr:hover{background:var(--hover)}
 .footer-note{margin-top:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.panel.half{grid-column:span 6}
+@media (max-width:900px){.panel.half{grid-column:span 12}}
+.chart{margin:8px 0}
+.chart .row{display:flex;align-items:center;gap:8px;margin:5px 0;font-family:var(--mono);font-size:11px}
+.chart .lbl{width:40%;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart .track{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:6px;overflow:hidden;height:14px}
+.chart .fill{height:100%;background:linear-gradient(90deg,var(--acc1),var(--acc2))}
+.chart .val{width:78px;text-align:right;color:var(--text)}
+.pie{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pie .disc{width:130px;height:130px;border-radius:50%;flex:none;border:1px solid var(--border)}
+.pie .legend{font-family:var(--mono);font-size:11px}
+.pie .legend .r{display:flex;align-items:center;gap:7px;margin:3px 0}
+.pie .sw{width:11px;height:11px;border-radius:2px;flex:none}
+.empty{font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px;border:1px dashed var(--border);border-radius:10px;text-align:center}
+.vizbadge{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 8px;margin-left:8px}
+
 @media (max-width:980px){.card{grid-column:span 6}.meta{display:none}}
 @media (max-width:560px){.card{grid-column:span 12}}
 @media print{.toggle{display:none}body{background:#fff}}
@@ -165,10 +181,11 @@ def data_table(rows: list[dict], table_id: str = "tbl", max_rows: int = 1000) ->
     )
 
 
-def panel(title: str, body_html: str, subtitle: str = "") -> str:
-    """A full-width section panel."""
+def panel(title: str, body_html: str, subtitle: str = "", half: bool = False) -> str:
+    """A section panel. half=True makes it span 6 columns (two per row)."""
     sub = f'<div class="sub">{_esc(subtitle)}</div>' if subtitle else ""
-    return f'<div class="panel"><h2>{_esc(title)}</h2>{sub}{body_html}</div>'
+    cls = "panel half" if half else "panel"
+    return f'<div class="{cls}"><h2>{_esc(title)}</h2>{sub}{body_html}</div>'
 
 
 def page(

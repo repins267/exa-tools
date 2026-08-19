@@ -1065,7 +1065,7 @@ async def dispatch_tool(
                 slug = _re.sub(r"[^a-z0-9]+", "-", str(cfg.get("title", "dashboard")).lower()).strip("-")[:60] or "dashboard"
                 outp = _P(arguments.get("output_path") or f"reports/{slug}-preview.html")
                 outp.parent.mkdir(parents=True, exist_ok=True)
-                outp.write_text(dashboard_preview_html(cfg), encoding="utf-8")
+                outp.write_text(dashboard_preview_html(cfg, client=client), encoding="utf-8")
                 panels = len([e for e in (cfg.get("dashboardElements") or []) if e.get("type") == "vis"])
                 return _ok({
                     "saved": str(outp.resolve()),
