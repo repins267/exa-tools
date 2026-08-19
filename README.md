@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-1004%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1005%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -38,7 +38,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 **Guardrails & audit** (adapted from [socxen](https://github.com/open-agent-ai-security/socxen) / [observra](https://github.com/open-agent-ai-security/observra)) — every tool **result** is canonicalized (invisible smuggling code points stripped, NFC-normalized) so injection hidden in a log field can't reach the model; free-text **write** inputs are neutralized (spreadsheet formulas quote-prefixed, links defanged, secrets redacted) before they persist. A metadata-only **audit log** (default on, fail-open, rotating JSONL at `~/.exa/audit.jsonl`) records every call — tool, tenant/kind, read/write, duration, status, result size, and safe id fields — **never** notes, secrets, or payloads. Disable with `EXA_AUDIT=off`. Both guardrails are regression-tested against socxen's red-team attack corpus (`tests/redteam/`) — zero-width, formula/link injection, and secret/PII leak fixtures. `security/` also carries a CycloneDX **AI-BOM** (`uv run security/gen_aibom.py`) and a Praxen **Agent Behavior Verification** report (`security/praxen/`) checking declared policy against actual behavior.
 
-**Tools (30)**
+**Tools (31)**
 
 | Group | Tools |
 | --- | --- |
@@ -48,7 +48,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 | AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` `ai_domain_lookup` |
 | Detection | `list_detection_rules` |
 | Tenant | `get_active_tenant` `list_tenants` `set_active_tenant` `set_tenant_kind` |
-| Reports | `render_report` `render_dashboard` |
+| Reports | `render_report` `render_dashboard` `render_abv` |
 
 \* write tools, gated behind `--allow-writes`.
 
