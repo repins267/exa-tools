@@ -566,6 +566,43 @@ class TestResultSizeGuard:
         assert marker["_truncated"] is True and marker["_omitted"] == 90 and marker["_total"] == 100
 
 
+class TestGuardrails:
+    def test_ok_canonicalizes_result_strings(self):
+        from exa.mcp.tools import _ok
+        import json as _j
+
+        # a zero-width space (U+200B) smuggled into an alert field
+        out = _j.loads(_ok({"user": "ad\u200bmin", "risk": 90})[0].text)
+        assert out["user"] == "admin"  # smuggling stripped
+        assert out["risk"] == 90       # scalars untouched
+
+    def test_ok_leaves_legitimate_text_intact(self):
+        from exa.mcp.tools import _ok
+        import json as _j
+
+        out = _j.loads(_ok({"path": r"C:\reports\customer\baystate\x.html", "n": 5})[0].text)
+        assert out["path"] == r"C:\reports\customer\baystate\x.html"
+        assert out["n"] == 5
+
+    def test_neutralize_write_args_defangs_note_and_spares_ids(self):
+        from exa.mcp.guardrails import neutralize_write_args
+
+        args = {"case_id": "abc-123", "content": '=HYPERLINK("http://evil.com","x") password=hunter2secret'}
+        clean, notes = neutralize_write_args(args)
+        assert clean["case_id"] == "abc-123"                 # id untouched
+        assert clean["content"].startswith("'=")             # formula inert
+        assert "hxxp" in clean["content"] and "evil[.]com" in clean["content"]
+        assert "[REDACTED" in clean["content"]               # secret redacted
+        assert notes and all("field" in n for n in notes)
+
+    def test_neutralize_write_args_noop_on_clean_text(self):
+        from exa.mcp.guardrails import neutralize_write_args
+
+        args = {"case_id": "x", "content": "confirmed benign, user on PTO"}
+        clean, notes = neutralize_write_args(args)
+        assert clean == args and notes == []
+
+
 class TestReportPath:
     def test_path_is_kind_tenant_scoped_and_created(self, tmp_path, monkeypatch):
         import exa.config as C

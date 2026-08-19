@@ -43,6 +43,12 @@ def _truncate_lists(obj: Any, max_items: int) -> Any:
 
 
 def _ok(data: Any) -> list[TextContent]:
+    from exa.mcp.guardrails import scrub_result
+
+    # Canonicalize telemetry the model is about to read: strip invisible smuggling
+    # (zero-width, bidi overrides, tag chars) and NFC-normalize. "Do no harm" — a
+    # legitimate value is left intact; only obvious injection code points are removed.
+    data = scrub_result(data)
     text = json.dumps(data, default=str)
     if len(text.encode("utf-8")) > _MAX_RESULT_BYTES:
         for cap in (_MAX_LIST_ITEMS, 10, 0):
@@ -786,6 +792,13 @@ async def dispatch_tool(
             "running in READ-ONLY mode. Restart the server with --allow-writes to "
             "enable write tools."
         )
+    # Neutralize active content in free-text WRITE inputs before it persists: quote-prefix
+    # spreadsheet formulas, defang links, redact secrets — so a payload planted in
+    # telemetry can't fire when the case note / update is later exported.
+    if name in WRITE_TOOLS:
+        from exa.mcp.guardrails import neutralize_write_args
+
+        arguments, _guardrail_notes = neutralize_write_args(arguments)
     try:
         match name:
             case "search_alerts":
