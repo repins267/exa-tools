@@ -703,11 +703,28 @@ async def dispatch_tool(
                 )
 
             case "aillm_rules":
+                # A COLD tenant field-profile is built by enumerating fields via
+                # search_events; on a rule-heavy tenant that can exceed the MCP
+                # client's timeout and read as a crash. Use the cached profile when
+                # present (fast), and fail FAST with guidance when it is not --
+                # never hang synchronously building it here.
+                from exa.aillm.profile import load_cached_profile
                 from exa.aillm.rules import analyze_ai_rules
 
+                prof = load_cached_profile(client)
+                if prof is None:
+                    tenant = getattr(client, "tenant", None) or "<tenant>"
+                    return _err(
+                        "aillm_rules needs a tenant field-profile that is not cached "
+                        "yet, and building it here can exceed the client timeout. Warm "
+                        f"it once from the CLI: `exa aillm rules --tenant {tenant}` "
+                        "(no timeout there), then retry -- subsequent calls are fast."
+                    )
                 return _ok_obj(
                     analyze_ai_rules(
-                        client, lookback_days=arguments.get("lookback_days", 30)
+                        client,
+                        profile=prof,
+                        lookback_days=arguments.get("lookback_days", 30),
                     )
                 )
 

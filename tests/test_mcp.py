@@ -602,3 +602,34 @@ class TestSetTenantKind:
             asyncio.run(dispatch_tool(c, "set_tenant_kind", {"kind": "prod"}))[0].text
         )
         assert "error" in out
+
+
+class TestAillmRulesColdGuard:
+    def test_cold_profile_fails_fast_with_guidance(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22")
+        with patch("exa.aillm.profile.load_cached_profile", return_value=None):
+            out = json.loads(
+                asyncio.run(dispatch_tool(c, "aillm_rules", {}, read_only=True))[0].text
+            )
+        assert "error" in out
+        assert "exa aillm rules --tenant sademodev22" in out["error"]
+
+    def test_warm_profile_calls_analyzer(self):
+        from unittest.mock import patch, MagicMock
+        from exa.mcp.tools import dispatch_tool
+
+        c = _FakeClient("sademodev22")
+        sentinel = object()
+        with patch("exa.aillm.profile.load_cached_profile", return_value=sentinel), patch(
+            "exa.aillm.rules.analyze_ai_rules", return_value={"total_rules": 3}
+        ) as mock_an:
+            out = json.loads(
+                asyncio.run(dispatch_tool(c, "aillm_rules", {"lookback_days": 7}, read_only=True))[0].text
+            )
+        mock_an.assert_called_once()
+        # cached profile is passed through, not rebuilt
+        assert mock_an.call_args.kwargs.get("profile") is sentinel
+        assert out == {"total_rules": 3}
