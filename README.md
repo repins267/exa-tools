@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-965%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-981%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -36,22 +36,32 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 **Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
 
-**Tools (25)**
+**Tools (30)**
 
 | Group | Tools |
 | --- | --- |
 | Search / cases / alerts | `search_alerts` `get_alert` `search_cases` `get_case` `search_events` `create_case`\* `update_case`\* `update_alert`\* `add_case_note`\* |
-| Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` |
-| AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` |
+| Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` `source_detail` |
+| SOC / tuning | `soc_kpis` `tuning_report` (NYMM) |
+| AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` `ai_domain_lookup` |
 | Detection | `list_detection_rules` |
 | Tenant | `get_active_tenant` `list_tenants` `set_active_tenant` `set_tenant_kind` |
-| Reports | `render_report` |
+| Reports | `render_report` `render_dashboard` |
 
 \* write tools, gated behind `--allow-writes`.
 
-**Skills** — `exa-health-check`, `exa-tam-report` (tenant-aware; announce tenant + kind before reporting or writing).
+**Skills (7)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
 
-**Reports** — compliance audit, parser health, and ingest value render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
+**Reports** — compliance audit, parser health, ingest value, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
+
+### NYMM — detection tuning (Mouton replacement)
+
+`tuning_report` + the `exa-nymm` skill are the New-Scale-native replacement for the deprecated **Mouton** Advanced Analytics tuning tool. Mouton ranked rules by `NotableReductionOnDeletion` — how many *notables* would vanish if a rule were disabled (the noise). NSA has no notables or histograms; it has **alerts → cases**, so NYMM uses the analog: **a detection that fires a lot but rarely escalates to a case is noise.**
+
+It ranks alert drivers by volume with **% of all**, average risk, and **escalation-to-case rate**, then flags each **Keep / Review / Tune-disable**. Read-only — it *recommends*, never disables a rule; a TAM confirms against the account before acting. Params: `lookback_days` (default 30), `top_n` (default 20), `render` (branded HTML report).
+
+**Covers today:** the tuning (`rules.csv`) half of Mouton — driver ranking, escalation fidelity, recommendations, branded report.
+**Not yet / by design:** silent-rule (enabled-but-unreachable) detail, trend over time with a stored baseline, rule-level (vs alert-name) aggregation, and data-health rollup are roadmap; NSA-only (does not query legacy AA); alerts sampled at 5,000, so on a busy tenant the driver mix is a lower bound.
 
 ## Prerequisites
 

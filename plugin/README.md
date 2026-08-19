@@ -53,6 +53,12 @@ live tenant server answered.
 | Skill | What it does |
 |---|---|
 | `exa-health-check` | Collector staleness, ingest vs entitlement, source inventory, context-table health measured as overlap rather than record count, rule reachability. States explicitly what it could not see. |
+| `exa-tam-report` | Branded TAM report for a tenant — ingest value, parser health, AI/LLM posture — tenant-aware (announces tenant + kind first). |
+| `exa-call-prep` | Pre-call brief for a customer/demo tenant: recent cases, health flags, and talking points. |
+| `exa-aillm-sync` | AI/LLM threat-detection posture and reference-table sync (demo tenants). |
+| `exa-dashboard-preview` | Renders an Exabeam dashboard `.config` as a chart-drawn branded preview so you can iterate before the manual UI import. |
+| `exa-vault` | Uses the ExaVault (Obsidian TAM knowledge vault) as durable context, paired with live MCP data. Code-first local file access. |
+| `exa-nymm` | NYMM ("Not Your Momma's Mouton") — detection-tuning insight for New-Scale Analytics, the replacement for the deprecated Mouton AA tuning tool. Ranks alert drivers by volume vs. escalation-to-case and flags tune/disable candidates. Read-only. |
 
 Add them in Claude Desktop under **Settings -> Customize -> Skills**, from
 `plugin\skills\`. In Claude Code they load with the plugin.
