@@ -60,7 +60,8 @@ class TestGenerateConfig:
     def test_docs_config_structure(self):
         from exa.cli.mcp import _generate_docs_config
 
-        cfg = _generate_docs_config()
+        # native form is explicit; the default is machine-dependent (3p vs classic)
+        cfg = _generate_docs_config(proxy=False)
         assert "mcpServers" in cfg
         server = list(cfg["mcpServers"].values())[0]
         assert server.get("url") == "https://developers.exabeam.com/mcp"
