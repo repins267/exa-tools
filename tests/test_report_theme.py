@@ -123,6 +123,28 @@ class TestSourceDetail:
         assert out["feeds_enabled_rules"] == 2
         assert out["activity_types"][0]["pct"] == 100.0
 
+    def test_render_is_branded_self_contained_html(self):
+        from exa.health.source_detail import SourceDetail, render_source_detail
+        sd = SourceDetail(tenant="baystate", vendor="Check Point", product="NGFW",
+                          total_events=100, unparsed=5,
+                          msg_types=[("Log", 100)],
+                          actions=[("accept", 90), ("drop", 10)],
+                          activity_types=[("network-traffic", 100)],
+                          feeding_rules=["R1"], feeding_rule_types=["Correlation"])
+        html = render_source_detail(sd)
+        assert html.lstrip().startswith("<")
+        assert "http://" not in html and "src=\"http" not in html  # self-contained
+        assert "Check Point · NGFW" in html
+        assert "baystate" in html
+        assert "Value read" in html  # verdict present
+
+    def test_render_flags_source_with_no_rules(self):
+        from exa.health.source_detail import SourceDetail, render_source_detail
+        sd = SourceDetail(tenant="t", vendor="Zscaler", total_events=100,
+                          activity_types=[("web-request", 100)], feeding_rules=[])
+        html = render_source_detail(sd)
+        assert "no detection return" in html.lower() or "Trim candidate" in html
+
 
 class TestDashboardPreview:
     def test_renders_panels_and_sections(self):

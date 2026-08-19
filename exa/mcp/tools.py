@@ -611,7 +611,7 @@ TOOL_DEFS: list[Tool] = [
             "mix (e.g. Drop vs Accept), activity_types, unparsed %, and which ENABLED rules "
             "consume its activity_types (and their rule types). Read-only. Use to judge a "
             "source's value vs waste during an overage review -- one call instead of several "
-            "manual aggregate searches."
+            "manual aggregate searches. Set render=true to also save a branded HTML report."
         ),
         inputSchema={
             "type": "object",
@@ -620,6 +620,7 @@ TOOL_DEFS: list[Tool] = [
                 "vendor": {"type": "string", "description": "Vendor, e.g. \"Check Point\"."},
                 "product": {"type": "string", "description": "Product, e.g. \"Check Point NGFW\" [optional]."},
                 "lookback_days": {"type": "integer", "description": "Days to look back [default: 7]", "default": 7},
+                "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
             },
         },
     ),
@@ -1098,7 +1099,18 @@ async def dispatch_tool(
                     client, vendor, arguments.get("product", ""),
                     lookback_days=arguments.get("lookback_days", 7),
                 )
-                return _ok(source_detail_summary(sd))
+                out = source_detail_summary(sd)
+                if arguments.get("render"):
+                    from pathlib import Path as _P
+
+                    from exa.health.source_detail import render_source_detail
+
+                    slug = (sd.source or "source").lower().replace(" · ", "-").replace(" ", "-")
+                    rp = _P("reports") / f"{(sd.tenant or 'tenant')}-source-{slug}.html"
+                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp.write_text(render_source_detail(sd), encoding="utf-8")
+                    out["report_saved"] = str(rp.resolve())
+                return _ok(out)
 
             case "render_dashboard":
                 import json as _json

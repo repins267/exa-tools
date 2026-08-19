@@ -90,6 +90,77 @@ def collect_source_detail(
     return sd
 
 
+def render_source_detail(sd: SourceDetail) -> str:
+    """Branded, self-contained HTML deep-dive report for one source."""
+    from exa.report import coverage_bar, data_table, page, panel, stat_card
+
+    total = sd.total_events or 1
+    parsed_pct = round(100 - sd.unparsed_pct, 1)
+
+    cards = "".join([
+        stat_card("Tenant", sd.tenant or "—", "", f"last {sd.lookback_days}d"),
+        stat_card("Source", sd.source or "—", "", "top talker deep-dive"),
+        stat_card("Events", f"{sd.total_events:,}", "", f"last {sd.lookback_days}d"),
+        stat_card("Parsed", f"{parsed_pct}%",
+                  "good" if parsed_pct >= 95 else "warn" if parsed_pct >= 80 else "bad",
+                  f"{sd.unparsed_pct}% unparsed"),
+        stat_card("Feeds rules", len(sd.feeding_rules),
+                  "good" if sd.feeding_rules else "warn",
+                  "enabled rules that consume it"),
+    ])
+
+    def tbl(rows, label, tid):
+        data = [{label: v, "Events": f"{n:,}", "% of source": f"{round(100 * n / total, 1)}%"}
+                for v, n in rows]
+        return data_table(data, tid) if data else '<div class="footer-note">none</div>'
+
+    if sd.feeding_rules:
+        rlist = (f'<div class="footer-note">Rule types: '
+                 f'{", ".join(sd.feeding_rule_types) or "—"}</div>'
+                 + "<ul>" + "".join(f"<li>{r}</li>" for r in sd.feeding_rules[:20]) + "</ul>"
+                 + (f'<div class="footer-note">+{len(sd.feeding_rules) - 20} more</div>'
+                    if len(sd.feeding_rules) > 20 else ""))
+    else:
+        rlist = ('<div class="empty">No enabled rule consumes this source\'s activity_types — '
+                 'high volume here is ingest cost with no detection return. A Trim candidate '
+                 'unless kept for compliance/hunting.</div>')
+
+    verdict = (
+        "Value read: this source feeds "
+        f"{len(sd.feeding_rules)} enabled rule(s). "
+        + ("Its volume earns detection return. " if sd.feeding_rules
+           else "Its volume earns NO detection return today. ")
+        + (f"{sd.unparsed_pct}% is unparsed — that share is ingest you pay for but can't detect on; "
+           "check the parser before trimming. " if sd.unparsed_pct >= 5 else "")
+        + "Pair with ingest_value to weigh volume vs. entitlement. Read-only — recommendations "
+        "are mechanical; confirm against the account before trimming a source."
+    )
+
+    panels = "".join([
+        panel("Parsed ratio", coverage_bar(parsed_pct) +
+              f'<div class="footer-note">{sd.total_events - sd.unparsed:,} of {sd.total_events:,} '
+              f'events parsed ({parsed_pct}%). {sd.unparsed:,} unparsed.</div>',
+              "unparsed volume is ingest you can't detect on", half=True),
+        panel(f"Rules this source feeds ({len(sd.feeding_rules)})", rlist,
+              "enabled rules consuming its activity_types", half=True),
+        panel(f"Top message types ({len(sd.msg_types)})", tbl(sd.msg_types, "msg_type", "tMsg"),
+              "what the source is actually sending", half=True),
+        panel("Action mix", tbl(sd.actions, "action", "tAct"),
+              "e.g. Drop vs Accept — noise vs signal", half=True),
+        panel(f"Activity types ({len(sd.activity_types)})",
+              tbl(sd.activity_types, "activity_type", "tAct2"),
+              "the CIM2 activities rules match on"),
+        panel("Verdict", f'<div class="footer-note">{verdict}</div>'
+              + (f'<div class="disc">note: {sd.note}</div>' if sd.note else "")),
+    ])
+    meta = [sd.tenant or "—", sd.source, f"last {sd.lookback_days}d", "source deep-dive · read-only"]
+    return page(
+        f"exa-tools · {sd.tenant or ''} · Source Deep-Dive",
+        f"{sd.source} · last {sd.lookback_days}d",
+        cards, panels, "".join(f"<div>{m}</div>" for m in meta), initial_theme="dark",
+    )
+
+
 def source_detail_summary(sd: SourceDetail) -> dict:
     """JSON-friendly summary for the MCP tool."""
     total = sd.total_events or 1
