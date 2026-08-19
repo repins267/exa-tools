@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-986%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-994%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -35,6 +35,8 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 - Claude Desktop: `exa mcp install --tenant <tenant>`, then restart. On the enterprise "3p" build the config lives at `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`.
 
 **Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
+
+**Guardrails & audit** (adapted from [socxen](https://github.com/open-agent-ai-security/socxen) / [observra](https://github.com/open-agent-ai-security/observra)) — every tool **result** is canonicalized (invisible smuggling code points stripped, NFC-normalized) so injection hidden in a log field can't reach the model; free-text **write** inputs are neutralized (spreadsheet formulas quote-prefixed, links defanged, secrets redacted) before they persist. A metadata-only **audit log** (default on, fail-open, rotating JSONL at `~/.exa/audit.jsonl`) records every call — tool, tenant/kind, read/write, duration, status, result size, and safe id fields — **never** notes, secrets, or payloads. Disable with `EXA_AUDIT=off`.
 
 **Tools (30)**
 
