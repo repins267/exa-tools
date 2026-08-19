@@ -171,6 +171,7 @@ READ_TOOLS = {
     "source_detail",
     "render_dashboard",
     "ai_domain_lookup",
+    "soc_kpis",
 }
 
 

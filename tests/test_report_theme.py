@@ -181,3 +181,29 @@ class TestAiDomainLookup:
         with patch.object(reference,"load_reference_data",return_value=R()):
             out=reference.lookup_ai_domains(["chat.openai.com"])
         assert out[0]["known_ai"] is True and out[0]["matched"]=="openai.com"
+
+
+class TestSocKpis:
+    def test_kpi_rollup(self):
+        from unittest.mock import patch
+        from exa.case import soc_kpis as m
+        now_us = 1787000000_000000
+        cases = [
+            {"stage": "CLOSED", "priority": "HIGH", "assignee": "alice", "queue": "T1",
+             "name": "R1", "user": "u1", "caseCreationTimestamp": now_us,
+             "lastModifiedTimestamp": now_us + 3600_000000},  # +1h
+            {"stage": "NEW", "priority": "CRITICAL", "assignee": "Unassigned", "queue": "T1",
+             "name": "R2", "user": "u2", "caseCreationTimestamp": now_us},
+        ]
+        with patch("exa.case.cases.search_cases", return_value=cases):
+            k = m.collect_soc_kpis(object(), lookback_days=30)
+        assert k.opened == 2 and k.closed == 1
+        assert k.close_rate == 50.0
+        assert k.mttr_hours == 1.0                       # the one closed case took ~1h
+        assert dict(k.by_priority)["CRITICAL"] == 1
+        assert dict(k.by_assignee)["alice"] == 1
+
+    def test_ts_normalizes_micros(self):
+        from exa.case.soc_kpis import _ts_s
+        assert abs(_ts_s(1787000000_000000) - 1787000000) < 1  # micro -> sec
+        assert abs(_ts_s(1787000000) - 1787000000) < 1          # already sec

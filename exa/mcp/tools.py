@@ -640,6 +640,23 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="soc_kpis",
+        description=(
+            "SOC KPI rollup for the active tenant (read-only): cases opened, closed, open "
+            "backlog, close rate, MTTR (avg time to close) and avg open age, plus breakdowns "
+            "by assignee (worked-by), priority, stage, queue, top firing rules, and notable "
+            "users. For an analyst/SOC-manager view. Set render=true to also save a branded "
+            "HTML report."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {"type": "integer", "description": "Days to look back [default: 30]", "default": 30},
+                "render": {"type": "boolean", "description": "Also save a branded HTML report [default: false]", "default": False},
+            },
+        },
+    ),
 ]
 
 
@@ -1099,6 +1116,22 @@ async def dispatch_tool(
                 rows = lookup_ai_domains([str(d) for d in domains])
                 known = [r for r in rows if r["known_ai"]]
                 return _ok({"results": rows, "known": len(known), "checked": len(rows)})
+
+            case "soc_kpis":
+                from exa.case.soc_kpis import collect_soc_kpis, soc_kpis_summary
+
+                k = collect_soc_kpis(client, lookback_days=arguments.get("lookback_days", 30))
+                out = soc_kpis_summary(k)
+                if arguments.get("render"):
+                    from pathlib import Path as _P
+
+                    from exa.case.soc_kpis import render_soc_kpis
+
+                    rp = _P("reports") / f"{(k.tenant or 'tenant')}-soc-kpis.html"
+                    rp.parent.mkdir(parents=True, exist_ok=True)
+                    rp.write_text(render_soc_kpis(k), encoding="utf-8")
+                    out["report_saved"] = str(rp.resolve())
+                return _ok(out)
 
             case _:
                 return _err(f"Unknown tool: {name}")
