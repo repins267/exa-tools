@@ -603,6 +603,63 @@ class TestGuardrails:
         assert clean == args and notes == []
 
 
+class TestAuditLog:
+    def _sess(self, monkeypatch, tenant="baystate", kind="customer", read_only=False):
+        import exa.config as C
+        monkeypatch.setattr(C, "list_tenants", lambda: {tenant: {"kind": kind}})
+        client = MagicMock(); client.tenant = tenant
+        sess = MagicMock(); sess.client = client; sess.read_only = read_only
+        return sess
+
+    def test_records_metadata_never_payload(self, tmp_path, monkeypatch):
+        import json as _j, time
+        from exa.mcp import audit
+
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(tmp_path / "a.jsonl"))
+        monkeypatch.delenv("EXA_AUDIT", raising=False)
+        result = [MagicMock(text='{"saved":"x"}')]
+        audit.record_tool_call(
+            "add_case_note",
+            {"case_id": "c-1", "content": "SECRET password=hunter2 planted"},
+            result, self._sess(monkeypatch), started=time.time() - 0.02,
+        )
+        raw = (tmp_path / "a.jsonl").read_text(encoding="utf-8")
+        assert "hunter2" not in raw and "planted" not in raw and "content" not in raw
+        ev = _j.loads(raw.strip())
+        assert ev["tool"] == "add_case_note" and ev["write"] is True
+        assert ev["action"] == {"case_id": "c-1"}          # only the safe id
+        assert ev["kind"] == "customer" and ev["status"] == "ok"
+        assert isinstance(ev["duration_ms"], (int, float)) and ev["result_bytes"] > 0
+
+    def test_error_status_from_error_result(self, tmp_path, monkeypatch):
+        import json as _j, time
+        from exa.mcp import audit
+
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(tmp_path / "a.jsonl"))
+        monkeypatch.delenv("EXA_AUDIT", raising=False)
+        audit.record_tool_call("get_alert", {"alert_id": "z"}, [MagicMock(text='{"error": "not found"}')],
+                               self._sess(monkeypatch), started=time.time())
+        ev = _j.loads((tmp_path / "a.jsonl").read_text().strip())
+        assert ev["status"] == "error"
+
+    def test_off_switch_disables(self, tmp_path, monkeypatch):
+        from exa.mcp import audit
+
+        p = tmp_path / "a.jsonl"
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(p))
+        monkeypatch.setenv("EXA_AUDIT", "off")
+        audit.record({"event": "x"})
+        assert not p.exists()
+
+    def test_fail_open_on_bad_path(self, tmp_path, monkeypatch):
+        from exa.mcp import audit
+
+        # point the log at an existing DIRECTORY — open-for-append will fail; must not raise
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(tmp_path))
+        monkeypatch.delenv("EXA_AUDIT", raising=False)
+        audit.record({"event": "x"})  # no exception = pass (fail-open)
+
+
 class TestReportPath:
     def test_path_is_kind_tenant_scoped_and_created(self, tmp_path, monkeypatch):
         import exa.config as C

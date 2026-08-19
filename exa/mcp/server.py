@@ -56,13 +56,17 @@ def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = 
     When read_only is True the four write tools are neither advertised nor
     dispatched -- a hard gate enforced regardless of what the client requests.
     """
+    import time
+
     from mcp.server import Server
 
+    from exa.mcp import audit
     from exa.mcp.tools import dispatch_tool, visible_tools
 
     session = TenantSession(client, read_only=read_only)
     server = Server(server_name)
     tools = visible_tools(read_only=read_only)
+    audit.record_session_start(client, server_name, read_only, len(tools))
 
     @server.list_tools()
     async def handle_list_tools():
@@ -70,13 +74,21 @@ def _build_mcp_server(client: ExaClient, server_name: str, *, read_only: bool = 
 
     @server.call_tool()
     async def handle_call_tool(name: str, arguments: dict):
-        return await dispatch_tool(
-            session.client,
-            name,
-            arguments or {},
-            read_only=session.read_only,
-            session=session,
-        )
+        args = arguments or {}
+        started = time.time()
+        result = None
+        try:
+            result = await dispatch_tool(
+                session.client,
+                name,
+                args,
+                read_only=session.read_only,
+                session=session,
+            )
+            return result
+        finally:
+            # Metadata-only audit trail; fail-open — never affects the tool call.
+            audit.record_tool_call(name, args, result, session, started=started)
 
     return server
 
