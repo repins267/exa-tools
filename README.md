@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-981%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-983%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -52,7 +52,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 **Skills (7)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
 
-**Reports** — compliance audit, parser health, ingest value, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
+**Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
 
 ### NYMM — detection tuning (Mouton replacement)
 
