@@ -1118,9 +1118,24 @@ async def dispatch_tool(
                     session.switch(target)
                 except Exception as exc:
                     return _err(f"Failed to switch to '{target}': {exc}")
-                return _ok(
-                    _active_tenant_info(session.client, session.read_only)
-                )
+                # Persist the switch as the default tenant so it survives a server
+                # respawn. Claude Desktop restarts the stdio server between sessions
+                # (and on idle/error); without this, the next process reverts to its
+                # launch tenant and the switch silently "reverts". Best-effort.
+                persisted = False
+                try:
+                    from exa.config import set_default_tenant
+
+                    set_default_tenant(target)
+                    persisted = True
+                except Exception:
+                    pass
+                info = _active_tenant_info(session.client, session.read_only)
+                info["persisted_as_default"] = persisted
+                if not persisted:
+                    info["warning"] = ("switched in-memory but could not persist the default; "
+                                       "a server restart may revert to the launch tenant")
+                return _ok(info)
 
             case "set_tenant_kind":
                 from exa.config import list_tenants, set_tenant_kind
@@ -1244,16 +1259,23 @@ async def dispatch_tool(
                 if not match:
                     return _err(f"No context table matching '{table}'.")
                 t = match[0]
-                records = get_all_records(client, t["id"])
+                # Bound the read: a large customer table read unbounded can choke the
+                # stdio pipe / stall the server. Read enough to filter, not the world.
+                _cap = 50_000
+                records = get_all_records(client, t["id"])[:_cap]
+                truncated_scan = len(records) >= _cap
                 contains = (arguments.get("contains") or "").strip().lower()
                 if contains:
                     records = [r for r in records
                                if any(contains in str(v).lower() for v in r.values())]
                 limit = arguments.get("limit", 200)
-                return _ok({
+                out = {
                     "table": t.get("name"), "id": t.get("id"), "type": t.get("contextType"),
                     "matched_records": len(records), "records": records[:limit],
-                })
+                }
+                if truncated_scan:
+                    out["note"] = f"scanned the first {_cap:,} records only; narrow with contains= for a full-fidelity match"
+                return _ok(out)
 
             case "render_dashboard":
                 import json as _json

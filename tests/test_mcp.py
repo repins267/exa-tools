@@ -521,7 +521,8 @@ class TestTenantTools:
 
         sess = _Session()
         entries = {"lvcva": {"api_server": "https://api.us-west.exabeam.cloud", "region": "US-West", "kind": "customer"}}
-        with patch("exa.config.list_tenants", return_value={"sademodev22": {}, "lvcva": entries["lvcva"]}):
+        with patch("exa.config.list_tenants", return_value={"sademodev22": {}, "lvcva": entries["lvcva"]}), \
+                patch("exa.config.set_default_tenant") as mock_set_default:
             out = json.loads(
                 asyncio.run(
                     dispatch_tool(sess.client, "set_active_tenant", {"tenant": "lvcva"}, session=sess)
@@ -530,6 +531,9 @@ class TestTenantTools:
         assert out["active_tenant"] == "lvcva"
         assert out["kind"] == "customer"
         assert out["writes_enabled"] is True
+        # the switch must PERSIST so a server respawn doesn't revert to the launch tenant
+        mock_set_default.assert_called_once_with("lvcva")
+        assert out["persisted_as_default"] is True
 
     def test_tenant_tools_visible_in_read_only(self):
         from exa.mcp.tools import visible_tools
