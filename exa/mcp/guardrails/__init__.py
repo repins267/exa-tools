@@ -25,6 +25,7 @@ __all__ = ["canonicalize", "Hygiene", "neutralize_output", "scrub_result", "neut
 _WRITE_TEXT_FIELDS = frozenset({
     "content", "note", "notes", "closed_reason", "closedReason",
     "supporting_reason", "supportingReason", "alertDescription", "description",
+    "assignee", "queue",  # free-text on create/update_case — PRAX-2026-08-19-006
 })
 # List-of-string write fields — each element is a persisted sink too (e.g. a tag
 # carrying =HYPERLINK(...) would survive to export). ABV-004.

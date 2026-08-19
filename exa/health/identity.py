@@ -128,6 +128,7 @@ def find_guid_users(client: "ExaClient", *, lookback_days: int = 7,
     from exa.search.events import search_events
 
     rows = None
+    last_exc: Exception | None = None
     for host_field in ("dest_host", "host", "src_host"):
         try:
             rows = search_events(
@@ -135,8 +136,13 @@ def find_guid_users(client: "ExaClient", *, lookback_days: int = 7,
                 group_by=["user", host_field], lookback_days=lookback_days, limit=limit,
             )
             break
-        except Exception:
+        except Exception as exc:
+            last_exc = exc
             continue
+    if rows is None:
+        # Every attempt failed — surface it rather than reporting a clean (empty)
+        # result, which would read as "no GUID users" (PRAX-2026-08-19-008).
+        raise RuntimeError(f"login-event query failed for all host fields: {last_exc}")
     out: list[GuidUser] = []
     for r in rows or []:
         u = r.get("user")

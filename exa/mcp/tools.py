@@ -68,7 +68,11 @@ def _ok(data: Any) -> list[TextContent]:
 
 
 def _err(message: str) -> list[TextContent]:
-    return [TextContent(type="text", text=json.dumps({"error": message}))]
+    # Canonicalize the error text too: an exception can carry a raw tenant response
+    # body, which must not reach the model unfiltered (PRAX-2026-08-19-003).
+    from exa.mcp.guardrails import scrub_result
+
+    return [TextContent(type="text", text=json.dumps({"error": scrub_result(str(message))}))]
 
 
 def _ok_obj(data: Any) -> list[TextContent]:
@@ -115,6 +119,24 @@ def _report_path(client: Any, filename: str):
     p = Path("reports") / _safe_seg(kind) / _safe_seg(tenant) / filename
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
+
+
+def _contained_output_path(candidate: str):
+    """Resolve a caller-supplied output_path UNDER reports/, refusing any escape.
+
+    A model-supplied output_path is untrusted: absolute paths, `..` traversal, or a
+    drive-letter root would let a rendered (model-influenced) HTML file be written
+    anywhere on the host (PRAX-2026-08-19-001). Joining under the reports/ root and
+    checking is_relative_to rejects all three in one test.
+    """
+    from pathlib import Path
+
+    base = Path("reports").resolve()
+    target = (base / str(candidate)).resolve()
+    if not target.is_relative_to(base):
+        raise ValueError(f"output_path must stay under reports/ (got {candidate!r})")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    return target
 
 
 # The tools that mutate live tenant data. In read-only mode these are neither
@@ -245,9 +267,9 @@ TOOL_DEFS: list[Tool] = [
             "Create a new Threat Center case from an alert. "
             "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
             "explicit yes, before calling this. Do not infer approval from the "
-            "surrounding request. This is a SOFT gate: in Claude Code the "
-            "permission pack is the hard lock; in Claude Desktop this "
-            "instruction is the only one."
+            "surrounding request. This is a SOFT gate -- the only hard technical "
+            "control is the server's --allow-writes flag; this in-prompt "
+            "confirmation is the layer on top of it."
         ),
         inputSchema={
             "type": "object",
@@ -270,9 +292,9 @@ TOOL_DEFS: list[Tool] = [
             "Update Threat Center case attributes. "
             "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
             "explicit yes, before calling this. Do not infer approval from the "
-            "surrounding request. This is a SOFT gate: in Claude Code the "
-            "permission pack is the hard lock; in Claude Desktop this "
-            "instruction is the only one."
+            "surrounding request. This is a SOFT gate -- the only hard technical "
+            "control is the server's --allow-writes flag; this in-prompt "
+            "confirmation is the layer on top of it."
         ),
         inputSchema={
             "type": "object",
@@ -307,9 +329,9 @@ TOOL_DEFS: list[Tool] = [
             "Update a Threat Center alert's priority or tags. "
             "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
             "explicit yes, before calling this. Do not infer approval from the "
-            "surrounding request. This is a SOFT gate: in Claude Code the "
-            "permission pack is the hard lock; in Claude Desktop this "
-            "instruction is the only one."
+            "surrounding request. This is a SOFT gate -- the only hard technical "
+            "control is the server's --allow-writes flag; this in-prompt "
+            "confirmation is the layer on top of it."
         ),
         inputSchema={
             "type": "object",
@@ -334,9 +356,9 @@ TOOL_DEFS: list[Tool] = [
             "Add an investigation note to a case. "
             "MODIFIES LIVE DATA. STOP and ask the analyst, then wait for an "
             "explicit yes, before calling this. Do not infer approval from the "
-            "surrounding request. This is a SOFT gate: in Claude Code the "
-            "permission pack is the hard lock; in Claude Desktop this "
-            "instruction is the only one."
+            "surrounding request. This is a SOFT gate -- the only hard technical "
+            "control is the server's --allow-writes flag; this in-prompt "
+            "confirmation is the layer on top of it."
         ),
         inputSchema={
             "type": "object",
@@ -1169,7 +1191,12 @@ async def dispatch_tool(
                 if not isinstance(spec, dict) or not spec.get("title"):
                     return _err("render_report needs a spec object with at least a title.")
                 op = arguments.get("output_path")
-                if not op:
+                if op:
+                    try:
+                        op = str(_contained_output_path(op))
+                    except ValueError as exc:
+                        return _err(str(exc))
+                else:
                     import re as _re
 
                     slug = _re.sub(r"[^a-z0-9]+", "-", str(spec.get("title", "report")).lower()).strip("-")[:60] or "report"
@@ -1294,8 +1321,10 @@ async def dispatch_tool(
                     return _err("render_dashboard needs a config object or a config_path.")
                 slug = _re.sub(r"[^a-z0-9]+", "-", str(cfg.get("title", "dashboard")).lower()).strip("-")[:60] or "dashboard"
                 if arguments.get("output_path"):
-                    outp = _P(arguments["output_path"])
-                    outp.parent.mkdir(parents=True, exist_ok=True)
+                    try:
+                        outp = _contained_output_path(arguments["output_path"])
+                    except ValueError as exc:
+                        return _err(str(exc))
                 else:
                     outp = _report_path(client, f"{slug}-preview.html")
                 outp.write_text(dashboard_preview_html(cfg, client=client), encoding="utf-8")
@@ -1311,8 +1340,10 @@ async def dispatch_tool(
 
                 from exa.report.abv import ABV, render_abv
 
-                outp = _P(arguments.get("output_path") or "reports/praxen-abv.html")
-                outp.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    outp = _contained_output_path(arguments.get("output_path") or "praxen-abv.html")
+                except ValueError as exc:
+                    return _err(str(exc))
                 outp.write_text(render_abv(), encoding="utf-8")
                 held = sum(1 for c in ABV["clauses"] if c["status"] == "HELD")
                 return _ok({

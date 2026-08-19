@@ -573,6 +573,37 @@ class TestResultSizeGuard:
         assert marker["_truncated"] is True and marker["_omitted"] == 90 and marker["_total"] == 100
 
 
+class TestOutputPathContainment:
+    def test_rejects_absolute_and_traversal(self, tmp_path, monkeypatch):
+        import pytest
+        from exa.mcp.tools import _contained_output_path
+
+        monkeypatch.chdir(tmp_path)
+        # absolute path outside reports/ is refused
+        with pytest.raises(ValueError):
+            _contained_output_path("C:/Windows/evil.html" if __import__("os").name == "nt" else "/etc/evil.html")
+        # parent traversal is refused
+        with pytest.raises(ValueError):
+            _contained_output_path("../../evil.html")
+
+    def test_allows_paths_under_reports(self, tmp_path, monkeypatch):
+        from exa.mcp.tools import _contained_output_path
+
+        monkeypatch.chdir(tmp_path)
+        p = _contained_output_path("customer/baystate/x.html")
+        assert p.is_relative_to((tmp_path / "reports").resolve())
+        assert p.parent.is_dir()
+
+
+class TestErrCanonicalizes:
+    def test_err_strips_smuggling(self):
+        from exa.mcp.tools import _err
+        import json as _j
+
+        out = _j.loads(_err("boom\u200bpayload")[0].text)  # zero-width in error text
+        assert out["error"] == "boompayload"
+
+
 class TestGuardrails:
     def test_ok_canonicalizes_result_strings(self):
         from exa.mcp.tools import _ok

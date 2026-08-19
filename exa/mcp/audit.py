@@ -35,7 +35,8 @@ from typing import Any
 
 _OFF = frozenset({"off", "0", "false", "no", "none", "disabled"})
 # Only these argument fields are ever recorded — ids and enums, never free text.
-_SAFE_ACTION_FIELDS = ("alert_id", "case_id", "priority", "stage", "queue", "kind", "tenant", "vendor")
+# queue/vendor were dropped: they are free-form strings, not enums (PRAX-2026-08-19-007).
+_SAFE_ACTION_FIELDS = ("alert_id", "case_id", "priority", "stage", "kind", "tenant")
 _DEFAULT_PATH = "~/.exa/audit.jsonl"
 _DEFAULT_MAX_BYTES = 10 * 1024 * 1024
 _DEFAULT_BACKUPS = 5

@@ -117,21 +117,31 @@ def render_abv(data: dict = ABV) -> str:
         stat_card("Clauses", len(clauses), "", "declared policy"),
         stat_card("Held", held, "good", "behavior matches policy"),
         stat_card("Divergences", diverg, "warn", f"{fixed} found + fixed"),
-        stat_card("Verdict", "Policy holds", "good", "1 gap closed this pass"),
-        stat_card("Tests", f'{data["tests"]:,}', "", f'main {data["commit"]}'),
+        stat_card("Verdict", "Policy holds", "good", "manual pass; see Praxen note"),
+        stat_card("Snapshot", data["date"], "", "point-in-time, not a live claim"),
     ])
 
     findings_html = "".join(_finding_card(f) for f in data["findings"]) or \
         '<div class="empty">No open divergences.</div>'
 
     method = (
-        f'<div class="footer-note">{_esc(data["method"])} Target: <b>{_esc(data["target"])}</b> '
-        f'@ <code>{_esc(data["commit"])}</code>, {_esc(data["date"])}. '
-        'This is the branded render of the adjudicated result in '
+        f'<div class="footer-note">{_esc(data["method"])} Target: <b>{_esc(data["target"])}</b>, '
+        f'point-in-time snapshot {_esc(data["date"])} (this render does not assert a live commit or '
+        'test count — see the note below). Branded render of the adjudicated result in '
         '<code>security/praxen/results/2026-08-19-exa-tools-abv.md</code>.</div>'
         '<div class="footer-note" style="margin-top:8px"><b>Re-run the real scan:</b> '
         '<code>claude plugin install praxen@open-agent-ai-security</code>, then point Praxen at this repo '
         'against <code>security/praxen/WORKER_REMIT.md</code> for an independent second opinion.</div>'
+    )
+
+    praxen_note = (
+        '<div class="footer-note">An independent <b>Praxen v1.2.1</b> ABV scan (2026-08-19) went beyond '
+        'this manual pass and surfaced additional findings the manual pass missed — 1 HIGH '
+        '(model-supplied <code>output_path</code> escaping the <code>reports/</code> root), plus MEDIUM/LOW '
+        'items (error-path not canonicalized, assignee/queue not neutralized, SSE transport unauthenticated, '
+        'and this report\'s own hardcoded drift). Those are remediated separately; results in '
+        '<code>security/praxen/results/</code>. Treat this manual scorecard as one input, not the whole '
+        'assurance picture — the independent scan is the fuller check.</div>'
     )
 
     panels = "".join([
@@ -139,9 +149,10 @@ def render_abv(data: dict = ABV) -> str:
               "each declared policy clause vs observed behavior"),
         panel(f"Findings register ({len(data['findings'])})", findings_html,
               "divergences from declared policy — found and fixed this pass"),
+        panel("Independent Praxen scan", praxen_note, "what the manual pass missed"),
         panel("Method & re-run", method, "Praxen — Agent Behavior Verification"),
     ])
-    meta = [data["target"], "Praxen ABV", data["date"], f'main {data["commit"]}']
+    meta = [data["target"], "Praxen ABV (manual snapshot)", data["date"]]
     return page(
         f"exa-tools · Praxen ABV · {data['target']}",
         f"Agent Behavior Verification · {held} of {len(clauses)} clauses held · {fixed} fixed · {data['date']}",

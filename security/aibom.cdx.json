@@ -4,7 +4,7 @@
   "serialNumber": "urn:uuid:881f1581-b226-5ed9-9d35-767fa28c5f28",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-19T21:28:14Z",
+    "timestamp": "2026-08-19T22:25:59Z",
     "component": {
       "bom-ref": "pkg:pypi/exa-tools@0.1.0",
       "type": "application",

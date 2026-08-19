@@ -29,6 +29,8 @@ gated exception, not the default.
 
 - MAY read alerts, cases, events, rules, license, collectors, and parser/ingest health
   from the configured Exabeam tenant.
+- MAY read Context Management tables (including User Entity Links) and identity-directory
+  data, for identity-resolution diagnostics (merged entities, GUID ghost users).
 - MAY create/update cases, update alerts, and add case notes **only** when the server is
   started with `--allow-writes`.
 - MAY read and write local report files under `reports/` and the local audit log.
