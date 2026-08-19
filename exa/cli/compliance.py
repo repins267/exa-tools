@@ -403,6 +403,13 @@ def audit(
             help="Explicit PDF output path; implies --output-pdf [default: none]",
         ),
     ] = None,
+    output_csv: Annotated[
+        str | None,
+        typer.Option(
+            "--output-csv",
+            help="Save control results as CSV (auto-saved beside the HTML otherwise) [default: none]",
+        ),
+    ] = None,
     tenant_aware: Annotated[
         bool,
         typer.Option(
@@ -455,6 +462,7 @@ def audit(
         from exa.compliance.report import (
             default_report_path,
             generate_html_report,
+            save_csv_report,
             save_html_report,
         )
 
@@ -474,6 +482,15 @@ def audit(
         if html_path is not None:
             save_html_report(report, html_path)
             console.print(f"\n  HTML report saved: {html_path}", style="green")
+
+        csv_target = None
+        if output_csv is not None:
+            csv_target = Path(output_csv)
+        elif html_path is not None:
+            csv_target = html_path.with_suffix(".csv")
+        if csv_target is not None:
+            save_csv_report(report, csv_target)
+            console.print(f"  CSV report saved: {csv_target}", style="green")
 
         if want_pdf:
             if pdf_path:
