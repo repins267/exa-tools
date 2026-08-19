@@ -604,6 +604,25 @@ TOOL_DEFS: list[Tool] = [
             },
         },
     ),
+    Tool(
+        name="render_dashboard",
+        description=(
+            "Preview an Exabeam dashboard .config (JSON) as a branded HTML file for review "
+            "BEFORE the manual UI import -- Exabeam dashboards import only via Dashboards -> "
+            "Import, there is no API import. Pass config (the dashboard JSON object) or "
+            "config_path (a .config file on this machine). Shows each panel's title, "
+            "visualization, fields, filter and limit, grouped by section. Edit the config and "
+            "re-render to iterate. Read-only."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "config": {"type": "object", "description": "The dashboard config JSON object."},
+                "config_path": {"type": "string", "description": "Path to a .config file (if not passing config)."},
+                "output_path": {"type": "string", "description": "Where to save the preview HTML [default: reports/<title>-preview.html]."},
+            },
+        },
+    ),
 ]
 
 
@@ -1027,6 +1046,32 @@ async def dispatch_tool(
                     lookback_days=arguments.get("lookback_days", 7),
                 )
                 return _ok(source_detail_summary(sd))
+
+            case "render_dashboard":
+                import json as _json
+                import re as _re
+                from pathlib import Path as _P
+
+                from exa.report.dashboard import dashboard_preview_html
+
+                cfg = arguments.get("config")
+                if not cfg and arguments.get("config_path"):
+                    try:
+                        cfg = _json.loads(_P(arguments["config_path"]).read_text(encoding="utf-8"))
+                    except Exception as exc:
+                        return _err(f"could not read config_path: {exc}")
+                if not isinstance(cfg, dict):
+                    return _err("render_dashboard needs a config object or a config_path.")
+                slug = _re.sub(r"[^a-z0-9]+", "-", str(cfg.get("title", "dashboard")).lower()).strip("-")[:60] or "dashboard"
+                outp = _P(arguments.get("output_path") or f"reports/{slug}-preview.html")
+                outp.parent.mkdir(parents=True, exist_ok=True)
+                outp.write_text(dashboard_preview_html(cfg), encoding="utf-8")
+                panels = len([e for e in (cfg.get("dashboardElements") or []) if e.get("type") == "vis"])
+                return _ok({
+                    "saved": str(outp.resolve()),
+                    "panels": panels,
+                    "note": "Preview only. Edit the config and re-render to iterate; import the final .config via the Exabeam UI (Dashboards -> Import).",
+                })
 
             case _:
                 return _err(f"Unknown tool: {name}")

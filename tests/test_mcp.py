@@ -169,6 +169,7 @@ READ_TOOLS = {
     "render_report",
     "ingest_value",
     "source_detail",
+    "render_dashboard",
 }
 
 

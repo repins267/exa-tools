@@ -122,3 +122,31 @@ class TestSourceDetail:
         assert out["actions"][0] == {"value": "accept", "events": 90, "pct": 90.0}
         assert out["feeds_enabled_rules"] == 2
         assert out["activity_types"][0]["pct"] == 100.0
+
+
+class TestDashboardPreview:
+    def test_renders_panels_and_sections(self):
+        from exa.report.dashboard import dashboard_preview_html
+        cfg = {
+            "title": "AI/LLM Landscape",
+            "description": "demo",
+            "dashboardElements": [
+                {"type": "text", "text": "## Shadow AI"},
+                {"type": "vis", "title": "Unsanctioned AI domains",
+                 "fields": ["event.web_domain", "event.count"],
+                 "filters": {"event.category": "AI"}, "limit": "100",
+                 "vis_config": {"type": "table"}},
+            ],
+        }
+        html = dashboard_preview_html(cfg)
+        assert html.startswith("<!DOCTYPE html>")
+        assert "Unsanctioned AI domains" in html
+        assert "Shadow AI" in html            # section header
+        assert "event.web_domain" in html     # fields shown
+        assert "Dashboards" in html and "Import" in html  # import note
+        assert "http://" not in html and "https://" not in html  # self-contained
+
+    def test_empty_config_safe(self):
+        from exa.report.dashboard import dashboard_preview_html
+        html = dashboard_preview_html({"title": "Empty"})
+        assert html.startswith("<!DOCTYPE html>")
