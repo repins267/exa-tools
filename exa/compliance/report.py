@@ -113,10 +113,15 @@ def generate_html_report(report: "AuditReport") -> str:
         f"<div>Generated {_esc(report.timestamp)}</div>"
         f"<div>exa-tools Â· read-only</div>"
     )
+    disc = (
+        '<div class="disc" style="grid-column:span 12;color:var(--muted);'
+        'font-size:11px;margin-top:2px;line-height:1.5">'
+        + _esc(_DISCLAIMER) + '</div>'
+    )
     return page(
-        f"exa-tools Â· {report.framework_name}",
-        f"Compliance gap analysis Â· Generated {report.timestamp}",
-        cards, cov_panel + fail_panel + full_panel, meta, initial_theme="dark",
+        f"exa-tools · {report.framework_name}",
+        f"Compliance gap analysis · Generated {report.timestamp}",
+        cards, cov_panel + fail_panel + full_panel + disc, meta, initial_theme="dark",
     )
 
 

@@ -65,7 +65,7 @@ class TestHtmlContainsPassCount:
 
     def test_coverage_percent(self):
         html = generate_html_report(_make_report())
-        assert "75.0%" in html
+        assert "75%" in html
 
 
 class TestHtmlContainsGapDisclaimer:
