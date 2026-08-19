@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-533%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-965%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -25,6 +25,33 @@ Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built fo
 All from the command line.
 
 ![Pipeline Animation](docs/pipeline-animation.svg)
+
+## Claude / MCP Tools
+
+exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **read-only-by-default** slice of the CLI to **Claude Desktop** and **Claude Code**, plus a plugin with agentic **skills** and a branded **report renderer**.
+
+**Install**
+- Claude Code: `claude plugin install exa-tools@exa-tools` (loads the MCP server + skills from the repo).
+- Claude Desktop: `exa mcp install --tenant <tenant>`, then restart. On the enterprise "3p" build the config lives at `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`.
+
+**Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
+
+**Tools (25)**
+
+| Group | Tools |
+| --- | --- |
+| Search / cases / alerts | `search_alerts` `get_alert` `search_cases` `get_case` `search_events` `create_case`\* `update_case`\* `update_alert`\* `add_case_note`\* |
+| Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` |
+| AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` |
+| Detection | `list_detection_rules` |
+| Tenant | `get_active_tenant` `list_tenants` `set_active_tenant` `set_tenant_kind` |
+| Reports | `render_report` |
+
+\* write tools, gated behind `--allow-writes`.
+
+**Skills** — `exa-health-check`, `exa-tam-report` (tenant-aware; announce tenant + kind before reporting or writing).
+
+**Reports** — compliance audit, parser health, and ingest value render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
 
 ## Prerequisites
 
