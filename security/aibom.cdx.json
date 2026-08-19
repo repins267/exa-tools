@@ -1,0 +1,251 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:881f1581-b226-5ed9-9d35-767fa28c5f28",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-19T19:50:39Z",
+    "component": {
+      "bom-ref": "pkg:pypi/exa-tools@0.1.0",
+      "type": "application",
+      "name": "exa-tools",
+      "version": "0.1.0",
+      "description": "Exabeam New-Scale TAM/SOC toolkit: MCP server (30 tools) + Claude skills + branded reports.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/exa-tools@0.1.0"
+    },
+    "supplier": {
+      "name": "Exabeam, Inc.",
+      "url": [
+        "https://github.com/repins267/exa-tools"
+      ]
+    },
+    "properties": [
+      {
+        "name": "exa:mcp:tools",
+        "value": "30"
+      },
+      {
+        "name": "exa:mcp:skills",
+        "value": "11"
+      },
+      {
+        "name": "exa:governance:default-read-only",
+        "value": "true"
+      },
+      {
+        "name": "exa:governance:write-gate",
+        "value": "--allow-writes (4 write tools hidden+refused by default)"
+      },
+      {
+        "name": "exa:governance:tenant-kind",
+        "value": "demo/customer tags gate customer-tenant actions"
+      },
+      {
+        "name": "exa:guardrail:input-canonicalization",
+        "value": "on: strips smuggling code points + NFC on every result"
+      },
+      {
+        "name": "exa:guardrail:output-neutralization",
+        "value": "on: defang formulas/links + redact secrets on write inputs"
+      },
+      {
+        "name": "exa:guardrail:redteam-evals",
+        "value": "tests/redteam/ \u2014 A07/A10/A11/D01-D03 regression"
+      },
+      {
+        "name": "exa:audit:log",
+        "value": "metadata-only, default-on, fail-open, rotating jsonl (~/.exa/audit.jsonl)"
+      },
+      {
+        "name": "exa:secrets",
+        "value": "OS credential store (keyring) \u2014 never files; no secret reaches the model"
+      }
+    ]
+  },
+  "components": [
+    {
+      "bom-ref": "model:anthropic-claude",
+      "type": "machine-learning-model",
+      "name": "Claude (Anthropic)",
+      "description": "Foundation model the skills run on. Hosted API \u2014 weights are not distributed with exa-tools. The specific member (Opus / Sonnet / Haiku) is selected at runtime by the Claude client, not pinned by exa-tools.",
+      "supplier": {
+        "name": "Anthropic",
+        "url": [
+          "https://www.anthropic.com"
+        ]
+      },
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://docs.anthropic.com"
+        }
+      ]
+    },
+    {
+      "bom-ref": "data:skills-methodology",
+      "type": "data",
+      "name": "exa-tools skills & methodology",
+      "description": "11 agentic skills (prompt + method) that drive the MCP tools and CLI: exa-aillm-sync, exa-call-prep, exa-compliance, exa-dashboard-preview, exa-detection, exa-health-check, exa-ingest-review, exa-nymm, exa-soc-review, exa-tam-report, exa-vault. Includes tenant-preflight, report method, and prompt-injection traps. Static text shipped in the repo \u2014 not learned weights."
+    },
+    {
+      "bom-ref": "pkg:pypi/httpx",
+      "type": "library",
+      "name": "httpx",
+      "purl": "pkg:pypi/httpx",
+      "version": ">=0.27",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/keyring",
+      "type": "library",
+      "name": "keyring",
+      "purl": "pkg:pypi/keyring",
+      "version": ">=25.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/rich",
+      "type": "library",
+      "name": "rich",
+      "purl": "pkg:pypi/rich",
+      "version": ">=13.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/typer",
+      "type": "library",
+      "name": "typer",
+      "purl": "pkg:pypi/typer",
+      "version": ">=0.12",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pydantic",
+      "type": "library",
+      "name": "pydantic",
+      "purl": "pkg:pypi/pydantic",
+      "version": ">=2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/pandas",
+      "type": "library",
+      "name": "pandas",
+      "purl": "pkg:pypi/pandas",
+      "version": ">=3.0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/openpyxl",
+      "type": "library",
+      "name": "openpyxl",
+      "purl": "pkg:pypi/openpyxl",
+      "version": ">=3.1.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:pypi/mcp",
+      "type": "library",
+      "name": "mcp",
+      "purl": "pkg:pypi/mcp",
+      "version": ">=1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "bom-ref": "service:exabeam-nsa",
+      "name": "Exabeam New-Scale Analytics API",
+      "description": "The SIEM/UEBA backend exa-tools reads from and (when --allow-writes) writes to.",
+      "endpoints": [
+        "https://<tenant>.api.<region>.exabeam.cloud"
+      ],
+      "authenticated": true,
+      "x-trust-boundary": true,
+      "data": [
+        {
+          "flow": "inbound",
+          "classification": "security-telemetry",
+          "description": "alerts, cases, events, rules, license, collectors, parser health"
+        },
+        {
+          "flow": "outbound",
+          "classification": "analyst-action",
+          "description": "case create/update, alert update, case notes \u2014 only when --allow-writes; free text is neutralized before it persists"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/exa-tools@0.1.0",
+      "dependsOn": [
+        "model:anthropic-claude",
+        "data:skills-methodology",
+        "pkg:pypi/httpx",
+        "pkg:pypi/keyring",
+        "pkg:pypi/rich",
+        "pkg:pypi/typer",
+        "pkg:pypi/pydantic",
+        "pkg:pypi/pandas",
+        "pkg:pypi/openpyxl",
+        "pkg:pypi/mcp"
+      ]
+    }
+  ]
+}
