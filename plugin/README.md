@@ -59,6 +59,10 @@ live tenant server answered.
 | `exa-dashboard-preview` | Renders an Exabeam dashboard `.config` as a chart-drawn branded preview so you can iterate before the manual UI import. |
 | `exa-vault` | Uses the ExaVault (Obsidian TAM knowledge vault) as durable context, paired with live MCP data. Code-first local file access. |
 | `exa-nymm` | NYMM ("Not Your Momma's Mouton") — detection-tuning insight for New-Scale Analytics, the replacement for the deprecated Mouton AA tuning tool. Ranks alert drivers by volume vs. escalation-to-case and flags tune/disable candidates. Read-only. |
+| `exa-soc-review` | SOC-manager review: case KPIs (`soc_kpis`) + detection noise (NYMM) + backlog, with the method to diagnose low close-rate / MTTR / rising backlog. Read-only. |
+| `exa-ingest-review` | Ingest overage / cost review: `ingest_value` → `source_detail` drill-down → Keep/Review/Trim, rendered. The top-talker deep-dive. Read-only. |
+| `exa-detection` | Detection engineering (Code-first): convert Splunk SPL and SigmaHQ rules to Exabeam EQL, simulate, deploy, and version analytics rules via the `exa` CLI. Deploy writes — confirms first. |
+| `exa-compliance` | Compliance audit (Code-first): evidence collection + gap analysis across 11 frameworks via `exa compliance`, per-tenant Field Oracle queries, branded report. |
 
 Add them in Claude Desktop under **Settings -> Customize -> Skills**, from
 `plugin\skills\`. In Claude Code they load with the plugin.

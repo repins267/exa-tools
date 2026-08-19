@@ -50,7 +50,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 \* write tools, gated behind `--allow-writes`.
 
-**Skills (7)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+**Skills (11)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-detection` (Code-first), `exa-compliance` (Code-first). The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
 
 **Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON.
 
