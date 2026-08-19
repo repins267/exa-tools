@@ -661,3 +661,40 @@ class TestDocsConfig3p:
 
         # _is_3p_config is consistent with the resolved path
         assert _is_3p_config() == ("Claude-3p" in _claude_config_path().parts)
+
+
+class TestSearchAggregateAndRuleProjection:
+    def test_search_events_group_by_omits_filter_fields(self):
+        # In aggregate mode, filter fields must NOT be appended to the SELECT
+        # (they are neither grouped nor aggregated -> 400). Capture the request body.
+        from unittest.mock import MagicMock
+        from exa.search.events import search_events
+
+        client = MagicMock()
+        client.post.return_value = {"rows": []}
+        search_events(
+            client, 'vendor:"Check Point"',
+            fields=["activity_type", "count(id)"], group_by=["activity_type"],
+            lookback_days=7, limit=50,
+        )
+        body = client.post.call_args.kwargs.get("json") or client.post.call_args.args[-1]
+        sel = body.get("fields", [])
+        assert "vendor" not in sel  # filter field NOT added in aggregate mode
+        assert "approxLogTime" not in sel  # also excluded from group-by
+
+    def test_list_detection_rules_projection(self):
+        from unittest.mock import patch
+        from exa.mcp.tools import dispatch_tool
+
+        fake = [{
+            "name": "R1", "isEnabled": True, "severity": "High", "type": "factFeature",
+            "applicableEvents": [{"activity_type": ["process-create"]}],
+            "requiredFields": ["process_name"], "families": ["f"],
+            "mitre": [{"techniqueKey": "T1059"}],
+            "updatedRuleConfig": {"actOnCondition": "x" * 5000},  # huge field must be dropped
+        }]
+        with patch("exa.detection.rules.get_detection_rules", return_value=fake):
+            out = json.loads(asyncio.run(dispatch_tool(MagicMock(), "list_detection_rules", {}))[0].text)
+        r = out[0]
+        assert r["activity_types"] == ["process-create"] and r["mitre"] == ["T1059"]
+        assert "updatedRuleConfig" not in r and "actOnCondition" not in json.dumps(r)

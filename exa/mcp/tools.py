@@ -438,8 +438,10 @@ TOOL_DEFS: list[Tool] = [
     Tool(
         name="list_detection_rules",
         description=(
-            "Analytics (detection) rules on the tenant, optionally filtered by name "
-            "or status. Read-only, safe for autonomous use."
+            "Analytics (detection) rules on the tenant, optionally filtered by name or "
+            "status. Returns a compact projection per rule (name, isEnabled, severity, "
+            "type, activity_types, required_fields, families, mitre) -- not the full "
+            "config. Read-only, safe for autonomous use."
         ),
         inputSchema={
             "type": "object",
@@ -851,14 +853,35 @@ async def dispatch_tool(
             case "list_detection_rules":
                 from exa.detection.rules import get_detection_rules
 
-                return _ok(
-                    get_detection_rules(
-                        client,
-                        name=arguments.get("name"),
-                        status=arguments.get("status"),
-                        limit=arguments.get("limit"),
-                    )
+                rules = get_detection_rules(
+                    client,
+                    name=arguments.get("name"),
+                    status=arguments.get("status"),
+                    limit=arguments.get("limit"),
                 )
+                # Project to the fields a caller reasons over. The full rule
+                # config (actOnCondition, templates, updatedRuleConfig) is huge
+                # -- a no-filter list is ~500KB and unusable inline.
+                slim = []
+                for r in rules:
+                    acts: list[str] = []
+                    for ev in r.get("applicableEvents") or []:
+                        acts += [str(a) for a in (ev.get("activity_type") or [])]
+                    slim.append({
+                        "name": r.get("name"),
+                        "isEnabled": r.get("isEnabled"),
+                        "severity": r.get("severity"),
+                        "type": r.get("type"),
+                        "activity_types": sorted(set(acts)),
+                        "required_fields": r.get("requiredFields"),
+                        "families": r.get("families"),
+                        "mitre": [
+                            m.get("techniqueKey")
+                            for m in (r.get("mitre") or [])
+                            if isinstance(m, dict)
+                        ],
+                    })
+                return _ok(slim)
 
             case "get_active_tenant":
                 return _ok(_active_tenant_info(client, read_only))

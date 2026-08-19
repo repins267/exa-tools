@@ -82,11 +82,15 @@ def search_events(
         raw: Return raw API response instead of flattened rows.
     """
     req_fields = list(fields or _DEFAULT_FIELDS)
-    # Anything filtered on comes back. Filtering on a field and then finding it
-    # missing from the rows is the failure this guards -- absent reads as null.
-    for name in _fields_in_filter(filter):
-        if name not in req_fields:
-            req_fields.append(name)
+    # Anything filtered on comes back (filtering on a field then finding it
+    # missing reads as null) -- EXCEPT in a GROUP BY query, where a selected
+    # column that is neither grouped nor aggregated is a hard 400. In aggregate
+    # mode the SELECT must be exactly the grouped columns plus aggregates, so do
+    # NOT auto-append filter fields there.
+    if not group_by:
+        for name in _fields_in_filter(filter):
+            if name not in req_fields:
+                req_fields.append(name)
     # approxLogTime is invalid in GROUP BY queries (not grouped, not aggregated)
     if "approxLogTime" not in req_fields and not group_by:
         req_fields.append("approxLogTime")
