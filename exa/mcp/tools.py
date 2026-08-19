@@ -509,6 +509,26 @@ TOOL_DEFS: list[Tool] = [
             "required": ["kind"],
         },
     ),
+    Tool(
+        name="parser_health",
+        description=(
+            "Parsing health for the active tenant: parsed vs unparsed volume, and parser "
+            "errors classified into categories (Date/Time, Regex/Extraction, Type "
+            "Conversion, Field Validation, JSON) with a remediation per category, plus the "
+            "top failing parsers by msg_type. Read-only, safe for autonomous use. Errors are "
+            "sampled -- 'sampled': true means more exist than were examined."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lookback_days": {
+                    "type": "integer",
+                    "description": "Days to look back [default: 7]",
+                    "default": 7,
+                },
+            },
+        },
+    ),
 ]
 
 
@@ -546,6 +566,31 @@ def visible_tools(*, read_only: bool) -> list[Tool]:
     if read_only:
         return [t for t in TOOL_DEFS if t.name not in WRITE_TOOLS]
     return list(TOOL_DEFS)
+
+
+def _parser_health_summary(h) -> dict:
+    """JSON-friendly, bounded summary of a ParserHealth snapshot."""
+    return {
+        "tenant": h.tenant,
+        "lookback_days": h.lookback_days,
+        "parsed": h.parsed,
+        "unparsed": h.unparsed,
+        "unparsed_pct": h.unparsed_pct,
+        "errors_examined": h.errors_examined,
+        "sampled": h.truncated,
+        "categories": [
+            {
+                "category": g.category,
+                "count": g.count,
+                "top_field": (g.top_fields[0][0] if g.top_fields else None),
+                "top_parser": (g.top_sources[0][0] if g.top_sources else None),
+                "recommendation": g.recommendation,
+            }
+            for g in h.groups
+        ],
+        "top_failing_parsers": [{"parser": src, "errors": n} for src, n in h.by_source],
+        "note": h.note or None,
+    }
 
 
 async def dispatch_tool(
@@ -822,6 +867,16 @@ async def dispatch_tool(
                 return _ok(
                     {"tenant": target, "kind": entry.get("kind"), "updated": True}
                 )
+
+            case "parser_health":
+                from exa.health.parser import collect_parser_health
+
+                h = collect_parser_health(
+                    client,
+                    lookback_days=arguments.get("lookback_days", 7),
+                    error_limit=arguments.get("error_limit", 5000),
+                )
+                return _ok(_parser_health_summary(h))
 
             case _:
                 return _err(f"Unknown tool: {name}")

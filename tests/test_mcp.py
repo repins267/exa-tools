@@ -164,6 +164,7 @@ READ_TOOLS = {
     "list_tenants",
     "set_active_tenant",
     "set_tenant_kind",
+    "parser_health",
 }
 
 
