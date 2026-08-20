@@ -1,0 +1,203 @@
+{
+  "tenant": "sademodev22",
+  "date": "2026-08-20",
+  "generated_at": "2026-08-20T19:43:37Z",
+  "slow_threshold_s": 25.0,
+  "hard_timeout_s": 55.0,
+  "verdict": "PASS",
+  "counts": {
+    "ok": 19,
+    "slow": 0,
+    "timeout": 0,
+    "error": 0
+  },
+  "results": [
+    {
+      "tool": "get_active_tenant",
+      "args": {},
+      "seconds": 0.0,
+      "result_bytes": 209,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "list_tenants",
+      "args": {},
+      "seconds": 0.0,
+      "result_bytes": 796,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "get_license_consumption",
+      "args": {},
+      "seconds": 1.2,
+      "result_bytes": 5893,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "get_app_status",
+      "args": {},
+      "seconds": 1.1,
+      "result_bytes": 80156,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "list_collectors",
+      "args": {},
+      "seconds": 0.3,
+      "result_bytes": 18153,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "parser_health",
+      "args": {
+        "lookback_days": 7
+      },
+      "seconds": 5.2,
+      "result_bytes": 550,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "identity_health",
+      "args": {
+        "lookback_days": 7
+      },
+      "seconds": 2.5,
+      "result_bytes": 1133,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "context_table",
+      "args": {},
+      "seconds": 0.4,
+      "result_bytes": 9880,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "aillm_sources",
+      "args": {
+        "lookback_days": 7
+      },
+      "seconds": 1.2,
+      "result_bytes": 6063,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "aillm_validate",
+      "args": {
+        "lookback_days": 30
+      },
+      "seconds": 1.9,
+      "result_bytes": 75098,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "aillm_rules",
+      "args": {
+        "lookback_days": 30
+      },
+      "seconds": 8.2,
+      "result_bytes": 37393,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "aillm_risk",
+      "args": {
+        "lookback_days": 30
+      },
+      "seconds": 0.1,
+      "result_bytes": 3646,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "aillm_gaps",
+      "args": {
+        "lookback_days": 30
+      },
+      "seconds": 13.0,
+      "result_bytes": 104892,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "ai_domain_lookup",
+      "args": {
+        "domains": [
+          "chat.openai.com",
+          "claude.ai"
+        ]
+      },
+      "seconds": 0.0,
+      "result_bytes": 279,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "list_detection_rules",
+      "args": {
+        "limit": 25
+      },
+      "seconds": 1.5,
+      "result_bytes": 7475,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "soc_kpis",
+      "args": {
+        "lookback_days": 30,
+        "render": true
+      },
+      "seconds": 6.8,
+      "result_bytes": 2277,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "tuning_report",
+      "args": {
+        "lookback_days": 30,
+        "top_n": 20,
+        "render": true
+      },
+      "seconds": 10.2,
+      "result_bytes": 4172,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "ingest_value",
+      "args": {
+        "lookback_days": 7,
+        "top_n": 15,
+        "render": true
+      },
+      "seconds": 4.2,
+      "result_bytes": 2850,
+      "status": "ok",
+      "note": ""
+    },
+    {
+      "tool": "source_detail",
+      "args": {
+        "vendor": "*",
+        "lookback_days": 7
+      },
+      "seconds": 5.1,
+      "result_bytes": 4771,
+      "status": "ok",
+      "note": ""
+    }
+  ]
+}

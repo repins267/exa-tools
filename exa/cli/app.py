@@ -605,6 +605,13 @@ from exa.cli.mcp import mcp_app  # noqa: E402
 app.add_typer(mcp_app)
 
 
+# -- Selftest ----------------------------------------------------------------
+
+from exa.cli.selftest import selftest_app  # noqa: E402
+
+app.add_typer(selftest_app)
+
+
 # -- HotKey -------------------------------------------------------------------
 
 from exa.cli.hotkey import hotkey_app  # noqa: E402

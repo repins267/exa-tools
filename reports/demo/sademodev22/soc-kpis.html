@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>exa-tools · sademodev22 · SOC KPIs</title>
+<style>
+:root{--bg:#f6f8fb;--panel:#ffffff;--panel2:#f1f5fa;--border:#dbe3ec;--text:#0e1a2b;--muted:#5b6b80;--good:#106D00;--warn:#b45309;--bad:#be123c;--shadow:rgba(20,40,70,0.10);--header1:#eef3f9;--header2:#e4ecf5;--logobd:#1a2230;--inputbg:#f4f7fb;--thead:#eef3f9;--hover:rgba(0,107,255,0.06);--acc1:#009D00;--acc2:#006BFF;--purple:#8300D8;--brandbg:#0a0e14;--radius:16px;--mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;--sans:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial;}
+:root[data-theme="dark"]{--bg:#0b0f14;--panel:#0f1720;--panel2:#111b26;--border:#223042;--text:#e7eef8;--muted:#9fb1c6;--good:#4CDB00;--warn:#fbbf24;--bad:#fb7185;--shadow:rgba(0,0,0,0.35);--header1:#1a2a3a;--header2:#0e1620;--logobd:#2b3c52;--inputbg:#0b121a;--thead:#0b121a;--hover:rgba(39,178,255,0.08);--acc1:#4CDB00;--acc2:#27B2FF;--purple:#B383FF;--brandbg:#0a0e14;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0b0f14;--panel:#0f1720;--panel2:#111b26;--border:#223042;--text:#e7eef8;--muted:#9fb1c6;--good:#4CDB00;--warn:#fbbf24;--bad:#fb7185;--shadow:rgba(0,0,0,0.35);--header1:#1a2a3a;--header2:#0e1620;--logobd:#2b3c52;--inputbg:#0b121a;--thead:#0b121a;--hover:rgba(39,178,255,0.08);--acc1:#4CDB00;--acc2:#27B2FF;--purple:#B383FF;--brandbg:#0a0e14;}}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;font-family:var(--sans);color:var(--text);
+  background:radial-gradient(1200px 600px at 15% 10%, color-mix(in srgb, var(--panel2) 60%, transparent), transparent 60%),
+             radial-gradient(900px 500px at 85% 0%, color-mix(in srgb, var(--panel) 50%, transparent), transparent 55%),
+             var(--bg);}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 18px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;
+  border:1px solid var(--border);background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 65%,transparent));
+  box-shadow:0 10px 28px var(--shadow);border-radius:var(--radius)}
+.brand{display:flex;align-items:center;gap:12px;min-width:260px}
+.logo{height:48px;display:flex;align-items:center}
+.logo img{height:100%;width:auto;max-width:300px;object-fit:contain;display:block}
+.logo .logo-light{display:none}
+:root[data-theme="light"] .logo .logo-dark{display:none}
+:root[data-theme="light"] .logo .logo-light{display:block}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .logo .logo-dark{display:none}
+  :root:not([data-theme="dark"]) .logo .logo-light{display:block}}
+.title h1{margin:0;font-size:19px;font-weight:800;letter-spacing:.2px}
+.title .sub{margin-top:4px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.right{display:flex;align-items:center;gap:12px}
+.meta{text-align:right;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.toggle{cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);
+  border-radius:999px;padding:8px 12px;font-family:var(--mono);font-size:12px;line-height:1}
+.toggle:hover{border-color:var(--muted)}
+.grid{margin-top:18px;display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+.card{grid-column:span 3;padding:14px;border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--panel2),color-mix(in srgb,var(--panel2) 75%,transparent));
+  border-radius:var(--radius);box-shadow:0 10px 24px var(--shadow)}
+.card .label{color:var(--muted);font-size:12px;margin-bottom:8px}
+.card .value{font-size:28px;font-weight:800;letter-spacing:.2px}
+.card .hint{margin-top:10px;font-size:12px;color:var(--muted)}
+.value.good{color:var(--good)}.value.warn{color:var(--warn)}.value.bad{color:var(--bad)}
+.panel{grid-column:span 12;padding:14px 14px 6px;border:1px solid var(--border);
+  background:linear-gradient(180deg,var(--panel),color-mix(in srgb,var(--panel) 70%,transparent));
+  border-radius:var(--radius);box-shadow:0 10px 24px var(--shadow)}
+.panel h2{margin:2px 0 8px;font-size:15px;font-weight:800;letter-spacing:.2px}
+.panel .sub{margin:0 0 10px;color:var(--muted);font-size:12px}
+.bar{height:10px;border-radius:999px;background:var(--panel2);border:1px solid var(--border);overflow:hidden;margin:6px 0}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--acc1),var(--acc2))}
+.tbl-wrap{overflow-x:auto}
+table.data-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin:10px 0 16px}
+table.data-table thead th{text-align:left;background:var(--thead);color:var(--muted);
+  border-bottom:1px solid var(--border);padding:10px;position:sticky;top:0;z-index:2}
+table.data-table tbody td{padding:9px 10px;border-bottom:1px solid color-mix(in srgb,var(--border) 60%,transparent);vertical-align:top}
+table.data-table tbody tr:hover{background:var(--hover)}
+.footer-note{margin-top:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.panel.half{grid-column:span 6}
+@media (max-width:900px){.panel.half{grid-column:span 12}}
+.chart{margin:8px 0}
+.chart .row{display:flex;align-items:center;gap:8px;margin:5px 0;font-family:var(--mono);font-size:11px}
+.chart .lbl{width:40%;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart .track{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:6px;overflow:hidden;height:14px}
+.chart .fill{height:100%;background:linear-gradient(90deg,var(--acc1),var(--acc2))}
+.chart .val{width:78px;text-align:right;color:var(--text)}
+.pie{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pie .disc{width:130px;height:130px;border-radius:50%;flex:none;border:1px solid var(--border)}
+.pie .legend{font-family:var(--mono);font-size:11px}
+.pie .legend .r{display:flex;align-items:center;gap:7px;margin:3px 0}
+.pie .sw{width:11px;height:11px;border-radius:2px;flex:none}
+.empty{font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px;border:1px dashed var(--border);border-radius:10px;text-align:center}
+.vizbadge{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 8px;margin-left:8px}
+
+@media (max-width:980px){.card{grid-column:span 6}.meta{display:none}}
+@media (max-width:560px){.card{grid-column:span 12}}
+@media print{.toggle{display:none}body{background:#fff}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><img class="logo-dark" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyOTkuMTYgNTEuMzQiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojMDA2YmZmO30uY2xzLTEsLmNscy0yLC5jbHMtM3tzdHJva2Utd2lkdGg6MHB4O30uY2xzLTJ7ZmlsbDojMDA5ZDAwO30uY2xzLTN7ZmlsbDojZmZmO308L3N0eWxlPjwvZGVmcz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMS43NCw0NC41M0w0NS42MywxMS41OWw0LjIsNS43OS0xOS42OSwyNy4xNWgtOC40Wk04LjQsNTEuMzRMNDEuNDIsNS43OWwtNC4yLTUuNzlMMCw1MS4zNGg4LjRaIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNjMuNzUsNDQuNTNsMi44OC0zLjk4LTQuMi01Ljc5LTcuMDgsOS43N2g4LjRaTTQyLjAxLDUxLjM0bDE2LjIyLTIyLjM3LTQuMi01Ljc5LTIwLjQyLDI4LjE3aDguNFoiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yODEuNzUsMTUuNDJjLTMuNTIsMC01LjgyLjg3LTguNDIsMi4zLTEuMTgtMS40My0zLjA2LTIuMy01Ljk3LTIuM3MtNS4xNSwxLjA3LTcuMywyLjQ1di0yLjA5aC02LjQ4djI4Ljc5aDYuNzR2LTIxLjY5YzIuMDktMS4xMiwzLjYyLTEuNjksNC43LTEuNjksMi44NiwwLDMuNTIsMS4wMiwzLjUyLDQuOTV2MTguNDJoNi43NHYtMTguNDJjMC0xLjI3LS4wNS0yLjU1LS4yMS0zLjY3LDEuODQtLjk3LDMuNzgtMS4yNyw0Ljc1LTEuMjcsMi44NiwwLDMuNjcsMS4wMiwzLjY3LDQuOTV2MTguNDJoNi43NHYtMTguNDJjMC01Ljk3LTEuNTMtMTAuNzItOC40Ny0xMC43MiIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTE4NC4zNSwzMS42OGMwLDQuMTgtMS4wNyw3LjMtNS40Niw3LjNoLTQuOXYtMTcuNjljMS40My0uMjEsMy42Ny0uMzYsNC45LS4zNiw0LjM5LDAsNS40NiwzLjExLDUuNDYsNy4zdjMuNDVoMFpNMTc4Ljg4LDE1LjQyYy0xLjIyLDAtMy4wMS4xLTQuOS4zNlY1LjcyaC02Ljc0djM4Ljc3aDExLjY0YzguMjIsMCwxMi4yLTQuODUsMTIuMi0xMi44MXYtMy40NWMwLTcuOTYtMy45OC0xMi44MS0xMi4yLTEyLjgxIi8+PHBhdGggY2xhc3M9ImNscy0zIiBkPSJNOTYuNDIsMjcuNzJoLTEwLjgydi0uMjFjMC00LjAzLDIuMy02LjI4LDUuNDYtNi4yOHM1LjM2LDIuMyw1LjM2LDYuMjh2LjIxaDBaTTkxLjA2LDE1LjQyYy03LjgxLDAtMTIuMjUsNS0xMi4yNSwxMi45NnYzLjc4YzAsMTAuMDYsNy4yNSwxMi44MSwxMi4zNSwxMi44MSwzLjc3LDAsNS43OC0uMTcsOC4yMi0uNTdoLjAzYy41My0uMDksMS4wNy0uMTksMS42Ni0uMjkuMDIsMCwuMDMsMCwuMDUtLjAxbDEuMDEtLjE4di0uOWMwLS4wOCwwLS4xNSwwLS4yNHYtMy4zN3MwLS4wNCwwLS4wNnYtLjc5bC0xLjA1LjA5aC0uMDJjLS4xLjAxLS4xOS4wMi0uMjkuMDNsLTEuNi4xNGMtMi4wNi4xNy00LjcyLjM0LTcuNDkuMzQtNC45LDAtNi4xMy0zLjUyLTYuMTMtNi40OHYtLjE1aDE3LjY2di00LjE0YzAtNy42MS00LjI5LTEyLjk2LTEyLjE1LTEyLjk2Ii8+PHBhdGggY2xhc3M9ImNscy0zIiBkPSJNMjEzLjQ0LDI3LjcyaC0xMC44MnYtLjIxYzAtNC4wMywyLjMtNi4yOCw1LjQ2LTYuMjhzNS4zNiwyLjMsNS4zNiw2LjI4di4yMWgwWk0yMDguMDgsMTUuNDJjLTcuODEsMC0xMi4yNSw1LTEyLjI1LDEyLjk2djMuNzhjMCwxMC4wNiw3LjI1LDEyLjgxLDEyLjM1LDEyLjgxLDMuNzcsMCw1Ljc4LS4xNyw4LjIyLS41N2guMDNjLjUzLS4wOSwxLjA3LS4xOSwxLjY2LS4yOS4wMiwwLC4wMywwLC4wNS0uMDFsMS4wMS0uMTh2LS45YzAtLjA4LDAtLjE1LDAtLjI0di0zLjM3czAtLjA0LDAtLjA2di0uNzlsLTEuMDUuMDloLS4wMmMtLjEuMDEtLjE5LjAyLS4yOS4wM2wtMS42LjE0Yy0yLjA2LjE3LTQuNzIuMzQtNy40OS4zNC00LjksMC02LjEzLTMuNTItNi4xMy02LjQ4di0uMTVoMTcuNjZ2LTQuMTRjMC03LjYxLTQuMjktMTIuOTYtMTIuMTUtMTIuOTYiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0xNTMuMzYsMzguMThjLTEuNDguODItMy4zNywxLjQzLTUuMjEsMS40My0yLjU1LDAtMy42Ny0uNjYtMy42Ny0zLjE3di0uMjFjMC0yLjg2LDEuMDItNC4zNCw1LjY3LTQuMzRoMy4yMnY2LjI4aDBaTTE0OC44NywxNS40MmMtMy4xLDAtNS43Ny4zMi03Ljc2LjY3aDBsLS4zMS4wNmMtLjE2LjAzLS4zMS4wNi0uNDUuMDksMCwwLS4wMSwwLS4wMSwwbC0uOTQuMTh2Ljc0cy0uMDEuMDktLjAxLjE0djMuMjdzMCwuMDkuMDEuMTN2Ljg1bDEuNzMtLjE2aDBjMS44LS4xOSw0LjgyLS4zNiw3Ljc2LS4zNnM0LjQ5LjgyLDQuNDksNC4xNHYyLjI1aC0zLjIyYy04Ljg4LDAtMTIuNDUsMy4wMS0xMi40NSw4Ljgzdi4yMWMwLDYuODksNC41OSw4LjUyLDguODMsOC41MiwyLjQ1LDAsNC44NS0uODIsNy4yLTIuMjV2MS44NGg2LjM4di0xOS4zOWMwLTYuNTMtMy45OC05Ljc1LTExLjIzLTkuNzUiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yNDAuMzgsMzguMThjLTEuNDguODItMy4zNywxLjQzLTUuMjEsMS40My0yLjU1LDAtMy42Ny0uNjYtMy42Ny0zLjE3di0uMjFjMC0yLjg2LDEuMDItNC4zNCw1LjY3LTQuMzRoMy4yMnY2LjI4aDBaTTIzNS44OSwxNS40MmMtMy4xLDAtNS43Ny4zMi03Ljc2LjY3aDBsLS4zMS4wNmMtLjE2LjAzLS4zMS4wNi0uNDUuMDksMCwwLS4wMSwwLS4wMSwwbC0uOTQuMTh2Ljc0cy0uMDEuMDktLjAxLjE0djMuMjdzMCwuMDkuMDEuMTN2Ljg1bDEuNzMtLjE2aDBjMS44LS4xOSw0LjgyLS4zNiw3Ljc2LS4zNnM0LjQ5LjgyLDQuNDksNC4xNHYyLjI1aC0zLjIyYy04Ljg4LDAtMTIuNDYsMy4wMS0xMi40Niw4Ljgzdi4yMWMwLDYuODksNC41OSw4LjUyLDguODMsOC41MiwyLjQ1LDAsNC44NS0uODIsNy4yLTIuMjV2MS44NGg2LjM4di0xOS4zOWMwLTYuNTMtMy45OC05Ljc1LTExLjIzLTkuNzUiLz48cG9seWdvbiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iMTI3LjI4IDE1Ljc4IDEyMC4zIDI1LjM3IDExMy4zMyAxNS43OCAxMDYuMzQgMTUuNzggMTE2LjgxIDMwLjE3IDEwNi4zNCA0NC41NyAxMTMuMzMgNDQuNTcgMTIwLjMgMzQuOTcgMTI3LjI4IDQ0LjU3IDEzNC4yNiA0NC41NyAxMjMuOCAzMC4xNyAxMzQuMjYgMTUuNzggMTI3LjI4IDE1Ljc4IDEyNy4yOCAxNS43OCIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTI5NS4xMiwxNy4xNGgtMS4wMnYyLjU2aC0uODZ2LTIuNTZoLTEuMDJ2LS43M2gyLjl2LjczWk0yOTkuMTYsMTYuNDF2My4yOGgtLjgxdi0yLjMxaC0uMDJsLS42MSwyLjMxaC0uNzlsLS42MS0yLjMzaC0uMDJ2Mi4zM2gtLjgxdi0zLjI4aDEuMTdsLjY5LDIuMzkuNjMtMi4zOWgxLjE3WiIvPjwvc3ZnPg==" alt="Exabeam" /><img class="logo-light" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJMYXllcl8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyOTkuMTYgNTEuMzQiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojMDA2YmZmO30uY2xzLTEsLmNscy0yLC5jbHMtM3tzdHJva2Utd2lkdGg6MHB4O30uY2xzLTJ7ZmlsbDojMDA5ZDAwO30uY2xzLTN7ZmlsbDojMDAwO308L3N0eWxlPjwvZGVmcz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yMS43NCw0NC41M0w0NS42MywxMS41OWw0LjIsNS43OS0xOS42OSwyNy4xNWgtOC40Wk04LjQsNTEuMzRMNDEuNDIsNS43OWwtNC4yLTUuNzlMMCw1MS4zNGg4LjRaIi8+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNNjMuNzUsNDQuNTNsMi44OC0zLjk4LTQuMi01Ljc5LTcuMDgsOS43N2g4LjRaTTQyLjAxLDUxLjM0bDE2LjIyLTIyLjM3LTQuMi01Ljc5LTIwLjQyLDI4LjE3aDguNFoiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yODEuNzUsMTUuNDJjLTMuNTIsMC01LjgyLjg3LTguNDIsMi4zLTEuMTgtMS40My0zLjA2LTIuMy01Ljk3LTIuM3MtNS4xNSwxLjA3LTcuMywyLjQ1di0yLjA5aC02LjQ4djI4Ljc5aDYuNzR2LTIxLjY5YzIuMDktMS4xMiwzLjYyLTEuNjksNC43LTEuNjksMi44NiwwLDMuNTIsMS4wMiwzLjUyLDQuOTV2MTguNDJoNi43NHYtMTguNDJjMC0xLjI3LS4wNS0yLjU1LS4yMS0zLjY3LDEuODQtLjk3LDMuNzgtMS4yNyw0Ljc1LTEuMjcsMi44NiwwLDMuNjcsMS4wMiwzLjY3LDQuOTV2MTguNDJoNi43NHYtMTguNDJjMC01Ljk3LTEuNTMtMTAuNzItOC40Ny0xMC43MiIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTE4NC4zNSwzMS42OGMwLDQuMTgtMS4wNyw3LjMtNS40Niw3LjNoLTQuOXYtMTcuNjljMS40My0uMjEsMy42Ny0uMzYsNC45LS4zNiw0LjM5LDAsNS40NiwzLjExLDUuNDYsNy4zdjMuNDVoMFpNMTc4Ljg4LDE1LjQyYy0xLjIyLDAtMy4wMS4xLTQuOS4zNlY1LjcyaC02Ljc0djM4Ljc3aDExLjY0YzguMjIsMCwxMi4yLTQuODUsMTIuMi0xMi44MXYtMy40NWMwLTcuOTYtMy45OC0xMi44MS0xMi4yLTEyLjgxIi8+PHBhdGggY2xhc3M9ImNscy0zIiBkPSJNOTYuNDIsMjcuNzJoLTEwLjgydi0uMjFjMC00LjAzLDIuMy02LjI4LDUuNDYtNi4yOHM1LjM2LDIuMyw1LjM2LDYuMjh2LjIxaDBaTTkxLjA2LDE1LjQyYy03LjgxLDAtMTIuMjUsNS0xMi4yNSwxMi45NnYzLjc4YzAsMTAuMDYsNy4yNSwxMi44MSwxMi4zNSwxMi44MSwzLjc3LDAsNS43OC0uMTcsOC4yMi0uNTdoLjAzYy41My0uMDksMS4wNy0uMTksMS42Ni0uMjkuMDIsMCwuMDMsMCwuMDUtLjAxbDEuMDEtLjE4di0uOWMwLS4wOCwwLS4xNSwwLS4yNHYtMy4zN3MwLS4wNCwwLS4wNnYtLjc5bC0xLjA1LjA5aC0uMDJjLS4xLjAxLS4xOS4wMi0uMjkuMDNsLTEuNi4xNGMtMi4wNi4xNy00LjcyLjM0LTcuNDkuMzQtNC45LDAtNi4xMy0zLjUyLTYuMTMtNi40OHYtLjE1aDE3LjY2di00LjE0YzAtNy42MS00LjI5LTEyLjk2LTEyLjE1LTEyLjk2Ii8+PHBhdGggY2xhc3M9ImNscy0zIiBkPSJNMjEzLjQ0LDI3LjcyaC0xMC44MnYtLjIxYzAtNC4wMywyLjMtNi4yOCw1LjQ2LTYuMjhzNS4zNiwyLjMsNS4zNiw2LjI4di4yMWgwWk0yMDguMDgsMTUuNDJjLTcuODEsMC0xMi4yNSw1LTEyLjI1LDEyLjk2djMuNzhjMCwxMC4wNiw3LjI1LDEyLjgxLDEyLjM1LDEyLjgxLDMuNzcsMCw1Ljc4LS4xNyw4LjIyLS41N2guMDNjLjUzLS4wOSwxLjA3LS4xOSwxLjY2LS4yOS4wMiwwLC4wMywwLC4wNS0uMDFsMS4wMS0uMTh2LS45YzAtLjA4LDAtLjE1LDAtLjI0di0zLjM3czAtLjA0LDAtLjA2di0uNzlsLTEuMDUuMDloLS4wMmMtLjEuMDEtLjE5LjAyLS4yOS4wM2wtMS42LjE0Yy0yLjA2LjE3LTQuNzIuMzQtNy40OS4zNC00LjksMC02LjEzLTMuNTItNi4xMy02LjQ4di0uMTVoMTcuNjZ2LTQuMTRjMC03LjYxLTQuMjktMTIuOTYtMTIuMTUtMTIuOTYiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0xNTMuMzYsMzguMThjLTEuNDguODItMy4zNywxLjQzLTUuMjEsMS40My0yLjU1LDAtMy42Ny0uNjYtMy42Ny0zLjE3di0uMjFjMC0yLjg2LDEuMDItNC4zNCw1LjY3LTQuMzRoMy4yMnY2LjI4aDBaTTE0OC44NywxNS40MmMtMy4xLDAtNS43Ny4zMi03Ljc2LjY3aDBsLS4zMS4wNmMtLjE2LjAzLS4zMS4wNi0uNDUuMDksMCwwLS4wMSwwLS4wMSwwbC0uOTQuMTh2Ljc0cy0uMDEuMDktLjAxLjE0djMuMjdzMCwuMDkuMDEuMTN2Ljg1bDEuNzMtLjE2aDBjMS44LS4xOSw0LjgyLS4zNiw3Ljc2LS4zNnM0LjQ5LjgyLDQuNDksNC4xNHYyLjI1aC0zLjIyYy04Ljg4LDAtMTIuNDUsMy4wMS0xMi40NSw4Ljgzdi4yMWMwLDYuODksNC41OSw4LjUyLDguODMsOC41MiwyLjQ1LDAsNC44NS0uODIsNy4yLTIuMjV2MS44NGg2LjM4di0xOS4zOWMwLTYuNTMtMy45OC05Ljc1LTExLjIzLTkuNzUiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0yNDAuMzgsMzguMThjLTEuNDguODItMy4zNywxLjQzLTUuMjEsMS40My0yLjU1LDAtMy42Ny0uNjYtMy42Ny0zLjE3di0uMjFjMC0yLjg2LDEuMDItNC4zNCw1LjY3LTQuMzRoMy4yMnY2LjI4aDBaTTIzNS44OSwxNS40MmMtMy4xLDAtNS43Ny4zMi03Ljc2LjY3aDBsLS4zMS4wNmMtLjE2LjAzLS4zMS4wNi0uNDUuMDksMCwwLS4wMSwwLS4wMSwwbC0uOTQuMTh2Ljc0cy0uMDEuMDktLjAxLjE0djMuMjdzMCwuMDkuMDEuMTN2Ljg1bDEuNzMtLjE2aDBjMS44LS4xOSw0LjgyLS4zNiw3Ljc2LS4zNnM0LjQ5LjgyLDQuNDksNC4xNHYyLjI1aC0zLjIyYy04Ljg4LDAtMTIuNDYsMy4wMS0xMi40Niw4Ljgzdi4yMWMwLDYuODksNC41OSw4LjUyLDguODMsOC41MiwyLjQ1LDAsNC44NS0uODIsNy4yLTIuMjV2MS44NGg2LjM4di0xOS4zOWMwLTYuNTMtMy45OC05Ljc1LTExLjIzLTkuNzUiLz48cG9seWdvbiBjbGFzcz0iY2xzLTMiIHBvaW50cz0iMTI3LjI4IDE1Ljc4IDEyMC4zIDI1LjM3IDExMy4zMyAxNS43OCAxMDYuMzQgMTUuNzggMTE2LjgxIDMwLjE3IDEwNi4zNCA0NC41NyAxMTMuMzMgNDQuNTcgMTIwLjMgMzQuOTcgMTI3LjI4IDQ0LjU3IDEzNC4yNiA0NC41NyAxMjMuOCAzMC4xNyAxMzQuMjYgMTUuNzggMTI3LjI4IDE1Ljc4IDEyNy4yOCAxNS43OCIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTI5NS4xMiwxNy4xNGgtMS4wMnYyLjU2aC0uODZ2LTIuNTZoLTEuMDJ2LS43M2gyLjl2LjczWk0yOTkuMTYsMTYuNDF2My4yOGgtLjgxdi0yLjMxaC0uMDJsLS42MSwyLjMxaC0uNzlsLS42MS0yLjMzaC0uMDJ2Mi4zM2gtLjgxdi0zLjI4aDEuMTdsLjY5LDIuMzkuNjMtMi4zOWgxLjE3WiIvPjwvc3ZnPg==" alt="Exabeam" /></div>
+      <div class="title"><h1>exa-tools · sademodev22 · SOC KPIs</h1><div class="sub">Case metrics · last 30d</div></div>
+    </div>
+    <div class="right">
+      <div class="meta"><div>sademodev22</div><div>last 30d</div><div>SOC KPIs · read-only</div></div>
+      <button id="themeBtn" class="toggle" onclick="__toggleTheme()">Theme</button>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="label">Tenant</div><div class="value">sademodev22</div><div class="hint">last 30d</div></div><div class="card"><div class="label">Cases opened</div><div class="value">55</div><div class="hint">last 30d</div></div><div class="card"><div class="label">Open backlog</div><div class="value bad">55</div></div><div class="card"><div class="label">Close rate</div><div class="value bad">0.0%</div></div><div class="card"><div class="label">MTTR</div><div class="value">—</div><div class="hint">avg time to close</div></div><div class="card"><div class="label">Avg open age</div><div class="value warn">370.9h</div><div class="hint">unworked backlog</div></div>
+    <div class="panel half"><h2>Close rate</h2><div class="bar"><span style="width:0%"></span></div><div class="footer-note">0 of 55 cases closed in the window.</div></div><div class="panel half"><h2>Worked by (assignee)</h2><div class="sub">case load per analyst</div><div class="tbl-wrap"><table class="data-table" id="t65366"><thead><tr><th>Analyst</th><th>Cases</th></tr></thead><tbody><tr><td>Unassigned</td><td>55</td></tr></tbody></table></div></div><div class="panel half"><h2>By priority</h2><div class="tbl-wrap"><table class="data-table" id="t27098"><thead><tr><th>Priority</th><th>Cases</th></tr></thead><tbody><tr><td>CRITICAL</td><td>50</td></tr><tr><td>MEDIUM</td><td>4</td></tr><tr><td>HIGH</td><td>1</td></tr></tbody></table></div></div><div class="panel half"><h2>By stage</h2><div class="tbl-wrap"><table class="data-table" id="t31895"><thead><tr><th>Stage</th><th>Cases</th></tr></thead><tbody><tr><td>NEW</td><td>55</td></tr></tbody></table></div></div><div class="panel half"><h2>By queue</h2><div class="tbl-wrap"><table class="data-table" id="t39324"><thead><tr><th>Queue</th><th>Cases</th></tr></thead><tbody><tr><td>Tier 1 Analyst</td><td>50</td></tr><tr><td>Unassigned</td><td>5</td></tr></tbody></table></div></div><div class="panel half"><h2>Top firing rules</h2><div class="tbl-wrap"><table class="data-table" id="t58058"><thead><tr><th>Rule / alert</th><th>Cases</th></tr></thead><tbody><tr><td>Single detection from AlgoSec Firewall Analyzer with rules &quot;Site ID Test&quot; and &quot;A correlation rule was triggered&quot;</td><td>2</td></tr><tr><td>Phishing leads to Barbara Salazar&#x27;s anomalous VPN login, HRMS data download, and large data exfiltration to a suspicious domain</td><td>1</td></tr><tr><td>User Aileen Chen repeatedly attempts unauthorized AI guardrail violations for proprietary and HR data access</td><td>1</td></tr><tr><td>User Jim Coleman Attempts Malicious Code Generation and Ransomware Generation via AI Guardrail Violations</td><td>1</td></tr><tr><td>john test</td><td>1</td></tr><tr><td>Rhiannon Powell (Finance) receives a suspicious email from ktenergy.co, then forwards an internal email to ktenergy.co, indicating potential phishing </td><td>1</td></tr><tr><td>Email bot &quot;agent-email-bot&quot; receives first email from ktenergy.co from Germany, executes .exe attachment, then attempts unauthorized AI requests to VP</td><td>1</td></tr><tr><td>Multiple service logons to host kijangpoc3-win2022 from SYSTEM account</td><td>1</td></tr><tr><td>AI Agent `agent-dev-reviewer` Performs First-Time Repository Access, Exfiltrates Data to Malicious Filesharing Site, and Attempts Evasion Techniques</td><td>1</td></tr><tr><td>User Barbara Salazar receives phishing email, accesses malicious domain, then performs unusual VPN login, data download, account switches, and large d</td><td>1</td></tr></tbody></table></div></div><div class="panel half"><h2>Notable users</h2><div class="sub">entities generating the most cases</div><div class="tbl-wrap"><table class="data-table" id="t53886"><thead><tr><th>User</th><th>Cases</th></tr></thead><tbody><tr><td>[&#x27;bsalazar&#x27;]</td><td>5</td></tr><tr><td>[&#x27;rpowell&#x27;]</td><td>4</td></tr><tr><td>[&#x27;agent-email-bot&#x27;]</td><td>4</td></tr><tr><td>[&#x27;agent-dev-reviewer&#x27;]</td><td>4</td></tr><tr><td>[&#x27;system&#x27;]</td><td>1</td></tr><tr><td>[&#x27;user73018&#x27;]</td><td>1</td></tr></tbody></table></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement, KEY="exa-report-theme";
+  try{var s=localStorage.getItem(KEY); if(s){root.setAttribute("data-theme",s);}}catch(e){}
+  function cur(){var a=root.getAttribute("data-theme");
+    if(a) return a;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark":"light";}
+  window.__toggleTheme=function(){var n=cur()==="dark"?"light":"dark";
+    root.setAttribute("data-theme",n); try{localStorage.setItem(KEY,n);}catch(e){}
+    var b=document.getElementById("themeBtn"); if(b) b.textContent=(n==="dark"?"☀ Light":"☾ Dark");};
+  document.addEventListener("DOMContentLoaded",function(){
+    var b=document.getElementById("themeBtn"); if(b) b.textContent=(cur()==="dark"?"☀ Light":"☾ Dark");});
+})();
+</script>
+
+</body>
+</html>

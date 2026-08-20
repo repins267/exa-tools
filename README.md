@@ -63,7 +63,9 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 \* write tools, gated behind `--allow-writes`.
 
-**Skills (12)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first). The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+**Skills (13)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first), `exa-selftest` (Code-first). The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+
+**Demo/onboarding preflight** — `exa selftest --tenant <t>` exercises every read tool through the same path Claude Desktop uses, times each against a Desktop-latency budget, classifies ok/slow/timeout/error, and writes `reports/selftest/<tenant>-<date>.json` (exit non-zero on any timeout/error, so a scheduled task can alert). The MCP server also **warms the AI/LLM tenant field-profile in the background on start**, so the first AI/LLM query in a fresh Claude Desktop session no longer eats the ~35s cold-collection cost and looks hung.
 
 **Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON. Rendered output is auto-organized under `reports/{kind}/{tenant}/` (e.g. `reports/customer/baystate/`) — the tenant's kind tag and nickname, with intermediate directories created automatically; pass `output_path` to override.
 
