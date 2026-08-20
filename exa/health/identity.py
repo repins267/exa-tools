@@ -80,16 +80,22 @@ def _record_count(t: dict) -> int:
 
 def find_merged_identifiers(
     client: "ExaClient", *, table: str | None = None, tables: list[str] | None = None,
-    max_records_per_table: int = 25_000, max_tables: int = 8,
+    max_records_per_table: int = 25_000, max_tables: int = 8, page_size: int = 2_000,
+    time_budget_s: float = 40.0,
 ):
     """Scan identity context tables for any identifier mapped to 2+ distinct users.
 
-    Bounded for large customer tenants: reads at most ``max_records_per_table`` per table
-    (one page, not the whole table), scans at most ``max_tables`` tables, skips empty
-    tables, and does cheapest (smallest) tables first — so a big tenant returns partial
-    results with a clear note instead of blowing the MCP tool-call timeout.
+    Bounded for large customer tenants: reads each table in SMALL pages (``page_size``,
+    so a single request never trips the 30s HTTP timeout), caps at ``max_records_per_table``
+    per table and ``max_tables`` tables, skips empty tables, does the smallest tables first,
+    and stops at a shared ``time_budget_s`` — returning PARTIAL results with a clear note
+    instead of blowing the MCP tool-call timeout on a 45K-record table.
     """
+    import time
+
     from exa.context.tables import get_records, get_tables, resolve_table_schema
+
+    deadline = time.time() + time_budget_s
 
     all_tables = get_tables(client)
     if tables:
@@ -117,18 +123,35 @@ def find_merged_identifiers(
     scanned: list[str] = []
     capped: list[str] = []
     notes: list[str] = []
+    timed_out = False
     for t in cands:
         name = str(t.get("name") or t.get("id") or "?")
+        if time.time() > deadline:
+            timed_out = True
+            break
         try:
             key_attr, others = resolve_table_schema(client, t)
-            resp = get_records(client, t["id"], limit=max_records_per_table, offset=0)
-            records = resp.get("records", resp) if isinstance(resp, dict) else resp
+            # Read in small pages so a single request never trips the 30s HTTP timeout.
+            records: list[dict] = []
+            offset = 0
+            page_cut = False
+            while len(records) < max_records_per_table and time.time() < deadline:
+                want = min(page_size, max_records_per_table - len(records))
+                resp = get_records(client, t["id"], limit=want, offset=offset)
+                batch = resp.get("records", resp) if isinstance(resp, dict) else resp
+                if not batch:
+                    break
+                records.extend(batch)
+                if len(batch) < want:
+                    break
+                offset += len(batch)
+            else:
+                page_cut = len(records) >= max_records_per_table
         except Exception as exc:
             notes.append(f"{name}: {exc}")
             continue
-        records = records or []
         total = _record_count(t)
-        if total > max_records_per_table or (total < 0 and len(records) >= max_records_per_table):
+        if page_cut or total > max_records_per_table or (total < 0 and len(records) >= max_records_per_table):
             capped.append(name)
         scanned.append(name)
         attr_display = {v: k for k, v in others.items()}
@@ -153,6 +176,9 @@ def find_merged_identifiers(
                     value=vs, users=sorted(users),
                 ))
     merged.sort(key=lambda m: -len(m.users))
+    if timed_out:
+        notes.append(f"stopped at the {time_budget_s:.0f}s time budget after {len(scanned)} table(s) — "
+                     "results are partial; scan fewer tables (table=/tables=) or raise time_budget_s")
     if capped:
         notes.append(f"scanned only the first {max_records_per_table:,} records of: "
                      f"{', '.join(capped)} — a merge beyond that cap could be missed "
