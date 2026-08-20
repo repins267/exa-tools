@@ -32,7 +32,17 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 **Install**
 - Claude Code: `claude plugin install exa-tools@exa-tools` (loads the MCP server + skills from the repo).
-- Claude Desktop: `exa mcp install --tenant <tenant>`, then restart. On the enterprise "3p" build the config lives at `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`.
+- Claude Desktop: `exa mcp install --tenant <tenant>`, then fully quit and reopen. Check **Settings → Developer** for the `exabeam` server. You never run `exa mcp serve` yourself — Claude spawns it.
+- Not sure which client/build you have? `exa mcp install --tenant <tenant> --print` shows the exact config block **and every config path for your OS** with live `detected / not present` state, and flags a Store build that can't run MCP.
+
+**Which Claude client works?** Your Claude *plan* is not the blocker — the **Free plan works**. What matters is the **app build**: local MCP is a feature of the app, not the subscription.
+
+| Client | Runs exa-tools? | Why / config path |
+| --- | --- | --- |
+| **Claude Desktop — standalone** (claude.ai/download) | ✅ Yes, even on Free | Has Developer Mode (**Settings → Developer**). Config: `%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`) |
+| **Claude Desktop — Microsoft Store** (MSIX) | ❌ No | Sandboxed, no Developer Mode — the config is written but never read. **Fix:** uninstall it, install the standalone app instead |
+| **Claude Desktop — work AWS Bedrock** ("Claude-3p") | ✅ Yes | Enterprise build. Config: `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`; the `--docs` server is proxied via `npx mcp-remote` |
+| **Claude Code** (Free or licensed) | ✅ Yes | `claude mcp add …` or a project `.mcp.json`; never hits the Store-sandbox problem |
 
 **Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
 
