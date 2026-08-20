@@ -97,17 +97,29 @@ def _safe_seg(s: Any) -> str:
     return seg or "x"
 
 
+def _reports_root():
+    """The single, stable containment root for all rendered reports.
+
+    Defaults to ``<cwd>/reports`` (on Claude Desktop the CWD is the app dir), but
+    ``EXA_REPORTS_DIR`` pins it to a fixed absolute location so the root does not move
+    with the process working directory (PRAX-2026-08-20-009). Resolved to an absolute
+    path so every caller shares the identical boundary.
+    """
+    import os
+    from pathlib import Path
+
+    d = os.environ.get("EXA_REPORTS_DIR", "").strip()
+    return (Path(d) if d else Path("reports")).resolve()
+
+
 def _report_path(client: Any, filename: str):
-    """Default save path for a rendered report: reports/{kind}/{tenant}/{filename}.
+    """Default save path for a rendered report: {reports-root}/{kind}/{tenant}/{filename}.
 
     Sorts output by tenant kind (demo/customer, or 'untagged') and tenant nickname so
     reports stay organized per account. Intermediate directories are created here, so a
-    brand-new tenant/kind folder never causes a save to fail. The path is relative to the
-    process CWD -- on Claude Desktop that is the app directory, so files land under
-    <app>/reports/{kind}/{tenant}/. Pass an explicit output_path to override.
+    brand-new tenant/kind folder never causes a save to fail. Root is `_reports_root()`
+    (CWD/reports by default, or EXA_REPORTS_DIR). Pass an explicit output_path to override.
     """
-    from pathlib import Path
-
     tenant = getattr(client, "tenant", None) or "tenant"
     kind = "untagged"
     try:
@@ -116,7 +128,7 @@ def _report_path(client: Any, filename: str):
         kind = (list_tenants().get(tenant, {}) or {}).get("kind") or "untagged"
     except Exception:
         pass
-    p = Path("reports") / _safe_seg(kind) / _safe_seg(tenant) / filename
+    p = _reports_root() / _safe_seg(kind) / _safe_seg(tenant) / filename
     p.parent.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -129,12 +141,10 @@ def _contained_output_path(candidate: str):
     anywhere on the host (PRAX-2026-08-19-001). Joining under the reports/ root and
     checking is_relative_to rejects all three in one test.
     """
-    from pathlib import Path
-
-    base = Path("reports").resolve()
+    base = _reports_root()
     target = (base / str(candidate)).resolve()
     if not target.is_relative_to(base):
-        raise ValueError(f"output_path must stay under reports/ (got {candidate!r})")
+        raise ValueError(f"output_path must stay under the reports root (got {candidate!r})")
     target.parent.mkdir(parents=True, exist_ok=True)
     return target
 
@@ -1326,7 +1336,13 @@ async def dispatch_tool(
                     # config_path is model-supplied; refuse anything that isn't a small
                     # dashboard config file so it can't read arbitrary host files into an
                     # HTML artifact (PRAX-2026-08-19-002).
-                    cp = _P(arguments["config_path"])
+                    cp = _P(arguments["config_path"]).resolve()
+                    # Contain the read to the operator's own files (home or CWD) so a
+                    # model-supplied path can't reach system/other-user files
+                    # (PRAX-2026-08-20-002).
+                    _roots = (_P.home().resolve(), _P.cwd().resolve())
+                    if not any(cp.is_relative_to(r) for r in _roots):
+                        return _err("config_path must be under your home directory or the working directory.")
                     if cp.suffix.lower() not in (".json", ".config"):
                         return _err("config_path must be a .json or .config file.")
                     try:

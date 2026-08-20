@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-1015%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1016%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 

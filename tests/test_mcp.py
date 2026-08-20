@@ -596,11 +596,24 @@ class TestOutputPathContainment:
 
 
 class TestConfigPathGuard:
-    def test_rejects_non_config_extension(self):
+    def test_rejects_path_outside_home_or_cwd(self):
+        # a system path is refused by the containment check (before extension) — PRAX-...-002
         from exa.mcp.tools import dispatch_tool
 
         out = json.loads(asyncio.run(dispatch_tool(
             MagicMock(), "render_dashboard", {"config_path": "/etc/passwd"}, read_only=True
+        ))[0].text)
+        assert "error" in out and "home directory" in out["error"]
+
+    def test_rejects_non_config_extension_under_cwd(self, tmp_path, monkeypatch):
+        # a file under CWD but with the wrong extension is refused by the extension check
+        from exa.mcp.tools import dispatch_tool
+
+        monkeypatch.chdir(tmp_path)
+        bad = tmp_path / "notes.txt"
+        bad.write_text("x", encoding="utf-8")
+        out = json.loads(asyncio.run(dispatch_tool(
+            MagicMock(), "render_dashboard", {"config_path": str(bad)}, read_only=True
         ))[0].text)
         assert "error" in out and ".json or .config" in out["error"]
 
