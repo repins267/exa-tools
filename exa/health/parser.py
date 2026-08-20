@@ -72,6 +72,42 @@ def classify_parser_error(reason: str, message: str = "", field_name: str = "") 
     return "Other"
 
 
+# CIM fields whose misparse breaks analytics/detection (Required + Detection classes in
+# the DVE NGDV-07 scheme). A parser error touching one of these grades the parser Red;
+# errors only on other (Informational) fields grade Yellow; no errors -> Green.
+#
+# NOTE: this is a TRANSPARENT TRIAGE approximation. The authoritative Required / Detection
+# / Informational field taxonomy lives in Exabeam's DVE workbook, and the final TP/FP call
+# per NGDV-07 is a manual review (raw log vs parsed value, vendor syslog docs). This grade
+# is a first-pass "which parsers to look at first", not a replacement for that review.
+CORE_FIELDS = frozenset({
+    # identity / entity
+    "user", "src_user", "dest_user", "host", "src_host", "dest_host", "hostname",
+    # network
+    "src_ip", "dest_ip", "src_port", "dest_port", "src_translated_ip", "dest_translated_ip",
+    # activity / outcome
+    "activity_type", "action", "outcome", "event_code", "event_name", "event_category",
+    # time
+    "time", "approx_log_time",
+})
+
+
+def grade_parser(offending_fields) -> str:
+    """Red/Yellow/Green triage for a parser from the fields its errors touched.
+
+    Red    an error touched a core (Required/Detection-class) field -- analytics impact.
+    Yellow errors only on non-core (Informational) fields.
+    Green  no errors.
+
+    Approximates NGDV-07's VEO grade; see CORE_FIELDS for the caveat.
+    """
+    if not offending_fields:
+        return "Green"
+    if any((f or "").strip().lower() in CORE_FIELDS for f in offending_fields):
+        return "Red"
+    return "Yellow"
+
+
 def parser_error_recommendation(error_type: str) -> str:
     """Actionable remediation for a parser error category."""
     return _RECOMMENDATIONS.get(error_type, _RECOMMENDATIONS["Other"])
@@ -120,6 +156,9 @@ class ParserHealth:
     errors_examined: int = 0
     groups: list[ParserErrorGroup] = field(default_factory=list)
     by_source: list[tuple[str, int]] = field(default_factory=list)
+    # Per-parser NGDV-07-style triage: [{source, grade, errors, core_fields, other_fields}]
+    # sorted worst-first (Red before Yellow). Only parsers with errors appear (rest = Green).
+    parsers_needing_action: list[dict] = field(default_factory=list)
     truncated: bool = False
     note: str = ""
 
@@ -197,6 +236,7 @@ def collect_parser_health(
     cat_fields: dict = defaultdict(Counter)
     cat_sources: dict = defaultdict(Counter)
     all_sources: Counter = Counter()
+    source_fields: dict = defaultdict(set)  # source -> set of offending fields (for grading)
     try:
         erows = search_events(
             client, "NOT error_detail:null",
@@ -219,6 +259,7 @@ def collect_parser_health(
                 cat_fields[cat][off] += 1
                 cat_sources[cat][source] += 1
                 all_sources[source] += 1
+                source_fields[source].add(off)
     except Exception as exc:
         health.note = (health.note + " | " if health.note else "") + f"error query failed: {exc}"
 
@@ -230,6 +271,24 @@ def collect_parser_health(
             top_sources=cat_sources[cat].most_common(5),
         ))
     health.by_source = all_sources.most_common(10)
+
+    # Per-parser NGDV-07 triage: grade each source that produced errors, worst-first.
+    action: list[dict] = []
+    for src, offending in source_fields.items():
+        grade = grade_parser(offending)
+        core = sorted(f for f in offending if (f or "").strip().lower() in CORE_FIELDS)
+        other = sorted(f for f in offending if (f or "").strip().lower() not in CORE_FIELDS)
+        action.append({
+            "source": src,
+            "grade": grade,
+            "errors": all_sources.get(src, 0),
+            "core_fields": core[:8],
+            "other_fields": other[:8],
+        })
+    # Red before Yellow, then by error volume.
+    _rank = {"Red": 0, "Yellow": 1, "Green": 2}
+    action.sort(key=lambda a: (_rank.get(a["grade"], 3), -a["errors"]))
+    health.parsers_needing_action = action[:25]
     return health
 
 

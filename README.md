@@ -63,7 +63,7 @@ exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **re
 
 \* write tools, gated behind `--allow-writes`.
 
-**Skills (14)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first), `exa-selftest` (Code-first), `exa-event-explorer`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+**Skills (16)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first), `exa-selftest` (Code-first), `exa-event-explorer`, `exa-upgrade-readiness`, `exa-upgrade-validation`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
 
 **Demo/onboarding preflight** — `exa selftest --tenant <t>` exercises every read tool through the same path Claude Desktop uses, times each against a Desktop-latency budget, classifies ok/slow/timeout/error, and writes `reports/selftest/<tenant>-<date>.json` (exit non-zero on any timeout/error, so a scheduled task can alert). The MCP server also **warms the AI/LLM tenant field-profile in the background on start**, so the first AI/LLM query in a fresh Claude Desktop session no longer eats the ~35s cold-collection cost and looks hung.
 

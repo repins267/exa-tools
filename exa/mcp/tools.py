@@ -866,6 +866,23 @@ def _parser_health_summary(h) -> dict:
             for g in h.groups
         ],
         "top_failing_parsers": [{"parser": src, "errors": n} for src, n in h.by_source],
+        # NGDV-07-style triage: which parsers to look at first (Red = a core/detection
+        # field misparsed). A first-pass grade, not the DVE workbook's authoritative
+        # field-class call -- final TP/FP is a manual raw-log review.
+        "parsers_needing_action": [
+            {
+                "parser": a["source"],
+                "grade": a["grade"],
+                "errors": a["errors"],
+                "core_fields": a["core_fields"],
+            }
+            for a in getattr(h, "parsers_needing_action", [])
+            if a["grade"] in ("Red", "Yellow")
+        ][:15],
+        "grade_counts": {
+            g: sum(1 for a in getattr(h, "parsers_needing_action", []) if a["grade"] == g)
+            for g in ("Red", "Yellow")
+        },
         "note": h.note or None,
     }
 

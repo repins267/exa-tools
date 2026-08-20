@@ -4,7 +4,7 @@
   "serialNumber": "urn:uuid:881f1581-b226-5ed9-9d35-767fa28c5f28",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-20T20:17:47Z",
+    "timestamp": "2026-08-20T20:28:52Z",
     "component": {
       "bom-ref": "pkg:pypi/exa-tools@0.1.0",
       "type": "application",
@@ -33,7 +33,7 @@
       },
       {
         "name": "exa:mcp:skills",
-        "value": "14"
+        "value": "16"
       },
       {
         "name": "exa:governance:default-read-only",
@@ -92,7 +92,7 @@
       "bom-ref": "data:skills-methodology",
       "type": "data",
       "name": "exa-tools skills & methodology",
-      "description": "14 agentic skills (prompt + method) that drive the MCP tools and CLI: exa-aillm-sync, exa-call-prep, exa-compliance, exa-dashboard-preview, exa-detection, exa-event-explorer, exa-health-check, exa-identity, exa-ingest-review, exa-nymm, exa-selftest, exa-soc-review, exa-tam-report, exa-vault. Includes tenant-preflight, report method, and prompt-injection traps. Static text shipped in the repo \u2014 not learned weights."
+      "description": "16 agentic skills (prompt + method) that drive the MCP tools and CLI: exa-aillm-sync, exa-call-prep, exa-compliance, exa-dashboard-preview, exa-detection, exa-event-explorer, exa-health-check, exa-identity, exa-ingest-review, exa-nymm, exa-selftest, exa-soc-review, exa-tam-report, exa-upgrade-readiness, exa-upgrade-validation, exa-vault. Includes tenant-preflight, report method, and prompt-injection traps. Static text shipped in the repo \u2014 not learned weights."
     },
     {
       "bom-ref": "pkg:pypi/httpx",

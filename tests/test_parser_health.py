@@ -5,9 +5,11 @@ from __future__ import annotations
 import pytest
 
 from exa.health.parser import (
+    CORE_FIELDS,
     ParserHealth,
     classify_parser_error,
     extract_offending_field,
+    grade_parser,
     parser_error_recommendation,
 )
 
@@ -58,3 +60,24 @@ class TestParserHealth:
 
     def test_zero_total_safe(self):
         assert ParserHealth().unparsed_pct == 0.0
+
+
+class TestGradeParser:
+    """NGDV-07-style Red/Yellow/Green triage."""
+
+    def test_green_when_no_errors(self):
+        assert grade_parser(set()) == "Green"
+
+    def test_red_when_core_field(self):
+        assert grade_parser({"src_ip"}) == "Red"
+        assert grade_parser({"user", "some_info_field"}) == "Red"  # any core -> Red
+
+    def test_yellow_when_only_non_core(self):
+        assert grade_parser({"vendor_custom_note"}) == "Yellow"
+
+    def test_case_insensitive(self):
+        assert grade_parser({"HOST"}) == "Red"
+
+    def test_core_fields_cover_identity_network_activity(self):
+        for f in ("user", "src_ip", "dest_ip", "host", "activity_type", "outcome"):
+            assert f in CORE_FIELDS
