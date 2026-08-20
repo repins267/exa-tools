@@ -125,7 +125,25 @@ def record_tool_call(name: str, arguments: Any, result: Any, session: Any, *, st
     tenant, kind = _tenant_kind(client)
     text = result[0].text if result and getattr(result[0], "text", None) else ""
     is_err = (not result) or text.startswith('{"error"') or '"error":' in text[:40]
-    record({
+
+    # Where a report was written (if any) — parsed from the result, not a payload.
+    report_path = None
+    try:
+        import json as _json
+
+        data = _json.loads(text) if text.startswith("{") else {}
+        if isinstance(data, dict):
+            report_path = data.get("report_saved") or data.get("saved")
+    except Exception:
+        pass
+    # Whether the write guardrail actually neutralized something (side-channel from dispatch).
+    neutralized = getattr(session, "_guardrail_neutralized", False) is True
+    try:
+        session._guardrail_neutralized = False  # clear for the next call
+    except Exception:
+        pass
+
+    event = {
         "ts": time.time(),
         "event": "tool_call",
         "tool": name,
@@ -137,7 +155,12 @@ def record_tool_call(name: str, arguments: Any, result: Any, session: Any, *, st
         "duration_ms": round((time.time() - started) * 1000, 1),
         "result_bytes": len(text.encode("utf-8")),
         "action": safe_action(arguments),
-    })
+    }
+    if report_path:
+        event["report_path"] = str(report_path)
+    if name in WRITE_TOOLS:
+        event["write_neutralized"] = neutralized   # a guardrail fired on this write
+    record(event)
 
 
 def record_session_start(client: Any, server_name: str, read_only: bool, tool_count: int) -> None:

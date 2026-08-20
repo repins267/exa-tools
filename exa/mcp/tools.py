@@ -892,6 +892,13 @@ async def dispatch_tool(
         from exa.mcp.guardrails import neutralize_write_args
 
         arguments, _guardrail_notes = neutralize_write_args(arguments)
+        # Surface to the audit layer whether the write guardrail actually acted
+        # (PRAX-2026-08-20-007). Side-channel on the session; record_tool_call reads+clears it.
+        if session is not None:
+            try:
+                session._guardrail_neutralized = bool(_guardrail_notes)
+            except Exception:
+                pass
     try:
         match name:
             case "search_alerts":

@@ -713,6 +713,32 @@ class TestAuditLog:
         ev = _j.loads((tmp_path / "a.jsonl").read_text().strip())
         assert ev["status"] == "error"
 
+    def test_records_report_path_and_write_neutralized(self, tmp_path, monkeypatch):
+        import json as _j, time
+        from exa.mcp import audit
+
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(tmp_path / "a.jsonl"))
+        monkeypatch.delenv("EXA_AUDIT", raising=False)
+        sess = self._sess(monkeypatch)
+        sess._guardrail_neutralized = True  # dispatch would set this when a write was defanged
+        result = [MagicMock(text='{"report_saved": "C:/reports/x.html"}')]
+        audit.record_tool_call("add_case_note", {"case_id": "c1"}, result, sess, started=time.time())
+        ev = _j.loads((tmp_path / "a.jsonl").read_text(encoding="utf-8").strip())
+        assert ev["report_path"] == "C:/reports/x.html"
+        assert ev["write_neutralized"] is True
+
+    def test_write_neutralized_false_when_untouched(self, tmp_path, monkeypatch):
+        import json as _j, time
+        from exa.mcp import audit
+
+        monkeypatch.setenv("EXA_AUDIT_PATH", str(tmp_path / "a.jsonl"))
+        monkeypatch.delenv("EXA_AUDIT", raising=False)
+        sess = self._sess(monkeypatch)  # _guardrail_neutralized not set -> not True
+        audit.record_tool_call("add_case_note", {"case_id": "c1"}, [MagicMock(text='{"ok":1}')],
+                               sess, started=time.time())
+        ev = _j.loads((tmp_path / "a.jsonl").read_text(encoding="utf-8").strip())
+        assert ev["write_neutralized"] is False and "report_path" not in ev
+
     def test_off_switch_disables(self, tmp_path, monkeypatch):
         from exa.mcp import audit
 

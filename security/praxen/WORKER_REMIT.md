@@ -71,3 +71,30 @@ gated exception, not the default.
 The MCP has no harness gate on Claude Desktop, so writes on a customer tenant depend on an
 explicit in-prompt confirmation and the tenant-kind tag. The hard technical control is the
 `--allow-writes` gate; the confirmation is the soft control on top of it.
+
+## Accepted risks (declared, not defects)  <!-- CONTEXT -->
+
+These are conscious design choices with a rationale, not gaps. They are declared here so
+they read as accepted policy rather than divergences:
+
+- **Audit records low-cardinality enum fields (`priority`, `stage`).** These are bounded
+  status/severity enums (e.g. HIGH/MEDIUM, OPEN/CLOSED), not free-text or PII. They are the
+  minimum context needed to reconstruct *what disposition* an action set, and carry no
+  sensitive value. Free-text fields (notes, queue, vendor) are excluded; ids and these two
+  enums are the deliberate allowlist.
+- **The SSE/HTTP transport is unauthenticated by design.** It exists for **local,
+  single-operator development only**, defaults to a loopback bind, and prints a prominent
+  UNAUTHENTICATED warning (louder on any non-loopback bind). It is not a production surface;
+  exposing it beyond localhost, or putting auth in front, is the operator's responsibility.
+  The default stdio transport (what Claude Desktop uses) is unaffected.
+- **`render_abv` is a hand-authored point-in-time snapshot.** Its clause verdicts are
+  manually adjudicated and may lag the code; the report labels itself a *snapshot* and states
+  that the live Praxen scan is the fuller, authoritative check. It is a communication
+  artifact, not a live assurance oracle — that is the independent Praxen scan's job.
+
+## Assurance & audit  <!-- CONTEXT -->
+
+The audit log records, per tool call: tool, tenant/kind, read/write, status, duration,
+result size, safe id/enum action fields, the report path when one is written, and — on write
+tools — whether the write guardrail neutralized content. It never records notes, secrets, or
+payloads.
