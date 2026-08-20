@@ -46,7 +46,7 @@ def test_finds_recycled_email_merge():
         {"user": "ryan.siebel", "email": "areckamp@acme.com", "upn": "ryan.siebel@acme.com"},  # recycled
         {"user": "jane.doe", "email": "jdoe@acme.com", "upn": "jane.doe@acme.com"},
     ]
-    merged, scanned, note = find_merged_identifiers(_client_with(records))
+    merged, scanned, note, _ = find_merged_identifiers(_client_with(records))
     assert scanned == ["User Entity Links"]
     assert len(merged) == 1
     m = merged[0]
@@ -61,7 +61,7 @@ def test_no_merge_when_identifiers_unique():
         {"user": "a", "email": "a@x.com"},
         {"user": "b", "email": "b@x.com"},
     ]
-    merged, scanned, _ = find_merged_identifiers(_client_with(records))
+    merged, scanned, _, _ = find_merged_identifiers(_client_with(records))
     assert merged == [] and scanned == ["User Entity Links"]
 
 
@@ -95,7 +95,7 @@ def test_skips_empty_tables_and_bounds():
         return {}
 
     c.get.side_effect = _get
-    merged, scanned, note = find_merged_identifiers(c)
+    merged, scanned, note, _ = find_merged_identifiers(c)
     # empty "User Entity Links" was skipped; only "Email User" scanned
     assert scanned == ["Email User"]
     assert len(merged) == 1 and merged[0].value == "shared@x.com"

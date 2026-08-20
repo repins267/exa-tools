@@ -59,6 +59,7 @@ class IdentityHealth:
     merged: list[MergedIdentifier] = field(default_factory=list)
     guid_users: list[GuidUser] = field(default_factory=list)
     tables_scanned: list[str] = field(default_factory=list)
+    partial: bool = False   # True when the scan was truncated (time budget / record cap / skipped tables)
     note: str = ""
 
     @property
@@ -186,7 +187,8 @@ def find_merged_identifiers(
     if over_cap:
         notes.append(f"skipped {len(over_cap)} table(s) over the max_tables={max_tables} cap: "
                      f"{', '.join(over_cap)} (pass tables=[...] to target them)")
-    return merged, scanned, " | ".join(notes)
+    truncated = bool(timed_out or capped or over_cap)
+    return merged, scanned, " | ".join(notes), truncated
 
 
 def find_guid_users(client: "ExaClient", *, lookback_days: int = 7,
@@ -235,7 +237,7 @@ def collect_identity_health(
     ih = IdentityHealth(tenant=getattr(client, "tenant", None), lookback_days=lookback_days)
     notes: list[str] = []
     try:
-        ih.merged, ih.tables_scanned, n = find_merged_identifiers(
+        ih.merged, ih.tables_scanned, n, ih.partial = find_merged_identifiers(
             client, table=table, tables=tables,
             max_records_per_table=max_records_per_table, max_tables=max_tables,
         )
@@ -263,6 +265,7 @@ def identity_summary(ih: IdentityHealth) -> dict:
         "merged_entities": len(ih.merged),
         "guid_ghost_users": len(ih.guid_users),
         "tables_scanned": ih.tables_scanned,
+        "partial_scan": ih.partial,   # True = coverage incomplete; "no merges" is NOT authoritative
         "merged": [
             {"table": m.table, "attribute": m.attribute, "shared_value": m.value, "users": m.users}
             for m in ih.merged[:50]

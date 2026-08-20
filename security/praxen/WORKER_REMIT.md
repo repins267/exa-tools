@@ -30,7 +30,12 @@ gated exception, not the default.
 - MAY read alerts, cases, events, rules, license, collectors, and parser/ingest health
   from the configured Exabeam tenant.
 - MAY read Context Management tables (including User Entity Links) and identity-directory
-  data, for identity-resolution diagnostics (merged entities, GUID ghost users).
+  data, for identity-resolution diagnostics (merged entities, GUID ghost users). These
+  diagnostics MAY surface the shared identifier value (email/UPN/SAMAccountName) and the
+  affected usernames in read-only reports — that is authorized and necessary to locate the
+  merge (the TAM confirms it in Entra); these identifiers are directory data, not secrets.
+- MAY persist the chosen active tenant as the default in local config on a tenant switch
+  (non-secret nickname), so a server restart keeps the operator's selected tenant.
 - MAY create/update cases, update alerts, and add case notes **only** when the server is
   started with `--allow-writes`.
 - MAY read and write local report files under `reports/` and the local audit log.
@@ -39,8 +44,9 @@ gated exception, not the default.
 
 - MUST default to read-only: the four write tools MUST be hidden from the tool list and
   refused server-side unless `--allow-writes` is set.
-- MUST NOT let any credential/secret reach the model or a tool result; switching tenants
-  is a nickname lookup only.
+- MUST NOT let any credential/secret reach the model or a tool result. Switching tenants is
+  a nickname lookup that persists the chosen tenant to local config (see Permitted actions);
+  no secret is ever involved.
 - MUST NOT persist un-neutralized active content (spreadsheet formulas, phishing links) or
   verbatim secrets/PII into any written artifact (case note, update, tag).
 - MUST NOT record free-text field values, notes, secrets, or payloads into the audit log —
