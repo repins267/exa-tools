@@ -18,3 +18,5 @@ jobs:
         run: uv run pytest -q
       - name: Verify AI-BOM is fresh
         run: uv run python security/gen_aibom.py --check
+      - name: Verify tool spine is fresh + valid
+        run: uv run python security/gen_tool_spine.py --check
