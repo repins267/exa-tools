@@ -222,7 +222,9 @@ def convert_spl_to_exa_rule(title: str, spl: str, *, compress: bool = True) -> d
         warnings.append(f"Stripped field '{field_name}': {reason}")
 
     # Oracle passthrough check (needed early for split-rule deploy_ready)
-    _oracle_available = (Path.home() / ".exa" / "cache" / "field_oracle.json").exists()
+    from exa.oracle import oracle_path
+
+    _oracle_available = oracle_path() is not None
 
     # Attempt RGXi compression + context table substitution when EQL is too long
     eql_api_limit = 1024

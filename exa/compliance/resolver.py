@@ -32,9 +32,12 @@ class ConceptResolver:
     def _get_oracle(self) -> dict[str, Any] | None:
         if not self._loaded:
             try:
-                path = Path.home() / ".exa" / "cache" / "field_oracle.json"
-                text = path.read_text(encoding="utf-8") if path.exists() else None
-                self._oracle = json.loads(text) if text is not None else None
+                from exa.oracle import oracle_path
+
+                path = oracle_path()
+                self._oracle = (
+                    json.loads(path.read_text(encoding="utf-8")) if path else None
+                )
             except Exception:
                 self._oracle = None
             self._loaded = True

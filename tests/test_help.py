@@ -509,6 +509,33 @@ def test_brand_add_help():
 
 
 # ---------------------------------------------------------------------------
+# oracle
+# ---------------------------------------------------------------------------
+
+
+def test_oracle_help():
+    result = runner.invoke(app, ["oracle", "--help"])
+    assert result.exit_code == 0
+    assert "build" in result.output
+    assert "status" in result.output
+    assert "use" in result.output
+
+
+def test_oracle_build_help():
+    result = runner.invoke(app, ["oracle", "build", "--help"])
+    assert result.exit_code == 0
+    assert "--tenant" in result.output
+    assert "--parsers" in result.output
+    assert "--base" in result.output
+
+
+def test_update_help_has_cim2():
+    result = runner.invoke(app, ["update", "--help"])
+    assert result.exit_code == 0
+    assert "--cim2" in result.output
+
+
+# ---------------------------------------------------------------------------
 # simulate
 # ---------------------------------------------------------------------------
 

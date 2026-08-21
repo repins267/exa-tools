@@ -42,7 +42,7 @@ uv sync
 uv tool install -e .        # install `exa` globally from local source
 
 exa configure               # tenant FQDN + client credentials -> OS keyring
-exa update                  # pull CIM2 / SigmaHQ reference data, build the Field Oracle
+exa update                  # sync Sigma / content-hub / AI-LLM reference data
 ```
 
 Every command takes `--help`. Every command takes `--tenant <name>`.
@@ -74,7 +74,7 @@ exa configure                          # interactive: FQDN, client id, secret; t
 exa config set default-tenant <name>
 exa config show
 
-exa update                             # sync CIM2 + SigmaHQ, rebuild the Field Oracle
+exa update                             # sync Sigma + content-hub + AI/LLM reference data
 exa update --check                     # show current SHAs without pulling
 exa update self                        # git pull + uv sync on exa-tools itself
 ```
@@ -193,12 +193,11 @@ vocabulary, proper modifiers for wildcards, real filter blocks for negations, an
 inventory of the pipeline stages that *can't* be expressed in EQL — as warnings, rather than
 silently dropped.
 
-Field mapping doesn't come from a hand-maintained table. `exa update` walks Exabeam's own parser
-definitions and builds the **Field Oracle**: 4,258 raw→CIM2 mappings from 8,278 parser files
-across 269 vendors. Every resolved field is rated `oracle` (confirmed in the parsers for this
-vendor and activity type), `schema` (in CIM2, unconfirmed for this source), or `passthrough` (no
-mapping), so you know what's verified before you deploy. When Exabeam ships new parsers, the next
-`exa update` picks them up — no code change.
+Field mapping doesn't come from a hand-maintained table. The **Field Oracle** is built from the
+tenant's own live parser export (`exa oracle build`) — equal-or-better coverage than the old CIM2
+clone, and no stale shared repo to drift out from under you. Every resolved field is rated `oracle`
+(confirmed in the parsers for this vendor and activity type), `schema` (in CIM2, unconfirmed for
+this source), or `passthrough` (no mapping), so you know what's verified before you deploy.
 
 All converted rules land disabled and marked *Needs review*. SPL→EQL is lossy by design.
 

@@ -92,17 +92,47 @@ Deletes the keyring credentials and the `config.json` entry. If the removed tena
 
 ## `exa update`
 
-Downloads or refreshes the reference data the converter and the Field Oracle depend on, cloning or pulling into `~/.exa/cache/`:
+Downloads or refreshes the reference data the converter depends on — SigmaHQ community rules, the content-hub, and the AI/LLM domains — cloning or pulling into `~/.exa/cache/`:
 
 ```bash
-exa update             # sync CIM2 + Content Hub + SigmaHQ, rebuild the Field Oracle
+exa update             # sync Sigma + content-hub + AI/LLM reference data
 exa update --check     # show current repo SHAs without pulling anything
+exa update --cim2      # legacy: also clone Content-Library-CIM2 and build the Oracle from its pC_*.md files
 exa update self        # git pull + uv sync on exa-tools itself
 ```
 
-`exa update` walks Exabeam's own parser definitions to build the Field Oracle — see [Architecture](architecture.md) for what the Oracle is and how conversion uses it. Run it once at setup, and again whenever you want the latest CIM2 parsers or SigmaHQ community rules.
+`exa update` **no longer builds the Field Oracle by default** — the Oracle now comes from a tenant's own live parser export via [`exa oracle`](#exa-oracle) (below). `exa update --cim2` opts back into the legacy path that clones [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2) (~500 MB) and builds the Oracle from its `pC_*.md` parser files; that clone drifts from any given tenant and isn't what a tenant actually runs, which is why it's no longer the default. See [Architecture](architecture.md) for what the Oracle is and how conversion uses it.
 
 `exa update self` updates the tool in place; it only works when exa-tools was installed from a **git clone** (`git clone … && uv sync`), not from a packaged wheel.
+
+## `exa oracle`
+
+Builds and manages the **Field Oracle** — the raw→CIM2 field-translation index the converter and compliance resolver read. The Oracle is built from a tenant's own **live parser export**: a `Parser_Update.zip` (containing `parsers.conf` + `event_builder.conf`) downloaded from the tenant, which is exactly what that tenant runs — no drift against a shared upstream repo.
+
+exa-tools **ships a bundled base pack** (the demo set, derived field metadata only), so conversion and compliance work out of the box with no setup. Build a tenant-specific Oracle when you want that tenant's exact field coverage.
+
+```bash
+# Point a tenant at its parser export and build — remembers the path in config
+exa oracle build --tenant <tenant> --parsers /path/to/Parser_Update.zip
+
+# Rebuild from the saved path (after a fresh export)
+exa oracle build --tenant <tenant>
+
+# Build the default base pack from an export
+exa oracle build --base --parsers /path/to/Parser_Update.zip
+
+# Activate a built Oracle as the default (writes field_oracle.json)
+exa oracle use <tenant>
+exa oracle use base
+
+# List built Oracles and show which one resolves
+exa oracle status
+exa oracle status --tenant <tenant>
+```
+
+A consumer resolves the Oracle to use in this order: the tenant-specific Oracle (`field_oracle-<tenant>.json`) → the active Oracle (`field_oracle.json`, set by `exa oracle use`) → a locally built base pack → the bundled base.
+
+**Customer-data discipline.** Config stores only the **path** to the export — a credential-style handle, not the data. `~/.exa/cache/` holds the *derived* field metadata (vendor→CIM2 fields, activity types) only — never events or PII. The export itself is **never copied, committed, or bundled**; the only thing shipped in the box is the demo base pack.
 
 ## `exa tables`
 
@@ -169,9 +199,9 @@ OOTB (Exabeam-managed) tables cannot be deleted through this command.
 
 | Path | Holds |
 |---|---|
-| `~/.exa/config.json` | Tenant nicknames, API servers, region, kind tags, default tenant, `sigma.*` settings — never secrets |
+| `~/.exa/config.json` | Tenant nicknames, API servers, region, kind tags, default tenant, `sigma.*` settings, per-tenant parser-export paths — never secrets, never the export itself |
 | OS credential store (`exa-tools/<nickname>`) | `client_id` and `client_secret` per tenant |
-| `~/.exa/cache/` | Cloned CIM2, Content Hub, and SigmaHQ reference data; the built Field Oracle |
+| `~/.exa/cache/` | Content Hub and SigmaHQ reference data; the built Field Oracle(s) — derived field metadata only, never events or PII (Content-Library-CIM2 is cloned here only under `exa update --cim2`) |
 
 ---
 

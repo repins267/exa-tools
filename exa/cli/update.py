@@ -23,18 +23,23 @@ def update(
         bool,
         typer.Option("--check", help="Show current state without pulling"),
     ] = False,
+    cim2: Annotated[
+        bool,
+        typer.Option("--cim2", help="Also clone the ~500 MB Content-Library-CIM2 repo and rebuild the legacy Field Oracle from it"),
+    ] = False,
 ) -> None:
-    """Download or update CIM2 and Content Hub reference data.
+    """Download or update reference data (Content Hub, SigmaHQ, AI/LLM domains).
 
-    Clones or pulls ExabeamLabs/CIMLibrary and ExabeamLabs/Content-Library-CIM2
-    into ~/.exa/cache/. Also updates the local Sigma rule index. Required for
-    EQL field verification and Sigma conversion. Use --check to inspect current
-    state without pulling.
+    Syncs the reference repos into ~/.exa/. The **Field Oracle is now built from a
+    tenant's live parser export** (`exa oracle build`), so the stale ~500 MB
+    Content-Library-CIM2 clone is no longer pulled by default -- pass `--cim2` to
+    refresh the legacy pC-based Oracle. Use --check to inspect state without pulling.
 
     \b
     Examples:
       uv run exa update
       uv run exa update --check
+      uv run exa update --cim2        # legacy: refresh the CIM2-repo Oracle
     """
     if ctx.invoked_subcommand is not None:
         return
@@ -43,7 +48,7 @@ def update(
         _show_check()
         return
 
-    _run_update()
+    _run_update(include_cim2=cim2)
 
 
 def _show_check() -> None:
@@ -139,7 +144,7 @@ def update_self(
     )
 
 
-def _run_update() -> None:
+def _run_update(include_cim2: bool = False) -> None:
     """Run the full update pipeline."""
     from rich.progress import Progress
 
@@ -149,7 +154,7 @@ def _run_update() -> None:
 
     with Progress(console=console) as progress:
         task = progress.add_task("Syncing repos + parsing...", total=None)
-        result = update_reference_data()
+        result = update_reference_data(include_cim2=include_cim2)
         progress.update(task, completed=100, total=100)
 
     # Repo sync results

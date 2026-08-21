@@ -379,8 +379,10 @@ class TestOraclePassthrough:
         assert rule["deploy_ready"] == "No"
 
     def test_no_oracle_keeps_needs_review(self, tmp_path, monkeypatch):
-        """When oracle file is absent, passthrough fields don't block deployment."""
+        """When no oracle is available at all, passthrough fields don't block deployment."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        # Ensure no oracle file exists under tmp_path
+        # No cache under tmp_path AND no bundled base -> oracle_path() resolves to None.
+        import exa.oracle.paths as op
+        monkeypatch.setattr(op, "_BUNDLED_BASE", tmp_path / "no-bundled-base.json")
         rule = convert_spl_to_exa_rule("Test", 'index=c42 unknownSplunkField="value"')
         assert rule["deploy_ready"] == "Needs review"
