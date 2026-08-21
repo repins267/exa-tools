@@ -27,6 +27,101 @@ _TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
 _ASSESS_DIR = Path.home() / ".exa" / "assessments"
 
 
+_GOLDEN_DEFAULT = Path("tests") / "data" / "classifier_golden.jsonl"
+
+
+@assess_app.command("benchmark")
+def benchmark_cmd(
+    golden: Annotated[
+        Path,
+        typer.Option("--golden", help="Labelled golden corpus (.jsonl)"),
+    ] = _GOLDEN_DEFAULT,
+    model: Annotated[
+        str,
+        typer.Option("--model", help="heuristic | claude | chatgpt | gemini [default: heuristic]"),
+    ] = "heuristic",
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", "-o", help="Scorecard base path [default: reports/assess/scorecard]"),
+    ] = None,
+) -> None:
+    """Score the classifier on known data + prove the learn loop. No tenant needed.
+
+    \b
+    Examples:
+      uv run exa assess benchmark
+      uv run exa assess benchmark --golden tests/data/classifier_golden.jsonl
+    """
+    from exa.aillm.benchmark import (
+        load_golden,
+        render_scorecard_html,
+        score_golden,
+        simulate_learn_loop,
+    )
+
+    if not golden.exists():
+        console.print(f"[red]Golden corpus not found: {golden}[/]")
+        raise typer.Exit(1)
+    if model != "heuristic":
+        console.print(
+            f"[yellow]LLM backend '{model}' not yet wired (exa/aillm/llm.py pending) "
+            "-- scoring the deterministic heuristic.[/]"
+        )
+        model = f"heuristic (requested {model})"
+
+    entries = load_golden(golden)
+    result = score_golden(entries, model=model)
+
+    console.rule("Classifier scorecard")
+    console.print(f"  corpus: {result.n} labelled values")
+    console.print(f"  per-verdict: {result.per_verdict}")
+    _fmt = lambda v: "n/a" if v is None else f"{v:.3f}"  # noqa: E731
+    console.print(
+        f"  [bold]auto-promote precision[/] (leak metric, target 1.000): "
+        f"{_fmt(result.auto_promote_precision)}"
+    )
+    console.print(
+        f"  [bold]PII-withhold recall[/] (safety, target 1.000): "
+        f"{_fmt(result.pii_withhold_recall)}"
+    )
+    console.print(f"  AI recall (don't withhold real AI): {_fmt(result.ai_recall)}")
+    if result.leaks:
+        console.print(f"  [red]LEAKS ({len(result.leaks)}):[/] {result.leaks}")
+    else:
+        console.print("  [green]zero leaks in the auto-promote tier[/]")
+
+    # Learn-loop proof (A->E) from a small controlled set of generic values.
+    def _p(v, reason="ai-category"):
+        return {"value": v, "field": "category", "table": "t", "reason": reason,
+                "redacted": False, "live_values": 1}
+    pii = _p('{"pii":"leak@hospital.org"}', "ai-classified")
+    customers = [
+        [_p("catA"), _p("appA", "ai-classified"), _p("domA", "ai-classified"), pii],
+        [_p("catB"), _p("appB", "ai-classified"), _p("catA"), pii],
+        [_p("catC"), _p("catA"), _p("catB"), pii],
+        [_p("catA"), _p("catB"), _p("catC"), pii],
+        [_p("e1"), _p("e2"), _p("e3"), _p("e4"), _p("catA"), pii],
+    ]
+    loop = simulate_learn_loop(customers)
+    console.print(
+        f"\n  Learn loop A->E: new/customer {loop.curve} · coverage {loop.coverage_growth} · "
+        f"{'[green]zero leaked[/]' if not loop.leaked else f'[red]{len(loop.leaked)} leaked[/]'}"
+    )
+
+    base = Path(out) if out else Path("reports") / "assess" / "scorecard"
+    base.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"results": [result.to_dict()], "learn_loop": loop.__dict__}
+    base.with_suffix(".json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    base.with_suffix(".html").write_text(
+        render_scorecard_html([result], loop), encoding="utf-8"
+    )
+    verdict = "PASS" if (result.pii_withhold_recall in (1.0, None)
+                         and not result.leaks and not loop.leaked) else "FAIL"
+    console.print(f"\n  Verdict: [bold]{verdict}[/]  scorecard -> {base.with_suffix('.html')}")
+    if verdict != "PASS":
+        raise typer.Exit(1)
+
+
 def _load_dashboard_configs(path: Path | None) -> list[dict]:
     if path is None:
         return []

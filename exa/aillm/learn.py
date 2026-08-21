@@ -28,12 +28,20 @@ LOCAL = "local-only"
 
 _JSONISH = re.compile(r"[{}\[\]\":]")
 _EMAILISH = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+# Embedded-identifier / per-record signals: SSN, a 6+ digit id/account, or the
+# DLP-wrapper phrasing that carries a user/subject into an alert name.
+_PII_SIGNAL = re.compile(r"\b\d{3}-\d{2}-\d{4}\b|\d{6,}|\bmatched for\b|\bfor user\b", re.I)
 
 
 def _looks_per_record(value: str) -> bool:
     """A value that is really per-event data (PII risk), not shareable taxonomy."""
     v = value or ""
-    return len(v) > 80 or bool(_EMAILISH.search(v)) or len(_JSONISH.findall(v)) >= 2
+    return (
+        len(v) > 80
+        or bool(_EMAILISH.search(v))
+        or len(_JSONISH.findall(v)) >= 2
+        or bool(_PII_SIGNAL.search(v))
+    )
 
 
 @dataclass
