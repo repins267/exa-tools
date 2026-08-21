@@ -96,6 +96,9 @@ class TestConceptResolver:
 
     def test_oracle_version_no_cache(self, tmp_path, monkeypatch):
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
+        # No cache under tmp_path AND no bundled base -> oracle_path() resolves to None.
+        import exa.oracle.paths as op
+        monkeypatch.setattr(op, "_BUNDLED_BASE", tmp_path / "no-bundled-base.json")
         r = ConceptResolver()
         assert r.oracle_version() == "no-cache"
 

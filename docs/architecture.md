@@ -125,28 +125,30 @@ like `Compressed field 'file_name' wildcard list → RGXi to fit API limit`. Pat
 ## The Field Oracle
 
 The Field Oracle is the translation engine at the heart of the converter. Rather than relying on
-a hand-maintained field map or on incomplete documentation, it reads **Exabeam's own parser
-definitions** and derives the mapping directly from them. When Exabeam ships new parser fields,
-the next `exa update` picks them up — no code change needed.
+a hand-maintained field map or on incomplete documentation, it reads a tenant's **own live parser
+export** and derives the mapping directly from it. Because the export is what the tenant actually
+runs, the mapping matches the fields that tenant really parses — no drift against a shared upstream
+repo that goes stale.
 
-### How `exa update` builds it
+### How `exa oracle build` builds it
 
-`exa update` clones/pulls the reference repos ([Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2),
-[new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub),
-[SigmaHQ/sigma](https://github.com/SigmaHQ/sigma)) and then calls `build_field_oracle()`
-(`exa/update.py`), which walks the CIM2 `DS/` (Data Sources) tree:
+The Oracle is built from a **`Parser_Update.zip`** downloaded from the tenant — a live export of
+the parsers that tenant runs, carrying `parsers.conf` (the parser definitions) and
+`event_builder.conf` (activity-type/event construction) alongside each other. You point a tenant
+at its export once, and `exa oracle build` (`exa/oracle/…`) parses it:
 
-1. **Find every parser definition.** It recurses `Content-Library-CIM2/DS/` for `pC_*.md` parser
-   files — **8,278** of them across **269 vendors** (Code42, Digital Guardian, Microsoft O365,
-   Cisco, and hundreds more).
-2. **Parse each one.** For every parser file it extracts the parser name, vendor, product, and an
-   `activity_type` inferred from the parser name, plus:
-   - **CIM2 output fields** — every field named in a regex capture group (`({field_name}…)`).
-   - **Raw → CIM2 mappings** — from explicit JSON-path field definitions
-     (`exa_json_path=$.some.path, … , exa_field_name=<cim2_field>`), indexed both by the full
-     path and by its leaf segment.
+1. **Read the parsers.** It walks `parsers.conf` — roughly **7,900–8,000 parsers** across the
+   vendors that tenant ingests (Code42, Digital Guardian, Microsoft O365, Cisco, and many more) —
+   extracting for each the parser name, vendor, product, and an `activity_type`, plus:
+   - **CIM2 output fields** — every field the parser emits.
+   - **Raw → CIM2 mappings** — regex-derived from the parser's field definitions, indexed both by
+     the full raw path and by its leaf segment. `event_builder.conf` is read alongside to resolve
+     how events are assembled.
+2. **Derive the activity type the same way as before**, so the resulting Oracle is a **drop-in**:
+   the schema and the index shapes are unchanged, only the *source* of the definitions moved from a
+   shared repo to the tenant's own export.
 3. **Build the index and write it.** The results are folded into three lookup structures and
-   written to `~/.exa/cache/field_oracle.json` with a `built_at` timestamp and build stats:
+   written to `~/.exa/cache/field_oracle-<tenant>.json` with a `built_at` timestamp and build stats:
 
 | Index | Shape | Purpose |
 |---|---|---|
@@ -154,14 +156,37 @@ the next `exa update` picks them up — no code change needed.
 | `by_vendor` | `{vendor → {activity_type → [cim2_field, …]}}` | Per-vendor field sets |
 | `raw_to_cim2` | `{raw_path_or_leaf → cim2_field}` | Direct raw-field → CIM2 translation |
 
-The build yields roughly **4,258 raw→CIM2 field mappings** and **25 activity types**, each indexed
-with its confirmed field set. The oracle refreshes automatically on **every** `exa update`; the
-converter and the compliance resolver both lazy-load the same cache file and degrade gracefully
-(falling back to the built-in `CIM2_FIELD_MAP`) if it's absent.
+> **The `raw_to_cim2` nuance.** Because the mappings are regex-derived from the export rather than
+> read from explicit pC-style declarations, `raw_to_cim2` is **reliable for JSON parsers** and
+> **best-effort for CEF**. The other indexes (`by_activity_type`, `by_vendor`) and the confidence
+> model below are unaffected.
 
-> The exact counts drift as the upstream CIM2 content evolves — a given machine's cache may report
-> slightly different totals depending on which SHA it last pulled. The figures above are the
-> reference build; the numbers that matter operationally are per-field confidence, below.
+**The bundled base pack.** exa-tools ships a bundled base pack — the demo set, derived field
+metadata only — so conversion and compliance work **out of the box with no setup**. You don't need
+a tenant export in hand to get started; you build a tenant-specific Oracle when you want that
+tenant's exact field coverage.
+
+**Resolution order.** A consumer (the converter or the compliance resolver) picks the Oracle to use
+in this order:
+
+1. **Tenant-specific Oracle** — `field_oracle-<tenant>.json`, if one has been built for the active
+   tenant.
+2. **Active Oracle** — whatever `exa oracle use` last activated as `field_oracle.json`.
+3. **Local base pack** — a base pack built on this machine.
+4. **Bundled base** — the demo set that ships with exa-tools, so there is always *something* to
+   resolve against.
+
+The commands that manage this live under `exa oracle` — build, activate, and inspect — and are
+documented in [configuration.md](configuration.md).
+
+> **Legacy path — `exa update --cim2`.** The Oracle used to be built by cloning
+> [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2) (~500 MB) and
+> recursing its `pC_*.md` parser files. That clone is a *shared* reference that drifts from any
+> given tenant — measured at 7.5 months behind a live tenant — and isn't what a tenant actually
+> runs, which is why the default moved to tenant exports. `exa update` **no longer clones
+> Content-Library-CIM2 by default**; `exa update --cim2` opts back into the legacy pC-based build
+> for anyone who still wants it. The one thing the old build did that the export can't: it carried
+> *explicit* raw→CIM2 mappings rather than regex-derived ones (see the nuance above).
 
 ### The three confidence levels
 

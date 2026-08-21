@@ -310,6 +310,35 @@ def set_tenant_kind(tenant: str, kind: str) -> None:
     _write_config_file(config)
 
 
+def set_tenant_parsers_path(tenant: str, parsers_path: str) -> None:
+    """Record the path to a tenant's parser export in ~/.exa/config.json.
+
+    Stores only the PATH (like a credential handle), never the export itself.
+    `exa oracle build --tenant <t>` reads it to build that tenant's Field Oracle
+    from its live parsers, instead of the stale CIM2 clone. Non-secret metadata.
+    """
+    from pathlib import Path
+
+    p = Path(parsers_path).expanduser()
+    if not p.exists():
+        raise ExaConfigError(f"parser export not found: {p}")
+    config = _read_config_file()
+    tenants = config.get("tenants", {})
+    if tenant not in tenants:
+        raise ExaConfigError(
+            f"Unknown tenant '{tenant}'. Run 'exa config tenants' to list configured tenants."
+        )
+    tenants[tenant]["parsers_path"] = str(p)
+    _write_config_file(config)
+
+
+def get_tenant_parsers_path(tenant: str) -> str | None:
+    """The stored parser-export path for a tenant, or None if not set."""
+    tenants = _read_config_file().get("tenants", {})
+    entry = tenants.get(tenant) or {}
+    return entry.get("parsers_path")
+
+
 def list_tenants() -> "dict[str, dict[str, Any]]":
     """Return every configured tenant as {nickname: non-secret entry}.
 

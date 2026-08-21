@@ -571,12 +571,18 @@ def update_reference_data(
     *,
     data_dir: Path | None = None,
     include_sigma: bool = True,
+    include_cim2: bool = False,
 ) -> UpdateResult:
-    """Clone/pull CIM2, content-hub, and SigmaHQ repos; parse and cache.
+    """Clone/pull content-hub and SigmaHQ repos; parse and cache.
 
     Args:
         data_dir: Override base directory (default ~/.exa/).
         include_sigma: Whether to clone/pull SigmaHQ repo.
+        include_cim2: Whether to clone the ~500 MB Content-Library-CIM2 repo and
+            build the Field Oracle from it. Off by default -- the Field Oracle is
+            now built from a tenant's live parser export (`exa oracle build`); the
+            CIM2 clone went stale and is not what a tenant actually runs. Opt in
+            only to refresh the legacy pC-based Oracle.
     """
     base = data_dir or _DATA_DIR
     cim2_dir = base / "cim2"
@@ -587,13 +593,14 @@ def update_reference_data(
 
     result = UpdateResult()
 
-    # Sync CIM2
-    try:
-        action, _ = _sync_repo(_CIM2_REPO, cim2_dir)
-        result.cim2_action = action
-        result.cim2_sha = _git_head_sha(cim2_dir)
-    except Exception as e:
-        result.errors.append(f"CIM2: {e}")
+    # Sync CIM2 (opt-in: the Field Oracle is now built from tenant parser exports)
+    if include_cim2:
+        try:
+            action, _ = _sync_repo(_CIM2_REPO, cim2_dir)
+            result.cim2_action = action
+            result.cim2_sha = _git_head_sha(cim2_dir)
+        except Exception as e:
+            result.errors.append(f"CIM2: {e}")
 
     # Sync content-hub
     try:
@@ -620,8 +627,8 @@ def update_reference_data(
     except Exception as e:
         result.errors.append(f"AI/LLM Domains: {e}")
 
-    # Parse and cache CIM2
-    if cim2_dir.exists():
+    # Parse and cache CIM2 + build the legacy pC-based Oracle (opt-in only)
+    if include_cim2 and cim2_dir.exists():
         result.cache_results = _cache_parsed_data(cim2_dir, cache_dir)
         # Build field oracle from DS/ parser definitions
         oracle_result = build_field_oracle(data_dir=base)

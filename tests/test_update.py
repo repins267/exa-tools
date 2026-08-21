@@ -45,7 +45,7 @@ class TestUpdateClonesRepos:
             patch("exa.update._git_head_sha", return_value="abc123def456"),
             patch("exa.update._DATA_DIR", data_dir),
         ):
-            result = update_reference_data(data_dir=data_dir)
+            result = update_reference_data(data_dir=data_dir, include_cim2=True)
 
         assert len(clone_calls) == 4  # CIM2 + content-hub + sigma + aillm-domains
         assert len(pull_calls) == 0
@@ -85,7 +85,7 @@ class TestUpdatePullsExisting:
             patch("exa.update._git_pull", side_effect=mock_pull),
             patch("exa.update._git_head_sha", return_value="def456abc123"),
         ):
-            result = update_reference_data(data_dir=data_dir)
+            result = update_reference_data(data_dir=data_dir, include_cim2=True)
 
         assert len(pull_calls) == 4  # CIM2 + content-hub + sigma + aillm-domains
         assert result.cim2_action == "pulled"

@@ -125,18 +125,18 @@ _field_oracle_cache: object = _ORACLE_NOT_LOADED
 def _load_field_oracle() -> dict[str, Any] | None:
     """Return the field oracle dict, loading it lazily from cache.
 
-    Returns None if ~/.exa/cache/field_oracle.json does not exist or
-    is unreadable. Never raises — always returns None on failure.
+    Resolves via exa.oracle.oracle_path (tenant export -> base pack -> bundled
+    base -> legacy pC-based build), so a tenant-sourced Oracle is picked up with
+    no change here. Returns None if none exists or it is unreadable. Never raises.
     """
     global _field_oracle_cache
     if _field_oracle_cache is not _ORACLE_NOT_LOADED:
         return _field_oracle_cache  # type: ignore[return-value]
     try:
-        oracle_path = Path.home() / ".exa" / "cache" / "field_oracle.json"
-        if oracle_path.exists():
-            _field_oracle_cache = json.loads(oracle_path.read_text(encoding="utf-8"))
-        else:
-            _field_oracle_cache = None
+        from exa.oracle import oracle_path
+
+        p = oracle_path()
+        _field_oracle_cache = json.loads(p.read_text(encoding="utf-8")) if p else None
     except Exception:
         _field_oracle_cache = None
     return _field_oracle_cache  # type: ignore[return-value]

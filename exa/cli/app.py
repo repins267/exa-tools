@@ -396,6 +396,10 @@ from exa.cli.brand import brand_app  # noqa: E402
 
 app.add_typer(brand_app)
 
+from exa.cli.oracle import oracle_app  # noqa: E402
+
+app.add_typer(oracle_app)
+
 from exa.cli.assess import assess_app  # noqa: E402
 
 app.add_typer(assess_app)
