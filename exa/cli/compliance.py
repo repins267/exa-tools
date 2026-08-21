@@ -514,44 +514,21 @@ def audit(
                 tmp_path = None
 
             try:
-                edge_candidates = [
-                    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-                ]
-                edge = next((p for p in edge_candidates if Path(p).exists()), None)
+                from exa.report.pdf import PdfUnavailableError, html_to_pdf
 
-                if edge:
-                    try:
-                        subprocess.run(
-                            [
-                                edge,
-                                "--headless",
-                                "--disable-gpu",
-                                "--print-to-pdf-no-header",
-                                f"--print-to-pdf={resolved_pdf.resolve()}",
-                                str(src_path.resolve()),
-                            ],
-                            capture_output=True,
-                            timeout=60,
-                            check=True,
-                        )
-                        if resolved_pdf.exists() and resolved_pdf.stat().st_size > 0:
-                            console.print(f"[green]PDF report saved:[/green] {resolved_pdf}")
-                        else:
-                            console.print(
-                                "[red]PDF generation failed:[/red] "
-                                "Edge ran but no PDF was written"
-                            )
-                    except subprocess.CalledProcessError as exc:
-                        console.print(f"[red]PDF generation failed:[/red] {exc}")
-                    except subprocess.TimeoutExpired:
-                        console.print("[red]PDF generation timed out[/red]")
-                else:
+                try:
+                    html_to_pdf(src_path, resolved_pdf)
+                    console.print(f"[green]PDF report saved:[/green] {resolved_pdf}")
+                except PdfUnavailableError:
                     console.print(
                         "[yellow]PDF skipped:[/yellow] Microsoft Edge not found. "
                         "Install Edge or open the HTML report and use "
                         "File -> Print -> Save as PDF."
                     )
+                except subprocess.TimeoutExpired:
+                    console.print("[red]PDF generation timed out[/red]")
+                except Exception as exc:  # noqa: BLE001 -- Edge nonzero exit / no PDF
+                    console.print(f"[red]PDF generation failed:[/red] {exc}")
             finally:
                 if tmp_path is not None:
                     tmp_path.unlink(missing_ok=True)
