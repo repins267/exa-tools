@@ -37,9 +37,12 @@ or existing features and are credited here in good faith.
 
 - **charliemacas** — [LogRhythmToolchest](https://github.com/charliemacas/LogRhythmToolchest),
   incl. **LogRhythmEcho** and the **Exabeam Echo** desktop app (Electron log-replay tool for
-  New-Scale). Echo's real-log/PCAP **replay** and OOTB use-case **library**, and the Toolchest's
-  **LogRhythm↔Windmill** alert-forwarding pattern, inform planned exa-tools work
-  (`simulate replay`, alert→webhook/SOAR forwarding). Independent, separately-authored tools.
+  New-Scale). Echo's replay-and-observe idea — ship known-bad telemetry, then watch what the
+  platform detects — directly informed exa-tools' **`simulate timing`** (end-to-end
+  detection-timing / MTTD against a recorded run's expected rules). Echo's real-log/PCAP
+  **replay** and OOTB use-case **library**, and the Toolchest's **LogRhythm↔Windmill**
+  alert-forwarding pattern, continue to inform planned work (`simulate replay`,
+  alert→webhook/SOAR forwarding). Independent, separately-authored tools.
 - **Kati Hatch** — the Team Innovation Toolkit **Log Comparison Tool** (data-source volume
   diff between two windows) informs a planned `log_volume_compare` capability.
 

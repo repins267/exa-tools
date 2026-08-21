@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 from typing import Annotated
 
@@ -20,6 +21,7 @@ console = Console()
 
 _TENANT_HELP = "Tenant nickname or FQDN (default: saved default)"
 _TOKEN_ENV = "EXA_WEBHOOK_TOKEN"
+_TOKEN_KEYRING_SERVICE = "exa-webhook"
 
 
 def _check_would_fire(client, behaviors, events) -> dict[str, str]:
@@ -63,17 +65,58 @@ def _check_would_fire(client, behaviors, events) -> dict[str, str]:
     return results
 
 
-def _resolve_token(no_prompt: bool = False) -> str:
-    """Get the webhook collector token from env or an interactive prompt.
+def _token_users(tenant: str | None, fmt: str | None) -> list[str]:
+    """Keyring usernames to try, most specific first.
 
-    Never written to disk or config — same handling as ClientSecret.
+    A tenant can have more than one Webhook Cloud Collector — e.g. a raw
+    Zscaler collector and a generic JSON collector — each with its OWN token.
+    They differ by ingest format, so we look up '<tenant>-<fmt>' before the
+    plain '<tenant>', letting both tokens coexist in the credential store.
+    """
+    users: list[str] = []
+    if tenant and fmt:
+        users.append(f"{tenant}-{fmt}")
+    if tenant:
+        users.append(tenant)
+    users.append("default")
+    return users
+
+
+def _resolve_token(
+    no_prompt: bool = False, *, tenant: str | None = None, fmt: str | None = None
+) -> str:
+    """Get the webhook collector token from env, the OS credential store, or a prompt.
+
+    Resolution order: the EXA_WEBHOOK_TOKEN env var, then the OS keyring
+    (service 'exa-webhook', username '<tenant>-<fmt>', then '<tenant>', then
+    'default'), then an interactive masked prompt. Never written to a file or
+    config — the credential store is the sanctioned resting place, same as
+    ClientSecret. Store per-collector tokens (outside any logged command) with:
+        keyring set exa-webhook <tenant>-raw     # a raw/Zscaler collector
+        keyring set exa-webhook <tenant>-json    # a JSON collector
+        keyring set exa-webhook <tenant>         # a single/default collector
     """
     token = os.environ.get(_TOKEN_ENV, "").strip()
     if token:
         return token
+
+    # OS credential store — the sanctioned resting place for secrets.
+    try:
+        import keyring
+
+        for user in _token_users(tenant, fmt):
+            stored = keyring.get_password(_TOKEN_KEYRING_SERVICE, user)
+            if stored:
+                return stored.strip()
+    except Exception:  # noqa: BLE001 — keyring is optional; fall through to prompt
+        pass
+
+    hint_user = f"{tenant}-{fmt}" if (tenant and fmt) else (tenant or "<tenant>")
     if no_prompt:
         console.print(
-            f"No token available. Set {_TOKEN_ENV} or omit --no-prompt.",
+            f"No token available. Set {_TOKEN_ENV}, store it with "
+            f"'keyring set {_TOKEN_KEYRING_SERVICE} {hint_user}', "
+            "or omit --no-prompt.",
             style="red",
         )
         raise typer.Exit(1)
@@ -82,7 +125,9 @@ def _resolve_token(no_prompt: bool = False) -> str:
 
     console.print(
         "Webhook collector token (created with the Webhook Cloud Collector "
-        f"in the tenant UI). Set {_TOKEN_ENV} to skip this prompt.",
+        f"in the tenant UI). Set {_TOKEN_ENV} or store it with "
+        f"'keyring set {_TOKEN_KEYRING_SERVICE} {hint_user}' "
+        "to skip this prompt.",
         style="dim",
     )
     token = Prompt.ask("Webhook token", password=True)
@@ -277,7 +322,7 @@ def aba_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt="json")
     console.print(f"\nSending {len(events)} events to {url} ...")
 
     from exa.exceptions import ExaAPIError
@@ -391,7 +436,7 @@ def vendor_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt="raw")
     console.print(f"\nSending {len(events)} log lines to {url} ...")
 
     from exa.exceptions import ExaAPIError
@@ -582,7 +627,7 @@ def run_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt=fmt)
     console.print(f"\nSending {len(events)} events to {url} ...")
 
     from exa.exceptions import ExaAPIError
@@ -603,6 +648,30 @@ def run_simulation(
         f"Sent {result['sent']} events in {result['batches']} batch(es).",
         style="green",
     )
+
+    # Record a run manifest so `exa simulate timing` can measure end-to-end
+    # detection latency (MTTD) against this exact send and its true send time.
+    if scenario:
+        from exa.config import get_default_tenant
+        from exa.simulate.ledger import new_run, write_run
+
+        run = new_run(
+            tenant=tenant or get_default_tenant(),
+            kind="scenario",
+            marker=marker,
+            scenario=scenario,
+            host=hostname,
+            user=user,
+            event_count=int(result.get("sent", len(events))),
+        )
+        write_run(run)
+        console.print(
+            f"  Recorded run {run.run_id} for detection timing. Measure MTTD with:\n"
+            f"    exa simulate timing --attach {run.run_id} "
+            f"--tenant {tenant or '<tenant>'}",
+            style="dim",
+        )
+
     console.print(
         "Ingestion is asynchronous — allow a few minutes, then run "
         "'exa simulate verify'.",
@@ -688,3 +757,175 @@ def verify_simulation(
             style="yellow",
         )
     console.print(f"Marker used for these events: {marker}", style="dim")
+
+
+@simulate_app.command("timing")
+def timing_simulation(
+    attach: Annotated[
+        str | None,
+        typer.Option(
+            "--attach",
+            help="Measure an existing recorded run: a run id, or 'latest'",
+        ),
+    ] = None,
+    scenario: Annotated[
+        str | None,
+        typer.Option(
+            "--scenario",
+            "-s",
+            help="Scenario to measure (records a run stamped now if not --attach)",
+        ),
+    ] = None,
+    tenant: Annotated[
+        str | None, typer.Option("--tenant", "-t", help=_TENANT_HELP)
+    ] = None,
+    deadline: Annotated[
+        int,
+        typer.Option("--deadline", help="Max seconds to wait for detections [default: 900]"),
+    ] = 900,
+    interval: Annotated[
+        int,
+        typer.Option("--interval", help="Seconds between polls [default: 30]"),
+    ] = 30,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of alerts/cases to scan [default: 1]"),
+    ] = 1,
+    once: Annotated[
+        bool,
+        typer.Option(
+            "--once/--poll",
+            help="Single snapshot instead of polling to the deadline [default: poll]",
+        ),
+    ] = False,
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", "-o", help="Report path base [default: reports/timing/...]"),
+    ] = None,
+    pdf: Annotated[
+        bool,
+        typer.Option("--pdf/--no-pdf", help="Also render a PDF [default: no-pdf]"),
+    ] = False,
+) -> None:
+    """Measure end-to-end detection time (MTTD) for a simulate run.
+
+    Reads a recorded run (what was sent + which rules it should fire) and polls
+    Threat Center alerts and cases until every expected rule is detected or the
+    deadline passes, reporting the inject->alert and inject->case latency per
+    rule. READ-ONLY against the tenant.
+
+    Record a run first by sending a scenario:
+      exa simulate run --scenario healthcare --no-dry-run --tenant sademodev22
+
+    Examples:
+      uv run exa simulate timing --attach latest --tenant sademodev22
+      uv run exa simulate timing --scenario healthcare --once --tenant sademodev22
+      uv run exa simulate timing --attach latest --deadline 1200 --pdf
+    """
+    from exa.cli.app import _make_client
+    from exa.config import get_default_tenant
+    from exa.simulate.ledger import (
+        latest_run,
+        list_runs,
+        load_run,
+        new_run,
+    )
+    from exa.simulate.timing import poll_detections, render_timing_html
+
+    name = tenant or get_default_tenant()
+
+    if attach:
+        if attach == "latest":
+            path = latest_run(name)
+        else:
+            path = next((p for p in list_runs(name) if p.stem == attach), None)
+        if path is None:
+            console.print(
+                f"No recorded run '{attach}' for {name}. Send one first with "
+                "'exa simulate run --scenario <s> --no-dry-run'.",
+                style="red",
+            )
+            raise typer.Exit(1)
+        run = load_run(path)
+    elif scenario:
+        run = new_run(tenant=name, kind="scenario", marker="EXA-SIMULATION",
+                      scenario=scenario)
+        console.print(
+            f"  No --attach: measuring '{scenario}' from now. For accurate MTTD, "
+            "record the run at send time via 'exa simulate run'.",
+            style="yellow",
+        )
+    else:
+        console.print("Specify --attach <run-id|latest> or --scenario.", style="red")
+        raise typer.Exit(1)
+
+    if not run.expected_rules:
+        console.print(
+            f"Run '{run.run_id}' has no rule-firing behaviors to time "
+            "(it only feeds context tables).",
+            style="yellow",
+        )
+        raise typer.Exit(0)
+
+    console.rule(f"Detection timing -- {run.scenario or run.kind} ({name})")
+    console.print(
+        f"  Expecting {len(run.expected_rules)} rule(s); "
+        f"{'single check' if once else f'polling every {interval}s up to {deadline}s'}.",
+        style="dim",
+    )
+
+    def _on_poll(rep) -> None:
+        console.print(
+            f"  {rep.detected_count}/{rep.total_expected} detected "
+            f"(mean MTTD alert {rep.mean_mttd_alert or '--'}s)",
+            style="dim",
+        )
+
+    client = _make_client(tenant)
+    try:
+        report = poll_detections(
+            client,
+            run,
+            deadline_seconds=0 if once else deadline,
+            interval_seconds=interval,
+            lookback_days=lookback,
+            on_poll=_on_poll,
+        )
+    finally:
+        client.close()
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Behavior", style="cyan")
+    tbl.add_column("Expected rule")
+    tbl.add_column("Detected")
+    tbl.add_column("MTTD alert", justify="right")
+    tbl.add_column("MTTD case", justify="right")
+    for o in report.outcomes:
+        det = "[green]yes[/]" if o.detected else "[red]no[/]"
+        a = f"{o.mttd_alert_seconds:.0f}s" if o.mttd_alert_seconds is not None else "-"
+        c = f"{o.mttd_case_seconds:.0f}s" if o.mttd_case_seconds is not None else "-"
+        tbl.add_row(o.behavior, o.rule_name.replace("[Sigma] ", ""), det, a, c)
+    console.print(tbl)
+    console.print(
+        f"\n  {report.detected_count}/{report.total_expected} rules detected"
+        + (f", mean MTTD {report.mean_mttd_alert}s (alert)" if report.mean_mttd_alert else "")
+    )
+
+    date_str = time.strftime("%Y-%m-%d")
+    base = out or Path("reports") / "timing" / f"{name}-{run.run_id}-{date_str}"
+    base = Path(base)
+    base.parent.mkdir(parents=True, exist_ok=True)
+    json_path = base.with_suffix(".json")
+    html_path = base.with_suffix(".html")
+    json_path.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+    html_path.write_text(render_timing_html(report), encoding="utf-8")
+    console.print(f"  Report: {json_path}", style="green")
+    console.print(f"          {html_path}", style="green")
+    if pdf:
+        from exa.report.pdf import PdfUnavailableError, html_str_to_pdf
+
+        try:
+            pdf_path = html_str_to_pdf(render_timing_html(report), base.with_suffix(".pdf"))
+            console.print(f"          {pdf_path}", style="green")
+        except PdfUnavailableError as exc:
+            console.print(f"  [yellow]PDF skipped:[/] {exc}")

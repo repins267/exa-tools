@@ -506,3 +506,58 @@ def save_html_report(report: AILLMReport, path: str | Path) -> None:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(generate_html_report(report), encoding="utf-8")
+
+
+def save_json_report(report: AILLMReport, path: str | Path) -> None:
+    """Write the report as JSON (the same shape as ``--json`` stdout)."""
+    import json
+
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(report_to_dict(report), indent=2), encoding="utf-8")
+
+
+def report_to_csv(report: AILLMReport) -> str:
+    """Per-table state as CSV text (one row per AI/LLM context table).
+
+    The state table is the report's primary, live-checkable content -- one row
+    per table with the authoritative record count and who reads it. Changes and
+    drift are narrative sections that do not flatten to one grid; the HTML/JSON
+    formats carry those.
+    """
+    import csv
+    import io
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["table", "key_attr", "records", "read_by", "present", "status"])
+    for t in report.tables:
+        if not t.present:
+            status = "not on tenant"
+        elif t.records == 0:
+            status = "empty"
+        else:
+            status = "populated"
+        w.writerow([
+            t.name,
+            t.key_attr or "",
+            t.records,
+            "; ".join(t.consumers),
+            "yes" if t.present else "no",
+            status,
+        ])
+    return buf.getvalue()
+
+
+def save_csv_report(report: AILLMReport, path: str | Path) -> None:
+    """Write the per-table state CSV to disk."""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(report_to_csv(report), encoding="utf-8")
+
+
+def save_pdf_report(report: AILLMReport, path: str | Path) -> Path:
+    """Render the report to PDF via headless Edge (raises PdfUnavailable if absent)."""
+    from exa.report.pdf import html_str_to_pdf
+
+    return html_str_to_pdf(generate_html_report(report), path)

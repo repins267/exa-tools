@@ -1,0 +1,47 @@
+name: Repo Traffic Metrics
+
+# GitHub retains traffic (clones/views/referrers) for only 14 days. This snapshots
+# the rolling 14-day totals weekly and appends them to metrics/traffic.csv so you
+# keep a permanent trend. Stars/forks are point-in-time each run.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Snapshot traffic -> metrics/traffic.csv
+        env:
+          # The default GITHUB_TOKEN has push access to this repo, which the
+          # traffic API requires. If a run 403s, add a PAT (repo scope) as a
+          # secret and use it here instead.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p metrics
+          f=metrics/traffic.csv
+          [ -f "$f" ] || echo "date,clones_14d,unique_clones_14d,views_14d,unique_views_14d,stars,forks" > "$f"
+          d=$(date -u +%Y-%m-%d)
+          clones=$(gh api "repos/$REPO/traffic/clones" --jq '.count')
+          uclones=$(gh api "repos/$REPO/traffic/clones" --jq '.uniques')
+          views=$(gh api "repos/$REPO/traffic/views" --jq '.count')
+          uviews=$(gh api "repos/$REPO/traffic/views" --jq '.uniques')
+          stars=$(gh api "repos/$REPO" --jq '.stargazers_count')
+          forks=$(gh api "repos/$REPO" --jq '.forks_count')
+          echo "$d,$clones,$uclones,$views,$uviews,$stars,$forks" >> "$f"
+
+      - name: Commit snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "action@github.com"
+          git add metrics/traffic.csv
+          git commit -m "chore: weekly traffic snapshot [skip ci]" || echo "no change"
+          git push || echo "push skipped"

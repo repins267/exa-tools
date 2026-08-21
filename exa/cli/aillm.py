@@ -1542,6 +1542,15 @@ def report_cmd(
             "detection [default: save-baseline]",
         ),
     ] = True,
+    fmt: Annotated[
+        str | None,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output file format: html | pdf | json | csv "
+            "[default: inferred from --out extension, else html]",
+        ),
+    ] = None,
     json_out: Annotated[
         bool,
         typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
@@ -1574,6 +1583,8 @@ def report_cmd(
     Examples:
       uv run exa aillm report --tenant baystate
       uv run exa aillm report --tenant baystate -o baystate.html
+      uv run exa aillm report --format pdf --tenant baystate
+      uv run exa aillm report --format csv -o landscape.csv --tenant baystate
       uv run exa aillm report --no-drift --tenant baystate
       uv run exa aillm report --json --tenant baystate
     """
@@ -1584,7 +1595,10 @@ def report_cmd(
         default_report_path,
         report_to_dict,
         save_baseline,
+        save_csv_report,
         save_html_report,
+        save_json_report,
+        save_pdf_report,
     )
     from exa.config import get_default_tenant
 
@@ -1605,8 +1619,48 @@ def report_cmd(
     finally:
         client.close()
 
-    path = output or default_report_path(name)
-    save_html_report(report, path)
+    # Resolve the output format: an explicit --format wins; else infer from the
+    # --out extension; else HTML. (--json is a separate stdout contract, below.)
+    known_formats = {"html", "pdf", "json", "csv"}
+    chosen = (fmt or "").strip().lower()
+    if not chosen and output is not None:
+        ext = output.suffix.lower().lstrip(".")
+        if ext in known_formats:
+            chosen = ext
+    if not chosen:
+        chosen = "html"
+    if chosen not in known_formats:
+        console.print(
+            f"[red]Unknown --format '{fmt}'. Use html, pdf, json, or csv.[/]"
+        )
+        raise typer.Exit(1)
+
+    # Default path carries the chosen format's extension so files don't collide.
+    if output is not None:
+        path = output
+    else:
+        path = default_report_path(name)
+        if chosen != "html":
+            path = path.with_suffix(f".{chosen}")
+
+    if chosen == "html":
+        save_html_report(report, path)
+    elif chosen == "json":
+        save_json_report(report, path)
+    elif chosen == "csv":
+        save_csv_report(report, path)
+    else:  # pdf
+        from exa.report.pdf import PdfUnavailableError
+
+        try:
+            save_pdf_report(report, path)
+        except PdfUnavailableError as exc:
+            console.print(f"[yellow]PDF skipped:[/] {exc}")
+            raise typer.Exit(1) from exc
+        except Exception as exc:  # noqa: BLE001 -- surface Edge failure/timeout
+            console.print(f"[red]PDF generation failed:[/] {exc}")
+            raise typer.Exit(1) from exc
+
     snapshot = save_baseline(report) if save_baseline_opt else None
 
     if json_out:
@@ -2002,3 +2056,138 @@ def rollback_cmd(
                       style="green")
     finally:
         client.close()
+
+
+@aillm_app.command("cycle")
+def cycle_cmd(
+    iterations: Annotated[
+        int,
+        typer.Option("--iterations", "-n", help="Number of cycles to run [default: 15]"),
+    ] = 15,
+    confirm_filter: Annotated[
+        str,
+        typer.Option(
+            "--confirm-filter",
+            help="EQL the confirm-search step must return rows for "
+            '[default: web_domain:"chatgpt.com"]',
+        ),
+    ] = 'web_domain:"chatgpt.com"',
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of history for validate + search [default: 30]"),
+    ] = 30,
+    from_empty: Annotated[
+        bool,
+        typer.Option(
+            "--from-empty/--from-current",
+            help="Clear tables after snapshot so sync populates from empty, "
+            "exercising the demo arc [default: from-current]",
+        ),
+    ] = False,
+    slow_seconds: Annotated[
+        float,
+        typer.Option(
+            "--slow-seconds",
+            help="A step slower than this flags the iteration slow [default: 45]",
+        ),
+    ] = 45.0,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Findings JSON path [default: reports/aillm-cycle/<tenant>-<date>.json]",
+        ),
+    ] = None,
+    confirm: Annotated[
+        bool,
+        typer.Option(
+            "--confirm/--dry-run",
+            help="Actually run the live write loop; without it prints the plan "
+            "[default: dry-run]",
+        ),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Run the AI/LLM populate->audit->rollback cycle N times as a stability gate.
+
+    Each iteration snapshots the six tables, optionally clears them, runs sync to
+    populate, audits the Landscape dashboard (no panel skipped) and the tables (no
+    rule-backed table DEAD), confirms live data via a search, then rolls back to
+    the snapshot and verifies every table returned to its exact baseline. The
+    rollback runs even if a middle step fails, so an aborted iteration never
+    leaves the tenant dirty.
+
+    WRITES to the tenant (sync + rollback each iteration), so it needs --confirm.
+    Writes a findings JSON and exits non-zero if any iteration fails.
+
+    \b
+    Examples:
+      uv run exa aillm cycle --tenant sademodev22 --dry-run
+      uv run exa aillm cycle -n 15 --confirm --tenant sademodev22
+      uv run exa aillm cycle -n 20 --from-empty --confirm --tenant sademodev22
+    """
+    import json as _json
+    import time
+
+    from exa.aillm.cycle import run_cycles
+    from exa.config import get_default_tenant
+
+    name = tenant or get_default_tenant()
+
+    if not confirm:
+        console.print(
+            f"  [yellow]Dry run[/] -- would run {iterations} live cycle(s) on "
+            f"[cyan]{name}[/], each: snapshot -> "
+            + ("clear -> " if from_empty else "")
+            + "sync -> audit dashboard+tables -> confirm-search -> rollback.\n"
+            "  This WRITES to the tenant (sync + rollback per iteration). "
+            "Re-run with --confirm to execute."
+        )
+        return
+
+    date_str = time.strftime("%Y-%m-%d")
+    out_path = output or Path("reports") / "aillm-cycle" / f"{name}-{date_str}.json"
+
+    console.rule(f"AI/LLM cycle -- {name} ({iterations} iterations)")
+
+    def _progress(it) -> None:
+        color = {"ok": "green", "slow": "yellow", "fail": "red"}.get(it.status, "white")
+        fails = f" [{', '.join(it.failed_steps)}]" if it.failed_steps else ""
+        console.print(
+            f"  [{color}]#{it.index:>2} {it.status.upper():<4}[/] "
+            f"{it.seconds:6.1f}s{fails}"
+        )
+
+    client = _make_client(tenant)
+    try:
+        report = run_cycles(
+            client,
+            name,
+            iterations=iterations,
+            confirm_filter=confirm_filter,
+            lookback_days=lookback,
+            from_empty=from_empty,
+            slow_seconds=slow_seconds,
+            on_iteration=_progress,
+        )
+    finally:
+        client.close()
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(_json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+
+    c = report.counts
+    console.print(
+        f"\n  Verdict: [bold]{report.verdict}[/]  "
+        f"(ok {c['ok']} / slow {c['slow']} / fail {c['fail']} "
+        f"of {len(report.iterations)})"
+    )
+    console.print(f"  Clean iterations: {report.clean_iterations}/{len(report.iterations)}")
+    console.print(f"  Findings: {out_path}", style="dim")
+    if report.verdict != "PASS":
+        raise typer.Exit(1)

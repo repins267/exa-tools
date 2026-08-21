@@ -1,0 +1,113 @@
+name: CI Safety & Performance Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Nightly at 02:00 UTC: the expensive / non-deterministic LLM leaderboard.
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      run_llm_eval:
+        description: "Force run the LLM leaderboard evaluation?"
+        required: false
+        type: boolean
+        default: false
+
+# Default to least privilege; Job 2 elevates to contents:write for the trend commit.
+permissions:
+  contents: read
+
+jobs:
+  # =======================================================================
+  # JOB 1 — DETERMINISTIC HEURISTIC GATE (fast, free, offline, BLOCKING)
+  # Runs on every push/PR. Never touches the network or an LLM.
+  # =======================================================================
+  heuristic-gate:
+    name: Heuristic Rules & Safety Verification
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: Benchmark unit tests (deterministic)
+        run: uv run pytest tests/test_benchmark.py tests/test_learn.py tests/test_calibration.py -q
+
+      - name: Deterministic benchmark gate (zero-tolerance safety)
+        run: >
+          uv run exa assess benchmark
+          --golden tests/data/classifier_golden.jsonl
+          --fail-under-precision 1.0
+          --fail-under-pii-recall 1.0
+          --min-corpus 35
+          --output-json scorecard.json
+
+      - name: PR scorecard summary
+        if: github.event_name == 'pull_request' && always()
+        run: |
+          {
+            echo "### Heuristic Engine — Safety Scorecard"
+            echo '```json'
+            cat scorecard.json 2>/dev/null || echo "{}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload scorecard artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heuristic-scorecard-${{ github.sha }}
+          path: scorecard.json
+          retention-days: 14
+
+  # =======================================================================
+  # JOB 2 — ASYNC LLM LEADERBOARD (non-deterministic, network, NON-BLOCKING)
+  # Schedule / manual only, so PR loops never burn API budget or flake on a
+  # vendor timeout. Do NOT add this to required status checks.
+  # =======================================================================
+  llm-leaderboard:
+    name: Nightly LLM Evaluation & Cost Tracking
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_llm_eval == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # to commit the historical trend CSV
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --dev
+
+      - name: LLM leaderboard evaluation (seeded)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          LLM_EVAL_SEED: "42"
+        run: >
+          uv run python scripts/evaluate_llm_leaderboard.py
+          --golden tests/data/classifier_golden.jsonl
+          --out-csv trends/llm_performance.csv
+
+      - name: Commit trend (main only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "github-actions[bot]"
+          git add trends/llm_performance.csv
+          git commit -m "chore: update LLM leaderboard trend [skip ci]" || echo "no change"
+          git push || echo "push skipped"

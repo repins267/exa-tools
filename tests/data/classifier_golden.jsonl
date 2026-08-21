@@ -1,0 +1,36 @@
+{"value": "Generative AI and ML Applications", "reason": "ai-category", "label": "generic-ai", "field": "category"}
+{"value": "AI & ML Apps", "reason": "ai-category", "label": "generic-ai", "field": "category"}
+{"value": "Cloud App - Generative AI", "reason": "vendor-pack-category", "label": "generic-ai", "field": "category"}
+{"value": "ChatGPT", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "Claude", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "Google Gemini", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "Microsoft Copilot", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "Perplexity", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "Hugging Face", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "DeepSeek", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "chat.openai.com", "reason": "ai-classified", "label": "generic-ai", "field": "web_domain"}
+{"value": "claude.ai", "reason": "ai-classified", "label": "generic-ai", "field": "web_domain"}
+{"value": "gemini.google.com", "reason": "ai-classified", "label": "generic-ai", "field": "web_domain"}
+{"value": "perplexity.ai", "reason": "ai-classified", "label": "generic-ai", "field": "web_domain"}
+{"value": "ollama.exe", "reason": "ai-runtime-process", "label": "generic-ai", "field": "process_name"}
+{"value": "lmstudio.exe", "reason": "ai-runtime-process", "label": "generic-ai", "field": "process_name"}
+{"value": "U.S. Health Insurance Act (HIPAA) Enhanced", "reason": "vendor-pack-template", "label": "generic-ai", "field": "alert_name"}
+{"value": "leak@hospital.org", "reason": "ai-classified", "label": "pii", "field": "alert_name"}
+{"value": "john.smith@customercorp.com", "reason": "ai-classified", "label": "pii", "field": "app"}
+{"value": "{\"id\":\"JJeoVS\",\"name\":\"beagle\",\"type\":\"IndustryTerm\"}", "reason": "ai-classified", "label": "pii", "field": "app"}
+{"value": "DLP policy (Patient SSN 123-45-6789) matched for user mary", "reason": "ai-classified", "label": "pii", "field": "alert_name"}
+{"value": "AIEnterpriseInteractionsExported for jsmith@acme.com on 2026-08-01T04:00:00Z session 4f2a", "reason": "ai-classified", "label": "pii", "field": "alert_name"}
+{"value": "Email subject: Re: Q3 board deck for the CFO please review by friday thanks", "reason": "ai-classified", "label": "pii", "field": "alert_name"}
+{"value": "acme-internal-copilot-proxy.corp.acme.local", "reason": "ai-classified", "label": "customer-specific", "field": "web_domain"}
+{"value": "NykaaGPT", "reason": "ai-classified", "label": "customer-specific", "field": "app"}
+{"value": "sans.com.sa", "reason": "ai-classified", "label": "customer-specific", "field": "web_domain"}
+{"value": "General Browsing", "reason": "not-ai-related", "label": "not-ai", "field": "category"}
+{"value": "Business and Economy", "reason": "not-ai-related", "label": "not-ai", "field": "category"}
+{"value": "dga-a8f3e9c1b2", "reason": "machine-generated", "label": "noise", "field": "alert_name"}
+{"value": "tmp-7f8a9b-scan", "reason": "machine-generated", "label": "noise", "field": "alert_name"}
+{"value": "AI & ML", "reason": "vendor-pack-category", "label": "generic-ai", "field": "category"}
+{"value": "MS Copilot Personal", "reason": "vendor-pack-category", "label": "generic-ai", "field": "category"}
+{"value": "Jasper", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "cursor", "reason": "ai-classified", "label": "generic-ai", "field": "app"}
+{"value": "svc_acme_billing_export_prod_01", "reason": "ai-classified", "label": "customer-specific", "field": "app"}
+{"value": "huggingface.co", "reason": "ai-classified", "label": "generic-ai", "field": "web_domain"}

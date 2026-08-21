@@ -753,6 +753,7 @@ TOOL_DEFS: list[Tool] = [
                 "config": {"type": "object", "description": "The dashboard config JSON object."},
                 "config_path": {"type": "string", "description": "Path to a .config file (if not passing config)."},
                 "output_path": {"type": "string", "description": "Where to save the preview HTML [default: reports/{kind}/{tenant}/<title>-preview.html]. Intermediate dirs are created automatically."},
+                "scrub": {"type": "boolean", "description": "Strip customer names from the title/description so the preview is safe to share (default false). Sample data always comes from the connected tenant, not any customer."},
             },
         },
     ),
@@ -1353,7 +1354,7 @@ async def dispatch_tool(
                 import re as _re
                 from pathlib import Path as _P
 
-                from exa.report.dashboard import dashboard_preview_html
+                from exa.report.dashboard import dashboard_preview_html, scrub_config
 
                 cfg = arguments.get("config")
                 if not cfg and arguments.get("config_path"):
@@ -1377,6 +1378,8 @@ async def dispatch_tool(
                         return _err(f"could not read config_path: {exc}")
                 if not isinstance(cfg, dict):
                     return _err("render_dashboard needs a config object or a config_path.")
+                if arguments.get("scrub"):
+                    cfg, _ = scrub_config(cfg)
                 slug = _re.sub(r"[^a-z0-9]+", "-", str(cfg.get("title", "dashboard")).lower()).strip("-")[:60] or "dashboard"
                 if arguments.get("output_path"):
                     try:
