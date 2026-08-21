@@ -6,752 +6,248 @@
   <img src="docs/brand/exa-tools-banner-dark.svg" alt="exa-tools" width="560">
 </picture>
 
-Detection engineering, compliance auditing, and case triage for Exabeam New-Scale Analytics.
+**Operate Exabeam New-Scale from your terminal — or hand it to Claude.**
+
+Multi-tenant config, AI/LLM shadow-AI detection, case triage, compliance auditing across
+11 frameworks, and Splunk/Sigma rule conversion.
+
+[![CI](https://github.com/repins267/exa-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/repins267/exa-tools/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-006BFF?style=flat-square&labelColor=05060f&logo=python&logoColor=white)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-33_tools-27B2FF?style=flat-square&labelColor=05060f)](docs/mcp.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-009D00?style=flat-square&labelColor=05060f)](LICENSE)
+
+[Quick start](#quick-start) · [Configuration](#1--configuration) · [Claude / MCP](#2--claude--mcp) ·
+[AI/LLM](#3--aillm) · [Threat Center](#4--threat-center) · [Compliance](#5--compliance) ·
+[Detection](#6--detection) · [Security](#security-posture)
 
 </div>
 
-# exa-tools
+---
 
-![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
-![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-1018%20passing-brightgreen)
+## Why
 
-Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
+- **Every tenant, one command.** Credentials live in the OS credential store, never in a config
+  file. Switch environments with `--tenant`; nothing secret reaches disk or your shell history.
+- **Claude can read your tenant.** 33 MCP tools and 17 agentic skills, read-only by default.
+  Tenant switching is a nickname lookup, so no credential ever reaches the model.
+- **Shadow AI is the question customers are asking now.** Six reference tables covering 223
+  domains and 90 applications — synced to the tenant, then enriched from its own proxy logs.
 
-**Detection rule conversion** routes Splunk SPL searches and SigmaHQ community rules through a shared `SPL → Sigma → EQL` pipeline backed by the **Field Oracle** — a local index of 4,258 raw→CIM2 field mappings extracted from Exabeam's own parser definitions. Every converted field gets a confidence rating (Oracle / Schema / Passthrough) so you know exactly what's verified before you deploy.
-
-**One-step deployment** pushes converted rules directly to your tenant via API. Multi-tenant support lets you target any registered environment with `--tenant`.
-
-**Threat Center integration** gives analysts a full CLI workflow for cases and alerts — search, triage, update, and qualify. `exa case qualify` pulls the triggering correlation rule, entity history, context table membership, and score trend, then issues a structured verdict (SUSPECTED_INCIDENT / LIKELY_FP / LEARNING_PHASE_NOISE / NEEDS_INVESTIGATION) to help analysts decide faster.
-
-**Outcome tracking and calibration** logs every qualification and tracks analyst decisions over time. `exa case baseline` uses the tenant's licensed LTS retention window to pull historical closed cases, computes per-rule and per-entity false-positive rates, and feeds that calibration back into future verdicts automatically.
-
-**Detection Management** exports, imports, and diffs analytics rules across tenants — enabling rule backup, migration, and cross-environment gap analysis.
-
-**Compliance auditing** runs automated evidence collection across 11 frameworks — NIST CSF v2.0, CMMC L2/L3, PCI DSS, HIPAA, FedRAMP Moderate, CIS Controls v8, ISO 27001, CJIS, GDPR, and SOX — and produces HTML and PDF reports with executive summaries and gap analysis. Queries are dynamically built per-tenant using **Field Oracle concept resolution**, ensuring controls match the actual `activity_type` values present in each environment.
-
-**Context table management** handles bulk CRUD operations with 20k-record batch support, including pre-built sync for AI/LLM threat detection reference tables.
-
-All from the command line.
-
-![Pipeline Animation](docs/pipeline-animation.svg)
-
-## Claude / MCP Tools
-
-exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **read-only-by-default** slice of the CLI to **Claude Desktop** and **Claude Code**, plus a plugin with agentic **skills** and a branded **report renderer**.
-
-**Install**
-- Claude Code: `claude plugin install exa-tools@exa-tools` (loads the MCP server + skills from the repo).
-- Claude Desktop: `exa mcp install --tenant <tenant>`, then fully quit and reopen. Check **Settings → Developer** for the `exabeam` server. You never run `exa mcp serve` yourself — Claude spawns it.
-- Not sure which client/build you have? `exa mcp install --tenant <tenant> --print` shows the exact config block **and every config path for your OS** with live `detected / not present` state, and flags a Store build that can't run MCP.
-
-**Which Claude client works?** Your Claude *plan* is not the blocker — the **Free plan works**. What matters is the **app build**: local MCP is a feature of the app, not the subscription.
-
-| Client | Runs exa-tools? | Why / config path |
-| --- | --- | --- |
-| **Claude Desktop — standalone** (claude.ai/download) | ✅ Yes, even on Free | Has Developer Mode (**Settings → Developer**). Config: `%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`) |
-| **Claude Desktop — Microsoft Store** (MSIX) | ❌ No | Sandboxed, no Developer Mode — the config is written but never read. **Fix:** uninstall it, install the standalone app instead |
-| **Claude Desktop — work AWS Bedrock** ("Claude-3p") | ✅ Yes | Enterprise build. Config: `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`; the `--docs` server is proxied via `npx mcp-remote` |
-| **Claude Code** (Free or licensed) | ✅ Yes | `claude mcp add …` or a project `.mcp.json`; never hits the Store-sandbox problem |
-
-**Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
-
-**Guardrails & audit** (adapted from [socxen](https://github.com/open-agent-ai-security/socxen) / [observra](https://github.com/open-agent-ai-security/observra)) — every tool **result** is canonicalized (invisible smuggling code points stripped, NFC-normalized) so injection hidden in a log field can't reach the model; free-text **write** inputs are neutralized (spreadsheet formulas quote-prefixed, links defanged, secrets redacted) before they persist. A metadata-only **audit log** (default on, fail-open, rotating JSONL at `~/.exa/audit.jsonl`) records every call — tool, tenant/kind, read/write, duration, status, result size, and safe id fields — **never** notes, secrets, or payloads. Disable with `EXA_AUDIT=off`. Both guardrails are regression-tested against socxen's red-team attack corpus (`tests/redteam/`) — zero-width, formula/link injection, and secret/PII leak fixtures. `security/` also carries a CycloneDX **AI-BOM** (`uv run security/gen_aibom.py`) and a Praxen **Agent Behavior Verification** report (`security/praxen/`) checking declared policy against actual behavior. Full attribution for adapted code, pulled data, and reviewed tools is in [CREDITS.md](CREDITS.md).
-
-**Tools (33)**
-
-| Group | Tools |
-| --- | --- |
-| Search / cases / alerts | `search_alerts` `get_alert` `search_cases` `get_case` `search_events` `create_case`\* `update_case`\* `update_alert`\* `add_case_note`\* |
-| Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` `source_detail` |
-| Identity / context | `identity_health` `context_table` |
-| SOC / tuning | `soc_kpis` `tuning_report` (NYMM) |
-| AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` `ai_domain_lookup` |
-| Detection | `list_detection_rules` |
-| Tenant | `get_active_tenant` `list_tenants` `set_active_tenant` `set_tenant_kind` |
-| Reports | `render_report` `render_dashboard` `render_abv` |
-
-\* write tools, gated behind `--allow-writes`.
-
-**Skills (17)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-assess`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first), `exa-selftest` (Code-first), `exa-event-explorer`, `exa-upgrade-readiness`, `exa-upgrade-validation`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
-
-**Demo/onboarding preflight** — `exa selftest --tenant <t>` exercises every read tool through the same path Claude Desktop uses, times each against a Desktop-latency budget, classifies ok/slow/timeout/error, and writes `reports/selftest/<tenant>-<date>.json` (exit non-zero on any timeout/error, so a scheduled task can alert). The MCP server also **warms the AI/LLM tenant field-profile in the background on start**, so the first AI/LLM query in a fresh Claude Desktop session no longer eats the ~35s cold-collection cost and looks hung.
-
-**Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON. Rendered output is auto-organized under `reports/{kind}/{tenant}/` (e.g. `reports/customer/baystate/`) — the tenant's kind tag and nickname, with intermediate directories created automatically; pass `output_path` to override.
-
-### NYMM — detection tuning (Mouton replacement)
-
-`tuning_report` + the `exa-nymm` skill are the New-Scale-native replacement for the deprecated **Mouton** Advanced Analytics tuning tool. Mouton ranked rules by `NotableReductionOnDeletion` — how many *notables* would vanish if a rule were disabled (the noise). NSA has no notables or histograms; it has **alerts → cases**, so NYMM uses the analog: **a detection that fires a lot but rarely escalates to a case is noise.**
-
-It ranks alert drivers by volume with **% of all**, average risk, and **escalation-to-case rate**, then flags each **Keep / Review / Tune-disable**. Read-only — it *recommends*, never disables a rule; a TAM confirms against the account before acting. Params: `lookback_days` (default 30), `top_n` (default 20), `render` (branded HTML report).
-
-**Covers today:** the tuning (`rules.csv`) half of Mouton — driver ranking, escalation fidelity, recommendations, branded report.
-**Not yet / by design:** silent-rule (enabled-but-unreachable) detail, trend over time with a stored baseline, rule-level (vs alert-name) aggregation, and data-health rollup are roadmap; NSA-only (does not query legacy AA); alerts sampled at 5,000, so on a busy tenant the driver mix is a lower bound.
-
-## Prerequisites
-
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- git (required for `exa update`)
-- Windows Credential Manager (Windows) / Keychain (macOS) / Secret Service (Linux)
-
-## Installation
+## Quick start
 
 ```bash
-git clone <repo-url> exa-tools
+git clone https://github.com/repins267/exa-tools.git
 cd exa-tools
 uv sync
+uv tool install -e .        # install `exa` globally from local source
+
+exa configure               # tenant FQDN + client credentials -> OS keyring
+exa update                  # pull CIM2 / SigmaHQ reference data, build the Field Oracle
 ```
 
-## First-Time Setup
+Every command takes `--help`. Every command takes `--tenant <name>`.
+
+## What's in it
+
+| Area | What it does | Docs |
+|---|---|---|
+| Configuration | Multi-tenant credentials, reference-data sync, context tables | [docs/configuration.md](docs/configuration.md) |
+| Claude / MCP | 33 tools + 17 skills exposed to Claude Desktop and Claude Code | [docs/mcp.md](docs/mcp.md) |
+| AI/LLM | Six shadow-AI context tables, log-based discovery, risk overrides | [docs/aillm.md](docs/aillm.md) |
+| Threat Center | Case and alert search, structured triage, outcome calibration | [docs/threat-center.md](docs/threat-center.md) |
+| Compliance | 11 frameworks, tenant-aware queries, HTML/PDF gap reports | [docs/compliance.md](docs/compliance.md) |
+| Detection | SPL and Sigma → EQL, field-verified, deploy to tenant | [docs/detection.md](docs/detection.md) |
+| Architecture | The conversion pipeline and the Field Oracle, in detail | [docs/architecture.md](docs/architecture.md) |
+| NYMM | Detection tuning — the New-Scale-native Mouton replacement | [docs/nymm.md](docs/nymm.md) |
+| Hot key | Dataflow worker imbalance from coarse Network Zones | [docs/hotkey.md](docs/hotkey.md) |
+
+---
+
+## 1 · Configuration
+
+Tenants are registered once and referenced by nickname. Secrets go to Windows Credential
+Manager, macOS Keychain, or Linux Secret Service — never to `~/.exa/config.json`.
 
 ```bash
-uv tool install -e .       # install exa globally from local source
-exa configure              # set up tenant credentials (stored in keyring)
-exa update                 # clone CIM2 + SigmaHQ repos and build Field Oracle
+exa configure                          # interactive: FQDN, client id, secret; tests the connection
+exa config set default-tenant <name>
+exa config show
+
+exa update                             # sync CIM2 + SigmaHQ, rebuild the Field Oracle
+exa update --check                     # show current SHAs without pulling
+exa update self                        # git pull + uv sync on exa-tools itself
 ```
 
-## Quick Start
+Context tables get full CRUD with 20k-record batching — create from CSV with an auto-derived
+schema, append or replace, export back out.
+
+→ [Full configuration and `exa tables` reference](docs/configuration.md)
+
+## 2 · Claude / MCP
+
+exa-tools ships an MCP server (`exa mcp serve`) exposing a curated, **read-only-by-default**
+slice of the CLI to Claude Desktop and Claude Code, plus a plugin carrying agentic skills and a
+branded report renderer.
 
 ```bash
-exa configure                                    # set up tenant + credentials
-exa update                                       # download reference data + build oracle
+# Claude Code
+claude plugin install exa-tools@exa-tools
+
+# Claude Desktop — then fully quit and reopen
+exa mcp install --tenant <name>
+exa mcp install --tenant <name> --print   # show the config block and every path for your OS
+```
+
+You never run `exa mcp serve` yourself — Claude spawns it.
+
+**33 tools** across search/cases/alerts, health, identity, SOC tuning, AI/LLM, detection, tenant,
+and reports. **17 skills**, the tenant-aware ones announcing the active tenant and its kind
+(demo/customer) before they report or write. Four write tools exist and stay hidden unless the
+server is started with `--allow-writes`.
+
+Your Claude *plan* is not the blocker — the Free plan works. The *app build* is what matters, and
+the Microsoft Store build can't run local MCP at all.
+
+The MCP server, its tools, and the skills are verified with
+[Praxen](https://github.com/open-agent-ai-security/praxen) Agent Behavior Verification — a
+declared policy remit adjudicated against the actual code, with results checked in under
+`security/praxen/`.
+
+→ [Client matrix, tool tables, guardrails, and the selftest preflight](docs/mcp.md)
+
+## 3 · AI/LLM
+
+Six context tables for AI/LLM threat detection, sourced from
+[ai-llm-domains](https://github.com/repins267/ai-llm-domains) — 223 domains rated Low/Medium/High,
+90 applications, proxy and web categories, and DLP ruleset names.
+
+```bash
+exa aillm sync                             # append; --force to replace, --dry-run to preview
+exa aillm sync --discover-from-logs        # add AI domains actually seen in proxy/web logs
+exa aillm sync-ruleset --tenant <name>     # replace generic DLP names with this tenant's real ones
+exa aillm discover --tenant <name>         # candidate alert names and app names, report only
+exa aillm status                           # live record counts for all six tables
+```
+
+High-risk ratings carry a stated rationale — data jurisdiction, autonomous execution, absent
+enterprise controls, or impersonation — rather than a bare score. Per-tenant risk overrides take
+a JSON map.
+
+→ [Table schemas, category breakdown, discovery passes, and exclusions](docs/aillm.md)
+
+## 4 · Threat Center
+
+```bash
+exa cases list --filter 'NOT stage:"CLOSED"' --limit 20
+exa case qualify C-1042                   # structured triage -> a verdict
+exa case baseline                         # per-rule and per-entity FP rates (add --json for machine output)
+exa case outcome sync                     # back-fill analyst decisions from closed cases
+```
+
+`exa case qualify` pulls the triggering correlation rule, entity case history, context table
+membership, score trend, and external IP annotations, then issues one of four verdicts:
+`SUSPECTED_INCIDENT`, `LIKELY_FP`, `LEARNING_PHASE_NOISE`, `NEEDS_INVESTIGATION`.
+
+Every qualification is logged. `exa case baseline` pulls historical closed cases — capped
+automatically to the tenant's licensed LTS retention window, not a hardcoded limit — computes
+false-positive rates, and feeds that calibration back into later verdicts.
+
+→ [Verdict criteria, outcome tracking, and EQL filtering](docs/threat-center.md)
+
+## 5 · Compliance
+
+```bash
+exa frameworks                                            # list frameworks + testable control counts
+exa compliance audit --framework "NIST CSF v2.0" --lookback 30
+exa compliance audit --framework "PCI DSS" --output-html --output-pdf
+```
+
+Controls are annotated with semantic concepts rather than fixed field filters. At audit time the
+resolver queries the tenant for the `activity_type` values actually present, then builds EQL from
+only those — so a missing log source fails as a clear gap instead of a false negative from a query
+that never matched anything.
+
+Seven frameworks ship full queries (NIST CSF v2.0, CIS v8, HIPAA, PCI DSS, FedRAMP Moderate,
+ISO 27001:2022, CJIS); four are stubs pending queries (CMMC L2/L3, GDPR, SOX). Reports render as
+HTML and PDF with an executive summary, family coverage, and gap analysis.
+
+→ [Control counts, output flags, and tenant-aware vs static mode](docs/compliance.md)
+
+## 6 · Detection
+
+```bash
 exa sigma convert --rule proc_creation_powershell_encoded.yml
 exa splunk one 'index=ad CommandLine="*mimikatz*"' --title "Mimikatz Detection"
+exa splunk convert searches.xlsx                  # batch from Excel
+exa sigma deploy --rule <rule>.yml --tenant <name>
 ```
 
-## Commands
-
-Every command supports `--help` for full usage and flag descriptions:
-
-```bash
-exa --help                    # list all commands
-exa sigma convert --help      # flags for a specific command
-exa splunk deploy --help
-```
-
-### `exa configure`
-
-Interactive setup: enter your tenant FQDN, client ID, and client secret. Tests the connection, saves credentials to keyring, and optionally downloads CIM2/SigmaHQ reference data.
-
-### `exa auth`
-
-Test authentication for a tenant, or register a **Webhook Cloud Collector**. The collector token is stored in the OS credential store (service `exa-webhook`, key `<tenant>-<format>`) — the same key `exa simulate` reads, so a registered collector needs no further setup. Only non-secret metadata (name, tenant, format, note, created) is written to `~/.exa/collectors.json`; the token never touches a file.
-
-```bash
-exa auth                                       # test auth for the default tenant
-exa auth -t baystate                           # test auth for a specific tenant
-
-# Register a collector (prompts for the token, masked; or reads EXA_WEBHOOK_TOKEN)
-exa auth --collector -t sademodev22
-exa auth --collector -t sademodev22 --format raw --name "Zscaler raw" --note "prod"
-exa auth --collector -t sademodev22 --no-prompt   # env-only, no interactive prompt
-
-exa auth --list-collectors                     # list registered collectors (never shows tokens)
-```
-
-A tenant can register more than one collector — e.g. a `raw` Zscaler collector and a `json` collector — each with its own token, coexisting under `<tenant>-raw` / `<tenant>-json`.
-
-### `exa update`
-
-```bash
-exa update             # sync CIM2 + SigmaHQ repos, build Field Oracle
-exa update self        # git pull main + uv sync on exa-tools itself
-exa update --check     # show current SHAs without pulling
-```
-
-Downloads [Content-Library-CIM2](https://github.com/ExabeamLabs/Content-Library-CIM2), [new-scale-content-hub](https://github.com/ExabeamLabs/new-scale-content-hub), and [SigmaHQ/sigma](https://github.com/SigmaHQ/sigma), then builds the Field Oracle from 8,278 parser definition files.
-
-### `exa config`
-
-```bash
-exa config set sigma.rules-dir "E:\SigmaHQ\rules\windows"
-exa config set default-tenant sademodev22
-exa config get sigma.rules-dir
-exa config show
-```
-
-Configuration stored at `~/.exa/config.json`. Secrets are never written to this file.
-
-### `exa tables`
-
-```
-exa tables list [--name FILTER] [--tenant TENANT] [--json]
-
-exa tables create NAME [--type TYPE] [--key COLNAME] [--columns a,b,c]
-                       [--csv PATH] [--replace] [--tenant TENANT]
-  --type     Context type: Other (default), User, TI_ips, TI_domains,
-             Device, Domain, IP
-  --key      Key column name (default: "key", or first CSV column)
-  --columns  Extra column names (comma-separated; ignored if --csv given)
-  --csv      CSV file — headers become columns, rows uploaded immediately
-  --replace  Use replace semantics when uploading CSV (default: append)
-
-exa tables delete TABLE [--yes] [--purge-attributes] [--tenant TENANT]
-  TABLE  Table ID or display name
-
-exa tables records list TABLE [--limit N] [--offset N]
-                               [--csv PATH] [--json] [--tenant TENANT]
-
-exa tables records upload TABLE CSV_PATH [--replace] [--key COLNAME]
-                                          [--tenant TENANT]
-  --replace  Overwrite entire table (default: append)
-
-exa tables records export TABLE OUTPUT_PATH [--tenant TENANT]
-```
-
-### `exa aillm`
-
-Sync and monitor six AI/LLM threat detection context tables in Exabeam. Reference data is sourced from [ai-llm-domains](https://github.com/repins267/ai-llm-domains) — a maintained dataset of 223+ domains, 90+ applications, proxy categories, and DLP alert patterns. Run `exa update` to pull the latest data before syncing.
-
-```bash
-# Sync all 6 tables from bundled reference data
-exa aillm sync                                            # append mode
-exa aillm sync --force                                    # full replace
-exa aillm sync --dry-run                                  # preview without writing
-exa aillm sync --tenant csnafusion                        # specific tenant
-
-# Augment domain tables with AI domains seen in your proxy/web logs
-exa aillm sync --discover-from-logs
-exa aillm sync --discover-from-logs --lookback 60 --tenant csnafusion
-
-# Override risk ratings for specific domains before syncing
-exa aillm sync --risk-override overrides.json             # see format below
-
-# Sync 'AI/LLM DLP Rulesets' from real alert names in Threat Center
-# (run after AI/LLM correlation rules have been active for a few days)
-exa aillm sync-ruleset --tenant csnafusion
-exa aillm sync-ruleset --dry-run --tenant csnafusion      # preview matches
-exa aillm sync-ruleset --lookback 180 --tenant csnafusion # longer window
-
-# Discover AI activity candidates for enriching context tables
-exa aillm discover --tenant csnafusion                    # report only
-exa aillm discover --lookback 60 --tenant csnafusion
-exa aillm discover --add-rulesets --tenant csnafusion     # write alert names
-exa aillm discover --add-apps --tenant csnafusion         # write app names
-exa aillm discover --json --tenant csnafusion             # structured output
-
-# Show live record counts for all 6 tables
-exa aillm status
-exa aillm status --tenant csnafusion
-
-# Report AI/LLM state, what changed since last run, and what is drifting
-exa aillm report --tenant csnafusion
-exa aillm report --format html --out reports/aillm.html   # html | pdf | json | csv
-exa aillm report --lookback 30 --no-refresh               # reuse cached profile
-
-# Stability gate: run the populate -> audit -> rollback cycle N times
-exa aillm cycle --iterations 15 --tenant csnafusion
-exa aillm cycle --from-empty --iterations 5               # clear tables first each run
-exa aillm cycle --dry-run                                 # no writes, audit path only
-```
-
-**The 6 context tables:**
-
-| Table | Key | Records | Content |
-|---|---|---|---|
-| Public AI Domains and Risk | `aillm_domain` | 223 | Domains with Low/Medium/High risk rating |
-| AI/LLM Web Domains | `key` | 223 | Domain-only list for web filtering |
-| AI/LLM Applications | `key` | 90 | Application names for log matching |
-| AI/LLM Proxy Categories | `key` | 9 | Vendor proxy/URL filter category names |
-| AI/LLM Web Categories | `key` | 9 | Web category names |
-| AI/LLM DLP Rulesets | `key` | 46 | DLP alert/policy names indicating AI data transfer |
-
-**Domain categories and risk:**
-
-| Category | Domains | High | Medium | Low |
-|---|---|---|---|---|
-| Generative AI | 33 | 12 | 21 | 0 |
-| AI Platform/API | 75 | 3 | 52 | 20 |
-| Code Assistant | 30 | 0 | 6 | 24 |
-| Shadow AI | 21 | 11 | 10 | 0 |
-| Image Generation | 19 | 4 | 14 | 1 |
-| AI Search | 11 | 0 | 9 | 2 |
-| AI Productivity | 11 | 0 | 11 | 0 |
-| Video AI | 13 | 1 | 12 | 0 |
-| Voice/Audio AI | 10 | 0 | 10 | 0 |
-
-**High-risk rationales:** China data jurisdiction (DeepSeek, Qwen, Doubao, Kimi, ERNIE, Kling AI) · Autonomous execution / OS-level access (OpenHands, AutoGPT, Open Interpreter, OpenClaw) · No enterprise controls (Character.AI, CivitAI) · Unauthorized forks/impersonators (zeroclaw.org, zeroclaw.net — included for detection). See the [ai-llm-domains README](https://github.com/repins267/ai-llm-domains) for the full rationale table.
-
-**Exclusions applied at load time** (present in reference data but not synced to tables):
-- IPv4 address entries — not valid as domain table keys
-- 12 DLP IOC entries (Threat Campaign IOC, Supply Chain IOC, Network IOC vendors) — threat indicators, not DLP policy names
-
-**Per-tenant risk overrides:**
-
-```bash
-# Create a JSON file mapping domain -> risk level
-echo '{"all-hands.dev": "medium", "deepseek.com": "critical"}' > overrides.json
-exa aillm sync --risk-override overrides.json --tenant csnafusion
-```
-
-**`sync-ruleset` — why it exists:** The bundled DLP reference data contains generic vendor DLP pattern names. `sync-ruleset` replaces those with the actual correlation rule names that are firing on this tenant — the exact strings that appear in `alert_name` and drive Looker/BigQuery AI dashboard tiles.
-
-**`discover` — two passes:**
-- **Pass 1 (all tenants):** Pulls Threat Center alert names, filters for AI/LLM keywords, reports names not yet in the DLP Rulesets table. Use `--add-rulesets` to write them.
-- **Pass 2 (requires SentinelOne Prompt Security or similar):** Queries for AI proxy/agent events and extracts distinct application names. Use `--add-apps` to write new names to the Applications table.
-
-### `exa hotkey`
-
-Diagnose and fix Apache Beam/Dataflow hot key risk caused by coarse Network Zones context table entries. Confirmed fix for Dataflow worker imbalance (Known customer, job cv06f9, 47-minute runtime, 96 HotKeyLogger warnings).
-
-```bash
-# Classify all zones by hot key risk (CRITICAL / COARSE / FINE)
-exa hotkey analyze --tenant csnafusion
-exa hotkey analyze --csv --tenant csnafusion > zones.csv      # Excel-compatible CRLF
-exa hotkey analyze --json --tenant csnafusion
-
-# Scan recent events for active source IPs per zone; flag HOT_KEY_RISK
-exa hotkey scan --tenant csnafusion
-exa hotkey scan --lookback 3 --tenant csnafusion
-exa hotkey scan --lookback 3 --threshold 1000 --tenant csnafusion
-exa hotkey scan --csv --lookback 3 --tenant csnafusion > scan.csv
-
-# Expand coarse zones to /24 granularity (writes rollback manifest first)
-exa hotkey expand --dry-run --tenant csnafusion               # preview without writing
-exa hotkey expand --zone "US-Denver" --dry-run --tenant csnafusion
-exa hotkey expand --tenant csnafusion
-
-# Full pipeline: analyze → scan → expand in one step
-exa hotkey autofix --dry-run --tenant csnafusion
-exa hotkey autofix --critical-only --dry-run --tenant csnafusion   # skip scan, CRITICAL only
-exa hotkey autofix --max-zones 20 --tenant csnafusion
-exa hotkey autofix --json --tenant csnafusion                      # pipeable; progress to stderr
-
-# Undo the last expand
-exa hotkey rollback --tenant csnafusion                       # preview diff, no changes
-exa hotkey rollback --confirm --tenant csnafusion             # apply rollback
-exa hotkey rollback --manifest ~/.exa/hotkey-rollback/csnafusion/2026-05-14.json --confirm
-```
-
-**Key flags:**
-
-| Command | Flag | Default | Effect |
-|---|---|---|---|
-| `analyze` | `--csv` | off | Excel-compatible CSV with CRLF line endings |
-| `scan` | `--lookback N` | 7 | Days of events to search |
-| `scan` | `--threshold N` | 500 | Distinct IPs per zone to flag HOT_KEY_RISK |
-| `expand` | `--zone NAME` | all flagged | Target a single zone by name |
-| `expand` | `--dry-run` | off | Preview changes without writing |
-| `expand` | `--enumerate` | off | Enumerate all /24s; default uses observed IPs only |
-| `autofix` | `--critical-only` | off | Skip traffic scan; expand CRITICAL zones directly |
-| `autofix` | `--max-zones N` | 10 | Safety cap — refuse to expand more than N zones |
-| `rollback` | `--confirm` | off | Required to apply; shows diff without it |
-
-### `exa sigma convert`
-
-```bash
-exa sigma convert --rule proc_creation_powershell_encoded.yml
-exa sigma convert --dir ./rules/windows/
-exa sigma convert --dir ./rules/ --deploy
-exa sigma convert --dir ./rules/ --deploy --tenant sademodev22
-```
-
-Converts Sigma YAML rules to Exabeam EQL correlation rules. Field Oracle provides confidence ratings for every field mapping. With `--deploy`, creates correlation rules on the tenant via API.
-
-Short alias: `exa sc`
-
-### `exa sigma deploy`
-
-```bash
-exa sigma deploy --rule proc_creation_powershell_encoded.yml --tenant sademodev22
-```
-
-Convert and deploy a single Sigma rule in one step. Short alias: `exa sd`
-
-### `exa sigma browse`
-
-```bash
-exa sigma browse --category process_creation --level high
-exa sigma browse --tag t1059 --product windows
-exa sigma browse --search "powershell"
-```
-
-Browse SigmaHQ community rules from the local index. Filter by category, product, level, ATT&CK tag, or keyword.
-
-### `exa splunk convert`
-
-```powershell
-# Batch convert an Excel file with 'title' and 'search' columns
-exa splunk convert searches.xlsx
-
-# Show all per-rule warnings including field confidence
-exa splunk convert searches.xlsx --verbose
-
-# Custom output file
-exa splunk convert searches.xlsx --output rules.json
-
-# Skip RGXi auto-compression (see below)
-exa splunk convert searches.xlsx --no-compress
-```
-
-Outputs a rich table showing each rule's index, activity type, EQL preview, warning count, and deploy status. Saves an API-ready JSON file of all payloads.
-
-#### EQL Overflow Auto-Compression
-
-Exabeam's correlation rule API enforces a **1024-character EQL limit**. SPL searches with large wildcard value lists (e.g. 40 `file-name=UBR*.py` conditions) routinely exceed this. Rather than silently marking these rules `EQL too long`, the converter automatically compresses them:
-
-- **Wildcard lists** (`file-name=Foo*`, `file-path=*bar*`): collapsed into a single `RGXi("a|b|c")` alternation per field. Each sigma modifier is preserved — `startswith` → `^prefix`, `endswith` → `suffix$`, `contains` → inner fragment, middle-glob → `^foo.*bar$`.
-- **Exact-value lists** (no wildcards): recorded as context table candidates and written to `<output>.tables.json` alongside the main JSON for future deployment.
-
-If compression brings the EQL under 1024 chars the rule is promoted to `Needs review` with a warning such as `Compressed field 'file_name' wildcard list → RGXi to fit API limit`. If the compressed EQL still exceeds the limit (pathological cases with hundreds of values), the rule remains `EQL too long`.
-
-Use `--no-compress` to skip compression and see the raw unmodified EQL.
-
-### `exa splunk one`
-
-Convert a single SPL search inline — no Excel file needed.
-
-```powershell
-exa splunk one 'index=c42 severity="High"' --title "Code42 High Severity Alert"
-exa splunk one 'index=o365 Operation=Send' --title "O365 Outbound Email"
-exa splunk one 'index=ad CommandLine="*mimikatz*"' --json
-exa splunk one 'index=fireamp_stream severity="High"' --title "AMP Alert" -o rule.json
-```
-
-### `exa splunk deploy`
-
-```powershell
-exa splunk deploy rules.json --dry-run --tenant sademodev22   # preview
-exa splunk deploy rules.json --tenant sademodev22             # deploy (disabled by default)
-```
-
-All rules are created **disabled** by default. Validate the EQL in the Exabeam UI before enabling.
-
-### `exa compliance audit`
-
-Run a gap-analysis compliance audit against your Exabeam tenant. Queries each SIEM-testable control using live event data and produces pass/fail results with evidence counts.
-
-```bash
-# Basic audit (tenant-aware mode enabled by default)
-exa compliance audit --framework "NIST CSF v2.0" --lookback 30
-
-# Specify tenant
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --lookback 30
-
-# Save HTML report (auto-named reports/<tenant>-<framework>-<date>.html)
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-html
-
-# Save HTML to explicit path
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-html C:\reports\audit.html
-
-# Save PDF report (auto-named, rendered via Microsoft Edge headless)
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --output-pdf
-
-# Save PDF to explicit path
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --pdf-path C:\reports\audit.pdf
-
-# Tenant-aware mode (default) — discovers active activity_types via Field Oracle
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --tenant-aware
-
-# Static mode — uses hardcoded filters from JSON only, skips tenant discovery
-exa compliance audit --framework "NIST CSF v2.0" --tenant lvcva --no-tenant-aware
-```
-
-**Output flags:**
-
-| Flag | Behavior |
-|---|---|
-| `--output-html` | Auto-save HTML to `reports/` |
-| `--output-html <path>` | Save HTML to explicit path |
-| `--output-pdf` | Auto-save PDF to `reports/` via Edge headless |
-| `--pdf-path <path>` | Save PDF to explicit path |
-| `--tenant-aware` | Dynamic EQL via Field Oracle concept resolution (default: on) |
-| `--no-tenant-aware` | Static filters from ControlQueries JSON |
-
-HTML reports are saved to `reports/` and include an executive summary, family coverage breakdown, and gap analysis. PDF reports are rendered from HTML via Microsoft Edge headless (`msedge.exe --headless --print-to-pdf`) — no additional software required on Windows.
-
-**Supported frameworks:**
-
-| Framework | SIEM-Testable Controls | Status |
-|---|---|---|
-| NIST CSF v2.0 | 60 | Full queries + concept annotations |
-| CIS Controls v8 | ~110 | Full queries + concept annotations |
-| HIPAA | ~67 | Full queries + concept annotations |
-| PCI DSS | ~153 | Full queries + concept annotations |
-| FedRAMP Moderate | ~145 | Full queries + concept annotations |
-| ISO 27001:2022 | ~58 | Full queries + concept annotations |
-| CJIS | ~55 | Full queries + concept annotations |
-| CMMC Level 2 | ~55 | Stub (queries pending) |
-| CMMC Level 3 | ~20 | Stub (queries pending) |
-| GDPR | ~30 | Stub (queries pending) |
-| SOX | ~15 | Stub (queries pending) |
-
-### `exa cases` / `exa alerts`
-
-Search and manage Threat Center cases and alerts.
-
-```bash
-exa cases list                                        # all open cases, last 30 days
-exa cases list --filter 'NOT stage:"CLOSED"' --limit 20
-exa cases list --json                                 # raw JSON for pipeline use
-exa cases get <case-uuid>
-exa cases get <case-uuid> --json
-exa cases update <case-uuid> --stage CLOSED --closed-reason "False Positive"
-exa cases update <case-uuid> --priority CRITICAL --assignee analyst@corp.com
-exa cases update <case-uuid> --tags "reviewed,escalated"
-
-exa alerts list --filter 'priority:"HIGH"' --lookback 7
-exa alerts get <alert-uuid>
-exa alerts update <alert-uuid> --priority LOW --tags "noise"
-```
-
-### `exa case qualify`
-
-Structured analyst triage for a single case. Pulls the triggering correlation rule definition, entity case history, context table membership, score trend, and external IP annotations — then issues a verdict.
-
-```bash
-exa case qualify C-1042
-exa case qualify C-1042 --window 30    # ±30 min event context window
-exa case qualify C-1042 --json         # machine-readable QualificationReport
-```
-
-**Verdicts:**
-
-| Verdict | Meaning |
-|---|---|
-| `SUSPECTED_INCIDENT` | Single-event rule, new entity, first appearance or escalating score — investigate now |
-| `LIKELY_FP` | Entity in compliance context table, not a new high, or rule has >75% historical FP rate |
-| `LEARNING_PHASE_NOISE` | Threshold rule, consistent score, 3+ prior cases — rule may need tuning |
-| `NEEDS_INVESTIGATION` | Spike or escalating score with no mitigating context |
-
-### `exa case outcome`
-
-Track and record analyst decisions on qualified cases. Every `qualify` run is logged automatically.
-
-```bash
-exa case outcome list                                 # all logged qualifications + current outcome
-exa case outcome sync                                 # auto-fill outcomes for closed cases from API
-exa case outcome resolve C-1042 --outcome fp          # manually record: tp | fp | noise | duplicate
-```
-
-### `exa case baseline`
-
-Pull historical closed cases, compute per-rule and per-entity false-positive rates, and write a calibration cache that improves future `qualify` verdicts.
-
-```bash
-exa case baseline                                     # default 90-day lookback, LTS-capped
-exa case baseline --lookback 60
-exa case baseline --report                            # show calibration table: rule | TP | FP | FP rate
-exa case baseline --json
-```
-
-The lookback is automatically capped to the tenant's licensed LTS retention window (`GET /health-consumption/v1/consumption/lts`) — no hardcoded limits.
-
-### `exa detection`
-
-Export, import, and manage analytics (UEBA) rules. Useful for backups, cross-tenant migration, and auditing enabled/disabled state.
-
-```bash
-# List — table view
-exa detection list                                    # first 100 rules
-exa detection list --status enabled                   # enabled only
-exa detection list --status enabled --limit 0         # all enabled rules
-exa detection list --name "Brute Force"               # name substring filter
-
-# List — export formats
-exa detection list --status enabled --limit 0 --csv                         # CSV to stdout
-exa detection list --status enabled --limit 0 --csv --output enabled.csv    # CSV to file
-exa detection list --status enabled --limit 0 --json                        # JSON to stdout
-exa detection list --limit 0 --json --output all_rules.json                 # JSON to file
-
-# Single rule
-exa detection get <rule-id>
-
-# Enable / disable
-exa detection enable <rule-id>
-exa detection disable <rule-id>
-
-# Export / import / diff bundles
-exa detection export                                  # all rules → stdout (pipeable)
-exa detection export --out rules-backup.json
-exa detection import rules-backup.json
-exa detection import rules-backup.json --overwrite
-exa detection diff bundle-a.json bundle-b.json
-```
-
-The `list` table auto-displays **Type** and **Families** columns when the API returns them, and prints a summary of distinct rule types found. The `--csv` output includes all available fields: `id, name, isEnabled, severity, type, families, author, createdAt, updatedAt, description`.
-
-### `exa search`
-
-```bash
-exa search 'activity_type:"authentication"' --lookback 7 --limit 500
-exa search 'user:"admin"' --tenant sademodev22
-```
-
-> Exabeam New-Scale uses SQL-style EQL (SELECT / WHERE / GROUP-BY / ORDER-BY). Pipe-based syntax is not supported.
-
-### `exa frameworks`
-
-```bash
-exa frameworks    # list all available compliance frameworks with testable control counts
-```
-
-### `exa assess`
-
-Make the OOTB dashboards work in **any** tenant. `assess` discovers what a tenant actually emits, derives which context table + field each deployed rule and OOTB dashboard requires *live* (from `ContextListContains(table, field)` in deployed rules and the dashboards' own `context_rule` bindings), then closes the gap so the exact `field IN table` panel filters match. Newly-seen **generic** knowledge is learned cross-customer (A → B → C gets smarter) — customer-specific values and PII are never promoted to shared knowledge.
-
-```bash
-# Assess a tenant and print the requirement map + gap report (no writes)
-exa assess --tenant sademodev22
-exa assess --dashboards exabeam_OOTB_dashboards/   # derive from local OOTB .config files
-exa assess --lookback 30 --out assessments/        # write the assessment record
-
-# Apply the closed gap (gated) and manage the learn loop
-exa assess --apply --confirm --tenant sademodev22          # write reviewed proposals
-exa assess --apply --promote --approve-reviews             # auto-promote high-confidence generic
-exa assess --apply --no-promote                            # apply, keep nothing to shared knowledge
-
-# Prove the classifier on the golden corpus (CI safety gate)
-exa assess benchmark --golden tests/data/classifier_golden.jsonl
-exa assess benchmark --model claude --output-json scorecard.json
-exa assess benchmark --fail-under-precision 1.0 --fail-under-pii-recall 1.0 --min-corpus 35
-```
-
-`benchmark` reports per-class precision / recall / F1 with the two safety metrics called out — **auto-promote precision** (the leak metric, target 1.0) and **PII-withhold recall** (1.0) — plus a Wilson lower-bound gate that tightens as the corpus grows. It runs as a blocking CI check ("Heuristic Rules & Safety Verification").
-
-### `exa dashboard preview`
-
-Render any OOTB dashboard `.config` to a standalone HTML/PDF report preview — customer specifics scrubbed by default so it is safe to share.
-
-```bash
-exa dashboard preview dashboards/ai-llm.config
-exa dashboard preview dashboards/ai-llm.config --format pdf --out preview.pdf
-exa dashboard preview dashboards/ai-llm.config --live --tenant sademodev22   # pull real panel data
-exa dashboard preview dashboards/ai-llm.config --no-scrub                     # keep tenant specifics
-```
-
-### `exa simulate timing`
-
-Inject a scenario's synthetic events and measure detection timing (MTTD) against a deadline — the repeatable proof that populated tables light up the rules.
-
-```bash
-exa simulate timing --scenario ai-exfil --tenant sademodev22
-exa simulate timing --scenario ai-exfil --deadline 300 --poll --interval 15   # watch until detected
-exa simulate timing --scenario ai-exfil --pdf --out reports/mttd.pdf
-exa simulate timing --scenario ai-exfil --once                                 # single pass (dry-run is the default)
-```
-
-## How It Works
-
-### SPL → Sigma → EQL Pipeline
-
-Splunk SPL and Exabeam EQL are fundamentally different languages. Rather than a lossy direct translation, exa-tools routes through [Sigma](https://github.com/SigmaHQ/sigma) as a structured intermediate format:
-
-```
-Splunk SPL search
-    ↓  exa/splunk/parser.py      — extract index, fields, pipeline stages
-    ↓  exa/splunk/to_sigma.py    — build Sigma rule dict with logsource + detection
-    ↓  exa/sigma/converter.py    — map Sigma fields → CIM2, build EQL query
-    ↓
-Exabeam EQL correlation rule  →  deploy via API
-```
-
-This means field mapping reuses the community-maintained Sigma field vocabulary, wildcard values become proper Sigma modifiers (`|contains`, `|endswith`, `|startswith`), and negations become proper `filter` blocks. Pipeline stages that can't be represented in EQL (`stats`, `eval`, `lookup`, etc.) are inventoried as warnings rather than silently dropped.
-
-### Field Oracle
-
-<img src="docs/oracle.svg" width="180" align="right" alt="Field Oracle"/>
-
-The Field Oracle is the translation engine at the heart of the converter. Rather than relying on hand-maintained field maps or incomplete documentation, it reads Exabeam's own parser definitions directly.
-
-`exa update` walks **8,278 parser files** across 269 vendors in the `Content-Library-CIM2/DS/` directory and builds a local index:
-
-- **4,258 raw → CIM2 field mappings** extracted from parser regex capture groups and JSON path definitions
-- **25 activity types** indexed with their confirmed field sets
-- **269 vendors** — Code42, Digital Guardian, Microsoft O365, Cisco, and hundreds more
-
-Every field the converter resolves is assigned a confidence level:
-
-| Confidence | Meaning |
-|---|---|
-| `oracle` | Field confirmed in DS/ parser definitions for this vendor/activity_type — no warning |
-| `schema` | Field in CIM2_FIELD_MAP but not confirmed in DS/ for this specific source |
-| `passthrough` | No mapping found — field not in CIM2 for this vendor |
-
-The oracle refreshes automatically every time you run `exa update`. When Exabeam adds new parser fields, the converter picks them up on the next update — no code changes needed.
-
-### Field Oracle Concept Resolution (Compliance)
-
-The Field Oracle also powers **tenant-aware compliance auditing**. Each compliance control is annotated with one or more semantic **concepts** (e.g. `GROUP_MANAGEMENT`, `PERMISSION_CHANGE`) that map to specific `activity_type` values. At audit time, the **ConceptResolver** queries the tenant for all activity types seen in the lookback window, then dynamically builds EQL filters using only the types confirmed present in that environment.
-
-```
-Control concepts  →  ConceptResolver (filters to tenant-active types)
-                  →  ComplianceQueryBuilder (builds EQL filter string)
-                  →  search_events (live query against tenant)
-```
-
-This means compliance queries automatically adapt to each customer's log sources without manual tuning per tenant. If a log source isn't connected (e.g. physical access control), the control fails with a clear gap — not a false negative from a wrong query.
-
-## Features
-
-- **Dataflow hot key detection and remediation** (`exa hotkey`) — analyze the Network Zones context table for coarse IP groupings that cause Dataflow worker imbalance; scan real traffic to confirm active hot keys; expand coarse zone entries to /24 granularity with automatic rollback support
-- **Self-update** (`exa update self`) — `git pull` + `uv sync` in one command; keeps the local install current without leaving the terminal
-- **Context table full CRUD** (`exa tables`) — create tables from CSV with auto-derived schema; delete tables; list, upload (append or replace), and export records; all with 20k-record batching
-- **Sigma rule conversion** — convert SigmaHQ YAML rules to Exabeam EQL correlation rules with CIM2 field mapping
-- **Splunk SPL conversion** — SPL→Sigma→EQL pipeline; batch from Excel or inline one-off via `exa splunk one`
-- **One-step deployment** — convert and deploy Sigma or Splunk rules to your tenant in a single command
-- **Field Oracle** — 4,258 raw→CIM2 mappings from 8,278 parser files; confidence-based field resolution for rules and compliance
-- **CIM2 reference data** — sync Content-Library-CIM2 and SigmaHQ repos locally
-- **Threat Center — cases** — search, get, update, and create cases with EQL filtering and rich table output
-- **Threat Center — alerts** — search, get, and update alerts; priority colour coding; `--json` for pipeline use
-- **Case triage (`exa case qualify`)** — structured analyst triage: rule definition, entity history, context table membership, score trend, IP annotation, and a four-outcome verdict
-- **Outcome tracking** — every `qualify` run is logged; `exa case outcome sync` back-fills analyst decisions from closed cases
-- **Historical calibration (`exa case baseline`)** — LTS-aware lookback capped to licensed retention; per-rule and per-entity FP rates feed back into future verdicts
-- **Detection Management** — export, import, and diff analytics (UEBA) rules across tenants
-- <img src="docs/icons/aillm.svg" height="16" align="absmiddle"/> **AI/LLM domain sync** — sync 6 reference tables for AI/LLM threat detection
-- <img src="docs/icons/compliance.svg" height="16" align="absmiddle"/> **Compliance auditing** — automated evidence collection across 11 frameworks with tenant-aware query resolution, HTML + PDF report output
-- **Event search** — EQL query interface with time range and result limiting
-- **Credential management** — tenant profiles stored in Windows Credential Manager via keyring
-
-## Splunk Converter
-
-The SPL→Sigma→EQL pipeline is covered in [How It Works](#how-it-works) above. Operational notes:
-
-- The intermediate Sigma YAML is preserved in the output file for audit and review
-- All converted rules land as `deploy_ready: Needs review` — SPL→EQL is lossy by design and requires human sign-off before enabling
-- Rules with EQL > 1024 chars are **auto-compressed** via RGXi alternation before being flagged `EQL too long` — see [EQL Overflow Auto-Compression](#eql-overflow-auto-compression)
-
-### Supported Indexes
-
-| Splunk Index | Data Source | Default activity_type |
-|---|---|---|
-| `c42` | Code42 / Incydr DLP | `file-write` |
-| `c42` + `c42-alerts` | Code42 risk alerts | `rule-trigger` |
-| `c42` + `c42-file-exposure` | Code42 file exposure | `file-write` |
-| `ips` | Cisco Firepower IPS | `rule-trigger` |
-| `o365` | Microsoft O365 | `app-activity` |
-| `fireamp_stream` | Cisco Secure Endpoint | `rule-trigger` |
-| `dg` | Digital Guardian DLP | `file-write` |
-| `ad` | Active Directory / Sysmon | `process-create` |
-| `docexchange` | Document Exchange | `file-write` |
-| `plminfoexchangelogs` | Agile PLM Info Exchange | `app-activity` |
-
-### All Converted Rules
-
-- Named `[Splunk] <title>` — enables bulk management via `get_correlation_rules(name="[Splunk]*")`
-- Named `[Sigma] <title>` — for Sigma-converted rules, `get_correlation_rules(name="[Sigma]*")`
-- Severity defaults to `medium` — adjust before deploying
-- `deploy_ready: Needs review` — always for Splunk; SPL→EQL translation requires human sign-off
-
-## Internal Features
-
-Additional features are available for Exabeam employees.
-
-## Development
+<div align="center">
+  <img src="docs/pipeline-animation.svg" alt="SPL to Sigma to EQL conversion pipeline" width="820">
+</div>
+
+SPL and EQL are different enough that a direct translation loses information, so conversion routes
+through Sigma as a structured intermediate. That buys the community-maintained Sigma field
+vocabulary, proper modifiers for wildcards, real filter blocks for negations, and an explicit
+inventory of the pipeline stages that *can't* be expressed in EQL — as warnings, rather than
+silently dropped.
+
+Field mapping doesn't come from a hand-maintained table. `exa update` walks Exabeam's own parser
+definitions and builds the **Field Oracle**: 4,258 raw→CIM2 mappings from 8,278 parser files
+across 269 vendors. Every resolved field is rated `oracle` (confirmed in the parsers for this
+vendor and activity type), `schema` (in CIM2, unconfirmed for this source), or `passthrough` (no
+mapping), so you know what's verified before you deploy. When Exabeam ships new parsers, the next
+`exa update` picks them up — no code change.
+
+All converted rules land disabled and marked *Needs review*. SPL→EQL is lossy by design.
+
+→ [Conversion reference](docs/detection.md) · [How the pipeline and Oracle work](docs/architecture.md)
+
+## 7 · Also in the box
+
+- **NYMM** — detection tuning for New-Scale, replacing the deprecated Mouton tool. Mouton ranked
+  rules by how many notables would vanish if you disabled them; New-Scale has no notables, so NYMM
+  uses the analog — a detection that fires constantly but rarely escalates to a case is noise.
+  Ranks alert drivers by volume, average risk, and escalation-to-case rate, then flags each
+  Keep / Review / Tune-disable. Read-only: it recommends, never disables.
+  → [docs/nymm.md](docs/nymm.md)
+- **`exa hotkey`** — diagnose and fix Apache Beam/Dataflow worker imbalance caused by coarse
+  Network Zones entries. Analyze → scan real traffic → expand to /24, with a rollback manifest
+  written before anything changes. → [docs/hotkey.md](docs/hotkey.md)
+- **`exa detection`** — export, import, and diff analytics (UEBA) rules across tenants for backup,
+  migration, and gap analysis.
+- **`exa search`** — direct EQL query interface with time range and result limiting.
+
+## Security posture
+
+Read-only by default; the four write tools are hidden and refused without `--allow-writes`.
+Secrets stay in the OS credential store and never reach the model. Every tool *result* is
+canonicalized — invisible smuggling code points stripped, NFC-normalized — so prompt injection
+hidden in a log field can't reach Claude; free-text *write* inputs are neutralized before they
+persist. A metadata-only audit log records every call and never records notes, secrets, or
+payloads. Both guardrails are regression-tested against a red-team attack corpus. `security/`
+also carries a CycloneDX AI-BOM and the Praxen Agent Behavior Verification results described
+under [Claude / MCP](#2--claude--mcp).
+
+→ [docs/security.md](docs/security.md) · attribution in [CREDITS.md](CREDITS.md)
+
+## Project
+
+**Requires** Python 3.12+, [uv](https://docs.astral.sh/uv/), git, and an OS credential store.
 
 ```bash
 uv sync                    # install deps
-uv run pytest -v           # run tests (533 passing)
-uv run pytest tests/test_sigma.py::TestProxyFieldMappings  # single test class
+uv run pytest -v           # run the suite
 uv run ruff check exa/     # lint
-
-# Enable pre-commit help tests (one-time setup)
-git config core.hooksPath .githooks
+git config core.hooksPath .githooks    # enable pre-commit help tests
 ```
+
+[Contributing](CONTRIBUTING.md) · [Code style](CODESTYLE.md) · [Changelog](CHANGELOG.md) ·
+[Credits](CREDITS.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+*exa-tools is not an official Exabeam product. Exabeam, New-Scale, and the Exabeam logo are
+trademarks of Exabeam, Inc.*

@@ -1,9 +1,13 @@
 """Anti-staleness guard: the docs' tool/skill counts must match the live code.
 
-A new MCP tool or Claude skill cannot be merged without the README (and, by the
-"keep this current" process, the How-To / Deep Dive / vault) being updated in the same
-change — because this test fails CI when the README's "Tools (N)" / "Skills (M)" counts
-drift from what the code actually ships.
+A new MCP tool or Claude skill cannot be merged without the canonical inventory in
+`docs/mcp.md` (and, by the "keep this current" process, the How-To / Deep Dive / vault)
+being updated in the same change — because this test fails CI when the doc's
+"Tools (N)" / "Skills (M)" counts drift from what the code actually ships.
+
+The full tool table and named skill list live in `docs/mcp.md` (the README links to it),
+so that is the surface this guard checks. It accepts either a `## Tools (N)` heading or a
+`**Tools (N)**` bold marker.
 
 This is the enforceable spine of doc freshness. The prose provenance in the Deep Dive is
 kept honest separately by `exa selftest` (which exercises every live tool) and by each
@@ -19,9 +23,12 @@ from exa.mcp.tools import TOOL_DEFS, WRITE_TOOLS, visible_tools
 
 _REPO = Path(__file__).resolve().parents[1]
 
+# The tool table + named skill list live in docs/mcp.md; the slim README links to it.
+_INVENTORY_DOC = "docs/mcp.md"
 
-def _readme() -> str:
-    return (_REPO / "README.md").read_text(encoding="utf-8")
+
+def _inventory() -> str:
+    return (_REPO / _INVENTORY_DOC).read_text(encoding="utf-8")
 
 
 def _skill_dirs() -> list[str]:
@@ -29,37 +36,43 @@ def _skill_dirs() -> list[str]:
     return sorted(d.name for d in skills.iterdir() if d.is_dir() and (d / "SKILL.md").exists())
 
 
-def test_readme_tool_count_matches_code():
-    """README 'Tools (N)' must equal the number of MCP tools the server exposes."""
+def _documented_count(label: str, text: str) -> int | None:
+    """The N in a `## Tools (N)` heading or a `**Tools (N)**` bold marker, or None."""
+    m = re.search(rf"(?:\*\*|#{{1,6}}\s*){label} \((\d+)\)", text)
+    return int(m.group(1)) if m else None
+
+
+def test_doc_tool_count_matches_code():
+    """docs/mcp.md 'Tools (N)' must equal the number of MCP tools the server exposes."""
     actual = len(TOOL_DEFS)
-    m = re.search(r"\*\*Tools \((\d+)\)\*\*", _readme())
-    assert m, "README is missing a '**Tools (N)**' marker"
-    documented = int(m.group(1))
+    documented = _documented_count("Tools", _inventory())
+    assert documented is not None, f"{_INVENTORY_DOC} is missing a 'Tools (N)' marker"
     assert documented == actual, (
-        f"README says Tools ({documented}) but the code exposes {actual} "
-        f"(exa.mcp.tools.TOOL_DEFS). Update the README tools table + count, the How-To, "
-        f"and the Deep Dive when the tool surface changes."
+        f"{_INVENTORY_DOC} says Tools ({documented}) but the code exposes {actual} "
+        f"(exa.mcp.tools.TOOL_DEFS). Update the tools table + count in {_INVENTORY_DOC}, the "
+        f"How-To, and the Deep Dive when the tool surface changes."
     )
 
 
-def test_readme_skill_count_matches_dirs():
-    """README 'Skills (M)' must equal the number of shipped skill directories."""
+def test_doc_skill_count_matches_dirs():
+    """docs/mcp.md 'Skills (M)' must equal the number of shipped skill directories."""
     actual = len(_skill_dirs())
-    m = re.search(r"\*\*Skills \((\d+)\)\*\*", _readme())
-    assert m, "README is missing a '**Skills (M)**' marker"
-    documented = int(m.group(1))
+    documented = _documented_count("Skills", _inventory())
+    assert documented is not None, f"{_INVENTORY_DOC} is missing a 'Skills (M)' marker"
     assert documented == actual, (
-        f"README says Skills ({documented}) but plugin/skills/ has {actual} "
-        f"({', '.join(_skill_dirs())}). Update the README skills list + count, the How-To, "
-        f"and the Deep Dive when a skill is added/removed."
+        f"{_INVENTORY_DOC} says Skills ({documented}) but plugin/skills/ has {actual} "
+        f"({', '.join(_skill_dirs())}). Update the skills list + count in {_INVENTORY_DOC}, the "
+        f"How-To, and the Deep Dive when a skill is added/removed."
     )
 
 
-def test_readme_lists_every_shipped_skill():
-    """Every skill directory must be named in the README skills list (no silent adds)."""
-    readme = _readme()
-    missing = [s for s in _skill_dirs() if f"`{s}`" not in readme]
-    assert not missing, f"skills present in plugin/skills/ but not named in README: {missing}"
+def test_doc_lists_every_shipped_skill():
+    """Every skill directory must be named in docs/mcp.md's skills list (no silent adds)."""
+    doc = _inventory()
+    missing = [s for s in _skill_dirs() if f"`{s}`" not in doc]
+    assert not missing, (
+        f"skills present in plugin/skills/ but not named in {_INVENTORY_DOC}: {missing}"
+    )
 
 
 def test_write_tools_are_a_subset_of_all_tools():
