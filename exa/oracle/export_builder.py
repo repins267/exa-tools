@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 # Reuse the pC build's helpers so activity-type and field extraction match exactly.
-from exa.update import _CAPTURE_GROUP_RE, _extract_activity_type
+from exa.update import _CAPTURE_GROUP_RE, _EXA_JSON_FIELD_RE, _extract_activity_type
 
 # A parser block in parsers.conf: """Name""" = """...""" ... up to the next Name.
 _NAME_RE = re.compile(r'"""Name"""\s*=\s*"""([^"]+)"""')
@@ -55,23 +55,38 @@ def _iter_parser_blocks(parsers_conf: str):
         yield nm.group(1), (ven.group(1) if ven else ""), (prod.group(1) if prod else ""), block
 
 
-def _raw_to_cim2_from_block(block: str) -> dict[str, str]:
+def _raw_to_cim2_from_text(text: str) -> dict[str, str]:
+    """raw -> CIM2 from a parser's field text.
+
+    Prefers the explicit ``exa_json_path=…,exa_field_name=…`` mappings (the same
+    high-confidence form the pC build reads) when present, then falls back to the
+    regex-derived JSON / key=value heuristics.
+    """
     out: dict[str, str] = {}
-    for m in _RAW_JSON_RE.finditer(block):
+    for m in _EXA_JSON_FIELD_RE.finditer(text):
+        path_key, cim = m.group(1), m.group(2)
+        out.setdefault(path_key, cim)
+        leaf = path_key.split(".")[-1]
+        if leaf and leaf not in out:
+            out.setdefault(leaf, cim)
+    for m in _RAW_JSON_RE.finditer(text):
         out.setdefault(m.group(1), m.group(2))
-    for m in _RAW_KV_RE.finditer(block):
+    for m in _RAW_KV_RE.finditer(text):
         out.setdefault(m.group(1), m.group(2))
     return out
 
 
-def build_oracle_from_export(
-    parsers_conf: str, event_builder_conf: str | None = None
+def build_oracle_from_records(
+    records,
+    *,
+    source: str = "tenant-export",
+    note: str = "regex-derived (JSON reliable, key=value/CEF best-effort)",
 ) -> dict[str, Any]:
-    """Build the Oracle dict from parser-export text. Same schema as the pC build.
+    """Aggregate ``(name, vendor, product, fields_text)`` records into an Oracle.
 
-    ``event_builder_conf`` is accepted for future activity-type enrichment but is
-    not required: activity_type is derived from the parser name via the same
-    helper the pC build uses, so the two Oracles stay drop-in compatible.
+    The shared core used by both the parser-export build and the live API build,
+    so they produce a byte-compatible schema. activity_type and CIM2-field
+    extraction reuse the pC build's own helpers.
     """
     by_activity_type: dict[str, dict[str, list[str]]] = {}
     by_vendor: dict[str, dict[str, list[str]]] = {}
@@ -79,10 +94,10 @@ def build_oracle_from_export(
     parser_count = 0
     error_count = 0
 
-    for name, vendor, product, block in _iter_parser_blocks(parsers_conf):
+    for name, vendor, product, text in records:
         try:
             activity_type = _extract_activity_type(name)
-            cim2_fields = sorted(set(_CAPTURE_GROUP_RE.findall(block)))
+            cim2_fields = sorted(set(_CAPTURE_GROUP_RE.findall(text)))
             vendor_product = f"{vendor}/{product}" if vendor and product else vendor
             parser_count += 1
 
@@ -101,9 +116,9 @@ def build_oracle_from_export(
                         if fld not in at_fields:
                             at_fields.append(fld)
 
-            for raw_key, cim2_field in _raw_to_cim2_from_block(block).items():
+            for raw_key, cim2_field in _raw_to_cim2_from_text(text).items():
                 raw_to_cim2.setdefault(raw_key, cim2_field)
-        except Exception:  # noqa: BLE001 - one bad block never kills the build
+        except Exception:  # noqa: BLE001 - one bad record never kills the build
             error_count += 1
             continue
 
@@ -115,10 +130,26 @@ def build_oracle_from_export(
         "stats": {
             "parsers_processed": parser_count,
             "parsers_failed": error_count,
-            "source": "tenant-export",
-            "raw_to_cim2_note": "regex-derived (JSON reliable, key=value/CEF best-effort)",
+            "source": source,
+            "raw_to_cim2_note": note,
         },
     }
+
+
+def build_oracle_from_export(
+    parsers_conf: str, event_builder_conf: str | None = None
+) -> dict[str, Any]:
+    """Build the Oracle dict from parser-export text. Same schema as the pC build.
+
+    ``event_builder_conf`` is accepted for future activity-type enrichment but is
+    not required: activity_type is derived from the parser name via the same
+    helper the pC build uses, so the two Oracles stay drop-in compatible.
+    """
+    records = (
+        (name, vendor, product, block)
+        for name, vendor, product, block in _iter_parser_blocks(parsers_conf)
+    )
+    return build_oracle_from_records(records, source="tenant-export")
 
 
 def _read_export(source: Path) -> tuple[str, str | None]:

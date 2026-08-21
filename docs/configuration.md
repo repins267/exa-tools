@@ -107,12 +107,15 @@ exa update self        # git pull + uv sync on exa-tools itself
 
 ## `exa oracle`
 
-Builds and manages the **Field Oracle** — the raw→CIM2 field-translation index the converter and compliance resolver read. The Oracle is built from a tenant's own **live parser export**: a `Parser_Update.zip` (containing `parsers.conf` + `event_builder.conf`) downloaded from the tenant, which is exactly what that tenant runs — no drift against a shared upstream repo.
+Builds and manages the **Field Oracle** — the raw→CIM2 field-translation index the converter and compliance resolver read. The Oracle is built from what a tenant actually runs, either **live from the Log Stream API** (preferred) or from a downloaded **parser export** — no drift against a shared upstream repo.
 
 exa-tools **ships a bundled base pack** (the demo set, derived field metadata only), so conversion and compliance work out of the box with no setup. Build a tenant-specific Oracle when you want that tenant's exact field coverage.
 
 ```bash
-# Point a tenant at its parser export and build — remembers the path in config
+# Build live from the tenant's Log Stream API — no export file, always current
+exa oracle build --tenant <tenant> --from-api
+
+# Or point a tenant at a parser export and build — remembers the path in config
 exa oracle build --tenant <tenant> --parsers /path/to/Parser_Update.zip
 
 # Rebuild from the saved path (after a fresh export)

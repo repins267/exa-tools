@@ -41,21 +41,53 @@ def build_cmd(
         bool,
         typer.Option("--base", help="Build the default base pack (fallback when no export)"),
     ] = False,
+    from_api: Annotated[
+        bool,
+        typer.Option("--from-api", help="Build the Oracle live from the Log Stream API"),
+    ] = False,
     out: Annotated[
         Path | None,
         typer.Option("--out", help="Write the Oracle here instead of the default cache path"),
     ] = None,
 ) -> None:
-    """Build a Field Oracle from a parser export.
+    """Build a Field Oracle from a parser export, or live from the Log Stream API.
 
     \b
     Examples:
+      exa oracle build --tenant <tenant> --from-api                    # live, no export file
       exa oracle build --tenant <tenant> --parsers Parser_Update.zip   # build + remember the path
       exa oracle build --tenant <tenant>                               # rebuild from the saved path
       exa oracle build --base --parsers demo-parsers.zip               # the default base pack
     """
     from exa.oracle.export_builder import build_oracle_from_zip, write_oracle
     from exa.oracle.paths import base_oracle_path, tenant_oracle_path
+
+    if from_api:
+        from exa.cli.app import _make_client
+        from exa.config import get_default_tenant
+        from exa.oracle.api_source import build_oracle_from_api
+
+        resolved = (tenant or "").strip() or get_default_tenant()
+        if not resolved:
+            console.print("[red]--from-api needs a tenant. Pass -t <tenant> or set a default.[/]")
+            raise typer.Exit(1)
+        try:
+            client = _make_client(resolved)
+        except Exception as e:  # noqa: BLE001 - surface auth/connection errors cleanly
+            console.print(f"[red]Could not authenticate '{resolved}': {e}[/]")
+            raise typer.Exit(1)
+        try:
+            oracle = build_oracle_from_api(client)
+        except Exception as e:  # noqa: BLE001
+            console.print(f"[red]Log Stream API build failed: {e}[/]")
+            raise typer.Exit(1)
+        finally:
+            client.close()
+        dest = out or (base_oracle_path() if base else tenant_oracle_path(resolved))
+        label = f"base pack (live: {resolved})" if base else f"tenant '{resolved}' (live)"
+        write_oracle(oracle, dest)
+        _print_build_summary(label, dest, oracle)
+        return
 
     if base:
         if parsers is None:
@@ -75,7 +107,7 @@ def build_cmd(
             if not saved:
                 console.print(
                     f"[red]No parser export configured for '{tenant}'.[/] "
-                    "Pass --parsers <export> once to set it.",
+                    "Pass --parsers <export> once, or use --from-api.",
                 )
                 raise typer.Exit(1)
             source = Path(saved)
@@ -83,7 +115,7 @@ def build_cmd(
         label = f"tenant '{tenant}'"
     else:
         if parsers is None:
-            console.print("[red]Pass --tenant, --base, or --parsers.[/]")
+            console.print("[red]Pass --tenant, --base, --parsers, or --from-api.[/]")
             raise typer.Exit(1)
         source = parsers
         dest = out or (Path.home() / ".exa" / "cache" / "field_oracle.json")
@@ -96,6 +128,10 @@ def build_cmd(
         raise typer.Exit(1)
 
     write_oracle(oracle, dest)
+    _print_build_summary(label, dest, oracle)
+
+
+def _print_build_summary(label: str, dest, oracle: dict) -> None:
     st = oracle["stats"]
     console.print(f"[green]Built {label}[/] -> {dest}")
     console.print(

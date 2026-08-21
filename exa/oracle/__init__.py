@@ -17,15 +17,19 @@ from an export, and resolves which Oracle a given tenant should use.
 
 from __future__ import annotations
 
+from exa.oracle.api_source import build_oracle_from_api
 from exa.oracle.export_builder import (
     build_oracle_from_export,
+    build_oracle_from_records,
     build_oracle_from_zip,
     write_oracle,
 )
 from exa.oracle.paths import oracle_path
 
 __all__ = [
+    "build_oracle_from_api",
     "build_oracle_from_export",
+    "build_oracle_from_records",
     "build_oracle_from_zip",
     "write_oracle",
     "oracle_path",

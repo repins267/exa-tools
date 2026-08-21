@@ -527,6 +527,7 @@ def test_oracle_build_help():
     assert "--tenant" in result.output
     assert "--parsers" in result.output
     assert "--base" in result.output
+    assert "--from-api" in result.output
 
 
 def test_update_help_has_cim2():
