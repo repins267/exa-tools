@@ -54,6 +54,7 @@ Every command takes `--help`. Every command takes `--tenant <name>`.
 | Configuration | Multi-tenant credentials, reference-data sync, context tables | [docs/configuration.md](docs/configuration.md) |
 | Claude / MCP | 33 tools + 17 skills exposed to Claude Desktop and Claude Code | [docs/mcp.md](docs/mcp.md) |
 | AI/LLM | Six shadow-AI context tables, log-based discovery, risk overrides | [docs/aillm.md](docs/aillm.md) |
+| OOTB validation | Assess populates the tables, preview shows them lit up, timing proves detection | [docs/validation.md](docs/validation.md) |
 | Threat Center | Case and alert search, structured triage, outcome calibration | [docs/threat-center.md](docs/threat-center.md) |
 | Compliance | 11 frameworks, tenant-aware queries, HTML/PDF gap reports | [docs/compliance.md](docs/compliance.md) |
 | Detection | SPL and Sigma → EQL, field-verified, deploy to tenant | [docs/detection.md](docs/detection.md) |

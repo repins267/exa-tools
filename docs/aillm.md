@@ -6,6 +6,8 @@ Sync and monitor the six AI/LLM shadow-AI detection context tables on an Exabeam
 
 Reference data is sourced from [ai-llm-domains](https://github.com/repins267/ai-llm-domains) — a maintained dataset of 223+ domains, 90+ applications, proxy categories, and DLP alert patterns. Run `exa update` to pull the latest data before syncing. Every command takes `--tenant <name>`.
 
+> To make the OOTB AI/LLM dashboards work in *any* tenant — deriving which table + field each dashboard and rule needs live, then closing the gap from what the tenant actually emits — see [`exa assess` and the OOTB validation workflow](validation.md).
+
 ## The six context tables
 
 Exabeam's OOTB AI/LLM dashboards and analytics rules filter against six context tables. Empty, they render as absence everywhere — no panel populates and no rule matches. `exa aillm sync` fills them from the bundled reference dataset.
