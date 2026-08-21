@@ -40,6 +40,24 @@ Related:
 - `exa auth -t <name>` — verify one of them still authenticates.
 - `exa config remove -t <name>` — delete a tenant and its stored credentials.
 
+## `exa auth`
+
+Verify authentication for a tenant, or register a **Webhook Cloud Collector**. The same credential-store discipline as `configure`: a collector's token goes to the OS credential store under service `exa-webhook`, key `<tenant>-<format>` — the exact key [`exa simulate`](detection.md) reads — so a registered collector needs no further setup. Only non-secret metadata (name, tenant, format, note, created) is written to `~/.exa/collectors.json`; the token never touches a file, and no list path returns it.
+
+```bash
+exa auth                                       # test auth for the default tenant
+exa auth -t <tenant>                           # test a specific tenant
+
+# Register a collector (prompts for the token, masked; or reads EXA_WEBHOOK_TOKEN)
+exa auth --collector -t <tenant>
+exa auth --collector -t <tenant> --format raw --name "Zscaler raw" --note prod
+exa auth --collector -t <tenant> --no-prompt   # env-only, never prompt
+
+exa auth --list-collectors                     # registered collectors (never shows tokens)
+```
+
+A tenant can register more than one collector — e.g. a `raw` Zscaler collector and a `json` collector — each with its own token, coexisting under `<tenant>-raw` / `<tenant>-json`.
+
 ## `exa config`
 
 Inspects and edits `~/.exa/config.json`. It takes **subcommands, not flags** — to add a tenant use `exa configure` (which sets one up); `exa config` inspects what already exists.
