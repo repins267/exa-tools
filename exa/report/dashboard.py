@@ -201,7 +201,11 @@ def _render_panel(el: dict, client: ExaClient | None, limit: int) -> str:
 
 
 def dashboard_preview_html(
-    config: dict[str, Any], client: ExaClient | None = None, sample_limit: int = 8
+    config: dict[str, Any],
+    client: ExaClient | None = None,
+    sample_limit: int = 8,
+    brand: str = "exabeam",
+    footer_brand: bool = True,
 ) -> str:
     """Render a dashboard config to a branded, chart-drawn preview HTML string."""
     from exa.report.theme import _esc, page, panel, stat_card
@@ -246,6 +250,8 @@ def dashboard_preview_html(
         "Exabeam dashboard preview",
         cards, "".join(body), "".join(f"<div>{_esc(m)}</div>" for m in meta),
         initial_theme="dark",
+        brand=brand,
+        footer_brand=footer_brand,
     )
 
 
@@ -308,13 +314,17 @@ def configs_to_gallery(
     sample_limit: int = 8,
     scrub: bool = True,
     title: str = "Exabeam Dashboards — exa-tools Preview Gallery",
+    brand: str = "exabeam",
+    footer_brand: bool = True,
 ) -> str:
     """Render many dashboard configs into one scrollable gallery page with nav.
 
     Each config is previewed via ``dashboard_preview_html`` (optionally scrubbed);
     their bodies are stitched under a shared stylesheet with anchor navigation.
+    Per-section footers are suppressed; one gallery-level footer is appended when
+    ``footer_brand`` is set.
     """
-    from exa.report.theme import _esc
+    from exa.report.theme import _brand_footer, _esc
 
     css, sections, nav = "", [], []
     for i, (name, cfg) in enumerate(named_configs):
@@ -323,7 +333,10 @@ def configs_to_gallery(
             cfg, sn = scrub_config(cfg)
             label = cfg.get("title") or name
         try:
-            preview = dashboard_preview_html(cfg, client=client, sample_limit=sample_limit)
+            preview = dashboard_preview_html(
+                cfg, client=client, sample_limit=sample_limit,
+                brand=brand, footer_brand=False,
+            )
         except Exception as exc:  # noqa: BLE001 -- one bad config never kills the gallery
             sections.append(
                 f"<section id='d{i}'><h2>{_esc(label)}</h2>"
@@ -363,5 +376,5 @@ def configs_to_gallery(
         f"<p style='color:#9aa3ad;font-size:13px'>{len(named_configs)} dashboards via exa-tools "
         f"render_dashboard · {data_line} · panels approximate the context-table filter (SAMPLE)"
         f"{' · customer identity scrubbed' if scrub else ''}.</p>"
-        f"{''.join(sections)}</div></body></html>"
+        f"{''.join(sections)}</div>{_brand_footer() if footer_brand else ''}</body></html>"
     )

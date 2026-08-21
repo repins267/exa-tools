@@ -63,6 +63,8 @@ def report_from_spec(spec: dict[str, Any]) -> str:
         "".join(panels),
         meta,
         initial_theme=spec.get("theme", "dark"),
+        brand=spec.get("brand", "exabeam"),
+        footer_brand=spec.get("footer_brand", True),
     )
 
 
