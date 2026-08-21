@@ -60,6 +60,20 @@ def test_root_help():
 
 
 # ---------------------------------------------------------------------------
+# auth
+# ---------------------------------------------------------------------------
+
+
+def test_auth_help():
+    result = runner.invoke(app, ["auth", "--help"])
+    assert result.exit_code == 0
+    assert "--tenant" in result.output
+    assert "--collector" in result.output
+    assert "--list-collectors" in result.output
+    assert "--format" in result.output
+
+
+# ---------------------------------------------------------------------------
 # configure
 # ---------------------------------------------------------------------------
 

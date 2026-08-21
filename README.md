@@ -136,6 +136,24 @@ exa splunk deploy --help
 
 Interactive setup: enter your tenant FQDN, client ID, and client secret. Tests the connection, saves credentials to keyring, and optionally downloads CIM2/SigmaHQ reference data.
 
+### `exa auth`
+
+Test authentication for a tenant, or register a **Webhook Cloud Collector**. The collector token is stored in the OS credential store (service `exa-webhook`, key `<tenant>-<format>`) — the same key `exa simulate` reads, so a registered collector needs no further setup. Only non-secret metadata (name, tenant, format, note, created) is written to `~/.exa/collectors.json`; the token never touches a file.
+
+```bash
+exa auth                                       # test auth for the default tenant
+exa auth -t baystate                           # test auth for a specific tenant
+
+# Register a collector (prompts for the token, masked; or reads EXA_WEBHOOK_TOKEN)
+exa auth --collector -t sademodev22
+exa auth --collector -t sademodev22 --format raw --name "Zscaler raw" --note "prod"
+exa auth --collector -t sademodev22 --no-prompt   # env-only, no interactive prompt
+
+exa auth --list-collectors                     # list registered collectors (never shows tokens)
+```
+
+A tenant can register more than one collector — e.g. a `raw` Zscaler collector and a `json` collector — each with its own token, coexisting under `<tenant>-raw` / `<tenant>-json`.
+
 ### `exa update`
 
 ```bash
