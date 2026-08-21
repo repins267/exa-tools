@@ -1843,23 +1843,35 @@ def status_cmd(
 
         tbl = Table(show_header=True, header_style="bold")
         tbl.add_column("Table", style="cyan", no_wrap=True)
-        tbl.add_column("Records", justify="right")
+        tbl.add_column("Retrievable", justify="right")            # authoritative
+        tbl.add_column("Reported", justify="right", style="dim")  # totalItems (may be stale)
         tbl.add_column("Last Synced", style="dim")
 
-        total = 0
+        total_ret = 0
+        total_rep = 0
+        drift = 0
         for s in statuses:
             if not s.found:
-                tbl.add_row(s.table_name, "-", "Not found", style="dim")
+                tbl.add_row(s.table_name, "-", "-", "Not found", style="dim")
             else:
-                tbl.add_row(
-                    s.table_name,
-                    str(s.record_count),
-                    s.last_updated,
-                )
-                total += s.record_count
+                ret = str(s.retrievable) if s.retrievable is not None else "?"
+                tbl.add_row(s.table_name, ret, str(s.record_count), s.last_updated)
+                total_rep += s.record_count
+                if s.retrievable is not None:
+                    total_ret += s.retrievable
+                    drift += max(0, s.record_count - s.retrievable)
 
         console.print(tbl)
-        console.print(f"\n  Total records: {total}", style="dim")
+        console.print(
+            f"\n  Total retrievable: {total_ret}   (API totalItems: {total_rep})",
+            style="dim",
+        )
+        if drift:
+            console.print(
+                f"  totalItems exceeds retrievable by {drift} across tables -- it is stale "
+                "Exabeam metadata; the retrievable count is authoritative.",
+                style="dim",
+            )
     finally:
         client.close()
 

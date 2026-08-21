@@ -378,12 +378,25 @@ class TestGetAILLMTableStatus:
             },
         ]
 
+    def _register_records(self, mock_auth, retrievable=None):
+        """Register a /records response per table (retrievable defaults to totalItems)."""
+        retrievable = retrievable or {}
+        for t in self._tables_response():
+            n = retrievable.get(t["displayName"], t["totalItems"])
+            mock_auth.add_response(
+                url=f"{BASE_URL}/context-management/v1/tables/{t['id']}/records?limit=100000&offset=0",
+                method="GET",
+                json={"records": [{"key": f"k{i}"} for i in range(n)],
+                      "paging": {"count": t["totalItems"], "limit": 100000, "offset": 0, "pages": 1}},
+            )
+
     def test_returns_six_statuses(self, exa, mock_auth):
         mock_auth.add_response(
             url=f"{BASE_URL}/context-management/v1/tables",
             method="GET",
             json=self._tables_response(),
         )
+        self._register_records(mock_auth)
         from exa.aillm.status import get_aillm_table_status
 
         statuses = get_aillm_table_status(exa)
@@ -395,6 +408,7 @@ class TestGetAILLMTableStatus:
             method="GET",
             json=self._tables_response(),
         )
+        self._register_records(mock_auth)
         from exa.aillm.status import get_aillm_table_status
 
         statuses = get_aillm_table_status(exa)
@@ -423,6 +437,7 @@ class TestGetAILLMTableStatus:
             method="GET",
             json=self._tables_response(),
         )
+        self._register_records(mock_auth)
         from exa.aillm.status import get_aillm_table_status
 
         statuses = get_aillm_table_status(exa)
@@ -431,6 +446,23 @@ class TestGetAILLMTableStatus:
             assert s.last_updated != "Never"
             assert s.last_updated != "Unknown"
             assert "UTC" in s.last_updated
+
+    def test_retrievable_can_differ_from_reported(self, exa, mock_auth):
+        """retrievable (from /records) is authoritative and may sit below totalItems."""
+        mock_auth.add_response(
+            url=f"{BASE_URL}/context-management/v1/tables",
+            method="GET",
+            json=self._tables_response(),
+        )
+        # DLP reports totalItems=46 but only serves 40 records
+        self._register_records(mock_auth, retrievable={"AI/LLM DLP Rulesets": 40})
+        from exa.aillm.status import get_aillm_table_status
+
+        by = {s.table_name: s for s in get_aillm_table_status(exa)}
+        dlp = by["AI/LLM DLP Rulesets"]
+        assert dlp.record_count == 46      # totalItems (reported)
+        assert dlp.retrievable == 40       # /records (authoritative)
+        assert by["AI/LLM Applications"].retrievable == 90  # no drift -> matches
 
 
 class TestDiscoverAIDomains:
