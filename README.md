@@ -1,10 +1,14 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="docs/banner-light.svg">
-    <img alt="exa-tools" src="docs/banner-dark.svg" width="484">
-  </picture>
-</p>
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)"  srcset="docs/brand/exa-tools-banner-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/brand/exa-tools-banner-light.svg">
+  <img src="docs/brand/exa-tools-banner-dark.svg" alt="exa-tools" width="560">
+</picture>
+
+Detection engineering, compliance auditing, and case triage for Exabeam New-Scale Analytics.
+
+</div>
 
 # exa-tools
 
