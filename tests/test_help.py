@@ -486,6 +486,26 @@ def test_dashboard_preview_help():
     assert "--format" in result.output
     assert "--scrub" in result.output
     assert "--tenant" in result.output
+    assert "--brand" in result.output
+
+
+# ---------------------------------------------------------------------------
+# brand
+# ---------------------------------------------------------------------------
+
+
+def test_brand_help():
+    result = runner.invoke(app, ["brand", "--help"])
+    assert result.exit_code == 0
+    assert "add" in result.output
+    assert "list" in result.output
+    assert "remove" in result.output
+
+
+def test_brand_add_help():
+    result = runner.invoke(app, ["brand", "add", "--help"])
+    assert result.exit_code == 0
+    assert "--logo-light" in result.output
 
 
 # ---------------------------------------------------------------------------
