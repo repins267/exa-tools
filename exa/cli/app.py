@@ -149,18 +149,55 @@ def auth(
         str | None,
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
+    collector: Annotated[
+        bool,
+        typer.Option("--collector", help="Register a Webhook Cloud Collector (token to keyring)"),
+    ] = False,
+    list_collectors: Annotated[
+        bool,
+        typer.Option("--list-collectors", help="List registered collectors (never shows tokens)"),
+    ] = False,
+    name: Annotated[
+        str | None,
+        typer.Option("--name", help="Collector label as shown in the tenant UI (with --collector)"),
+    ] = None,
+    fmt: Annotated[
+        str,
+        typer.Option("--format", help="Ingest format the collector expects: json or raw"),
+    ] = "json",
+    note: Annotated[
+        str | None,
+        typer.Option("--note", help="Optional note stored with the collector (not the token)"),
+    ] = None,
+    no_prompt: Annotated[
+        bool,
+        typer.Option("--no-prompt", help="Read token from EXA_WEBHOOK_TOKEN only; never prompt"),
+    ] = False,
 ) -> None:
-    """Test authentication against saved tenant credentials.
+    """Test authentication, or register a Webhook Cloud Collector.
 
     \b
     Examples:
-      exa auth                      # the saved default tenant
-      exa auth -t baystate          # a specific tenant by nickname
-      exa config tenants            # which nicknames exist
+      exa auth                              # test auth for the default tenant
+      exa auth -t baystate                  # test auth for a specific tenant
+      exa auth --collector -t sademodev22   # register a collector (prompts for token)
+      exa auth --collector -t sademodev22 --format raw --name "Zscaler raw"
+      exa auth --list-collectors            # list registered collectors (no tokens)
 
     -t takes a tenant NICKNAME or FQDN. It is not a subcommand -- `exa auth -t
     list` looks for a tenant literally named "list". Use `exa config tenants`.
+
+    The collector token is stored in the OS credential store (never a file),
+    under the same key `exa simulate` reads, so a registered collector needs no
+    further setup. Only non-secret metadata is written to ~/.exa/collectors.json.
     """
+    if list_collectors:
+        _auth_list_collectors()
+        return
+    if collector:
+        _auth_register_collector(tenant, name=name, fmt=fmt, note=note, no_prompt=no_prompt)
+        return
+
     import time
 
     try:
@@ -175,6 +212,90 @@ def auth(
     except Exception as e:
         console.print(f"Authentication failed: {e}", style="red")
         raise typer.Exit(1)
+
+
+def _auth_register_collector(
+    tenant: str | None, *, name: str | None, fmt: str, note: str | None, no_prompt: bool
+) -> None:
+    """Store a collector's token in keyring and its metadata in collectors.json."""
+    from exa.config import get_default_tenant
+    from exa.simulate.collectors import KEYRING_SERVICE, save_collector, store_token
+
+    resolved = (tenant or "").strip() or get_default_tenant()
+    if not resolved:
+        console.print(
+            "No tenant given and no default configured. Pass -t <tenant> or run "
+            "'exa config set default-tenant <name>'.",
+            style="red",
+        )
+        raise typer.Exit(1)
+    fmt_l = (fmt or "").strip().lower()
+    if fmt_l not in ("json", "raw"):
+        console.print(f"--format must be 'json' or 'raw', got {fmt!r}.", style="red")
+        raise typer.Exit(1)
+
+    # Token: env first, then a masked prompt. Never a file.
+    import os
+
+    token = os.environ.get("EXA_WEBHOOK_TOKEN", "").strip()
+    if not token:
+        if no_prompt:
+            console.print(
+                "No token available. Set EXA_WEBHOOK_TOKEN or omit --no-prompt to be "
+                "prompted.",
+                style="red",
+            )
+            raise typer.Exit(1)
+        from rich.prompt import Prompt
+
+        console.print(
+            f"Webhook token for collector on tenant '{resolved}' (format: {fmt_l}). "
+            "Stored in the OS credential store, never on disk.",
+            style="dim",
+        )
+        token = Prompt.ask("Webhook token", password=True).strip()
+    if not token:
+        console.print("Token cannot be empty.", style="red")
+        raise typer.Exit(1)
+
+    user = store_token(resolved, fmt_l, token)
+    record = save_collector(name=name or "", tenant=resolved, fmt=fmt_l, note=note or "")
+    console.print("Collector registered", style="green")
+    console.print(f"  name    {record.name}")
+    console.print(f"  tenant  {record.tenant}")
+    console.print(f"  format  {record.fmt}")
+    console.print(f"  token   stored in credential store ({KEYRING_SERVICE}/{user})", style="dim")
+    console.print("  info    ~/.exa/collectors.json (no token)", style="dim")
+    console.print("`exa simulate` will use this token automatically.", style="dim")
+
+
+def _auth_list_collectors() -> None:
+    """Print registered collectors and whether each has a stored token."""
+    from exa.simulate.collectors import load_collectors, token_present
+
+    collectors = load_collectors()
+    if not collectors:
+        console.print("No collectors registered.", style="yellow")
+        console.print("Register one with 'exa auth --collector -t <tenant>'.", style="dim")
+        return
+    from rich.table import Table
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Name")
+    table.add_column("Tenant")
+    table.add_column("Format")
+    table.add_column("Token")
+    table.add_column("Created", style="dim")
+    for c in collectors:
+        present = token_present(c.tenant, c.fmt)
+        table.add_row(
+            c.name,
+            c.tenant,
+            c.fmt,
+            "[green]stored[/green]" if present else "[red]missing[/red]",
+            c.created or "-",
+        )
+    console.print(table)
 
 
 # -- Version ------------------------------------------------------------------
