@@ -65,15 +65,36 @@ def _check_would_fire(client, behaviors, events) -> dict[str, str]:
     return results
 
 
-def _resolve_token(no_prompt: bool = False, *, tenant: str | None = None) -> str:
+def _token_users(tenant: str | None, fmt: str | None) -> list[str]:
+    """Keyring usernames to try, most specific first.
+
+    A tenant can have more than one Webhook Cloud Collector — e.g. a raw
+    Zscaler collector and a generic JSON collector — each with its OWN token.
+    They differ by ingest format, so we look up '<tenant>-<fmt>' before the
+    plain '<tenant>', letting both tokens coexist in the credential store.
+    """
+    users: list[str] = []
+    if tenant and fmt:
+        users.append(f"{tenant}-{fmt}")
+    if tenant:
+        users.append(tenant)
+    users.append("default")
+    return users
+
+
+def _resolve_token(
+    no_prompt: bool = False, *, tenant: str | None = None, fmt: str | None = None
+) -> str:
     """Get the webhook collector token from env, the OS credential store, or a prompt.
 
     Resolution order: the EXA_WEBHOOK_TOKEN env var, then the OS keyring
-    (service 'exa-webhook', username = tenant, then 'default'), then an
-    interactive masked prompt. Never written to a file or config — the
-    credential store is the sanctioned resting place, same as ClientSecret.
-    Store it once (outside any logged command) with:
-        keyring set exa-webhook <tenant>
+    (service 'exa-webhook', username '<tenant>-<fmt>', then '<tenant>', then
+    'default'), then an interactive masked prompt. Never written to a file or
+    config — the credential store is the sanctioned resting place, same as
+    ClientSecret. Store per-collector tokens (outside any logged command) with:
+        keyring set exa-webhook <tenant>-raw     # a raw/Zscaler collector
+        keyring set exa-webhook <tenant>-json    # a JSON collector
+        keyring set exa-webhook <tenant>         # a single/default collector
     """
     token = os.environ.get(_TOKEN_ENV, "").strip()
     if token:
@@ -83,17 +104,18 @@ def _resolve_token(no_prompt: bool = False, *, tenant: str | None = None) -> str
     try:
         import keyring
 
-        for user in ([tenant] if tenant else []) + ["default"]:
+        for user in _token_users(tenant, fmt):
             stored = keyring.get_password(_TOKEN_KEYRING_SERVICE, user)
             if stored:
                 return stored.strip()
     except Exception:  # noqa: BLE001 — keyring is optional; fall through to prompt
         pass
 
+    hint_user = f"{tenant}-{fmt}" if (tenant and fmt) else (tenant or "<tenant>")
     if no_prompt:
         console.print(
             f"No token available. Set {_TOKEN_ENV}, store it with "
-            f"'keyring set {_TOKEN_KEYRING_SERVICE} {tenant or '<tenant>'}', "
+            f"'keyring set {_TOKEN_KEYRING_SERVICE} {hint_user}', "
             "or omit --no-prompt.",
             style="red",
         )
@@ -104,7 +126,7 @@ def _resolve_token(no_prompt: bool = False, *, tenant: str | None = None) -> str
     console.print(
         "Webhook collector token (created with the Webhook Cloud Collector "
         f"in the tenant UI). Set {_TOKEN_ENV} or store it with "
-        f"'keyring set {_TOKEN_KEYRING_SERVICE} {tenant or '<tenant>'}' "
+        f"'keyring set {_TOKEN_KEYRING_SERVICE} {hint_user}' "
         "to skip this prompt.",
         style="dim",
     )
@@ -300,7 +322,7 @@ def aba_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt, tenant=tenant)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt="json")
     console.print(f"\nSending {len(events)} events to {url} ...")
 
     from exa.exceptions import ExaAPIError
@@ -414,7 +436,7 @@ def vendor_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt, tenant=tenant)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt="raw")
     console.print(f"\nSending {len(events)} log lines to {url} ...")
 
     from exa.exceptions import ExaAPIError
@@ -605,7 +627,7 @@ def run_simulation(
         console.print("Re-run with --no-dry-run to send.", style="dim")
         return
 
-    token = _resolve_token(no_prompt=no_prompt, tenant=tenant)
+    token = _resolve_token(no_prompt=no_prompt, tenant=tenant, fmt=fmt)
     console.print(f"\nSending {len(events)} events to {url} ...")
 
     from exa.exceptions import ExaAPIError
