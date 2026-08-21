@@ -7,11 +7,41 @@ xfail marks commands that are defined in the spec but not yet implemented.
 
 from __future__ import annotations
 
+import re
+
 from typer.testing import CliRunner
 
 from exa.cli.app import app
 
-runner = CliRunner()
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+class _PlainRunner(CliRunner):
+    """CliRunner that strips ANSI colour from help output.
+
+    typer/rich force colour whenever ``GITHUB_ACTIONS`` or ``FORCE_COLOR`` is set
+    (i.e. GitHub Actions, and this dev environment). Rich's highlighter then
+    emits the option name ``--check`` as
+    ``\\x1b[1;36m-\\x1b[0m\\x1b[1;36m-check\\x1b[0m`` -- the escape codes fragment
+    the token, so a plain ``'--check' in result.output`` fails even though the
+    flag is present. Stripping ANSI before the substring assertions makes these
+    tests robust to colour, width, and TTY state everywhere.
+    """
+
+    def invoke(self, *args, **kwargs):
+        result = super().invoke(*args, **kwargs)
+        # click >=8.2 exposes .output via output_bytes (mixed stdout+stderr);
+        # older versions proxy it through stdout_bytes. Strip ANSI from every
+        # byte stream the assertions might read.
+        for attr in ("output_bytes", "stdout_bytes", "stderr_bytes"):
+            raw = getattr(result, attr, None)
+            if raw:
+                plain = _ANSI.sub("", raw.decode("utf-8", "replace"))
+                setattr(result, attr, plain.encode("utf-8"))
+        return result
+
+
+runner = _PlainRunner()
 
 
 # ---------------------------------------------------------------------------
@@ -383,6 +413,84 @@ def test_aillm_help():
 def test_frameworks_help():
     result = runner.invoke(app, ["frameworks", "--help"])
     assert result.exit_code == 0
+
+
+def test_aillm_cycle_help():
+    result = runner.invoke(app, ["aillm", "cycle", "--help"])
+    assert result.exit_code == 0
+    assert "--iterations" in result.output
+    assert "--from-empty" in result.output
+    assert "--tenant" in result.output
+
+
+def test_aillm_report_help():
+    result = runner.invoke(app, ["aillm", "report", "--help"])
+    assert result.exit_code == 0
+    assert "--format" in result.output
+    assert "--lookback" in result.output
+    assert "--tenant" in result.output
+
+
+# ---------------------------------------------------------------------------
+# assess (OOTB context-table auto-populator + classifier benchmark)
+# ---------------------------------------------------------------------------
+
+
+def test_assess_help():
+    result = runner.invoke(app, ["assess", "--help"])
+    assert result.exit_code == 0
+    assert "benchmark" in result.output
+    assert "--dashboards" in result.output
+    assert "--apply" in result.output
+    assert "--promote" in result.output
+    assert "--tenant" in result.output
+
+
+def test_assess_benchmark_help():
+    result = runner.invoke(app, ["assess", "benchmark", "--help"])
+    assert result.exit_code == 0
+    assert "--golden" in result.output
+    assert "--model" in result.output
+    assert "--fail-under-precision" in result.output
+    assert "--fail-under-pii-recall" in result.output
+
+
+# ---------------------------------------------------------------------------
+# dashboard
+# ---------------------------------------------------------------------------
+
+
+def test_dashboard_help():
+    result = runner.invoke(app, ["dashboard", "--help"])
+    assert result.exit_code == 0
+    assert "preview" in result.output
+
+
+def test_dashboard_preview_help():
+    result = runner.invoke(app, ["dashboard", "preview", "--help"])
+    assert result.exit_code == 0
+    assert "--format" in result.output
+    assert "--scrub" in result.output
+    assert "--tenant" in result.output
+
+
+# ---------------------------------------------------------------------------
+# simulate
+# ---------------------------------------------------------------------------
+
+
+def test_simulate_help():
+    result = runner.invoke(app, ["simulate", "--help"])
+    assert result.exit_code == 0
+    assert "timing" in result.output
+
+
+def test_simulate_timing_help():
+    result = runner.invoke(app, ["simulate", "timing", "--help"])
+    assert result.exit_code == 0
+    assert "--scenario" in result.output
+    assert "--deadline" in result.output
+    assert "--tenant" in result.output
 
 
 # ---------------------------------------------------------------------------

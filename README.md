@@ -206,6 +206,16 @@ exa aillm discover --json --tenant csnafusion             # structured output
 # Show live record counts for all 6 tables
 exa aillm status
 exa aillm status --tenant csnafusion
+
+# Report AI/LLM state, what changed since last run, and what is drifting
+exa aillm report --tenant csnafusion
+exa aillm report --format html --out reports/aillm.html   # html | pdf | json | csv
+exa aillm report --lookback 30 --no-refresh               # reuse cached profile
+
+# Stability gate: run the populate -> audit -> rollback cycle N times
+exa aillm cycle --iterations 15 --tenant csnafusion
+exa aillm cycle --from-empty --iterations 5               # clear tables first each run
+exa aillm cycle --dry-run                                 # no writes, audit path only
 ```
 
 **The 6 context tables:**
@@ -547,6 +557,51 @@ exa search 'user:"admin"' --tenant sademodev22
 
 ```bash
 exa frameworks    # list all available compliance frameworks with testable control counts
+```
+
+### `exa assess`
+
+Make the OOTB dashboards work in **any** tenant. `assess` discovers what a tenant actually emits, derives which context table + field each deployed rule and OOTB dashboard requires *live* (from `ContextListContains(table, field)` in deployed rules and the dashboards' own `context_rule` bindings), then closes the gap so the exact `field IN table` panel filters match. Newly-seen **generic** knowledge is learned cross-customer (A → B → C gets smarter) — customer-specific values and PII are never promoted to shared knowledge.
+
+```bash
+# Assess a tenant and print the requirement map + gap report (no writes)
+exa assess --tenant sademodev22
+exa assess --dashboards exabeam_OOTB_dashboards/   # derive from local OOTB .config files
+exa assess --lookback 30 --out assessments/        # write the assessment record
+
+# Apply the closed gap (gated) and manage the learn loop
+exa assess --apply --confirm --tenant sademodev22          # write reviewed proposals
+exa assess --apply --promote --approve-reviews             # auto-promote high-confidence generic
+exa assess --apply --no-promote                            # apply, keep nothing to shared knowledge
+
+# Prove the classifier on the golden corpus (CI safety gate)
+exa assess benchmark --golden tests/data/classifier_golden.jsonl
+exa assess benchmark --model claude --output-json scorecard.json
+exa assess benchmark --fail-under-precision 1.0 --fail-under-pii-recall 1.0 --min-corpus 35
+```
+
+`benchmark` reports per-class precision / recall / F1 with the two safety metrics called out — **auto-promote precision** (the leak metric, target 1.0) and **PII-withhold recall** (1.0) — plus a Wilson lower-bound gate that tightens as the corpus grows. It runs as a blocking CI check ("Heuristic Rules & Safety Verification").
+
+### `exa dashboard preview`
+
+Render any OOTB dashboard `.config` to a standalone HTML/PDF report preview — customer specifics scrubbed by default so it is safe to share.
+
+```bash
+exa dashboard preview dashboards/ai-llm.config
+exa dashboard preview dashboards/ai-llm.config --format pdf --out preview.pdf
+exa dashboard preview dashboards/ai-llm.config --live --tenant sademodev22   # pull real panel data
+exa dashboard preview dashboards/ai-llm.config --no-scrub                     # keep tenant specifics
+```
+
+### `exa simulate timing`
+
+Inject a scenario's synthetic events and measure detection timing (MTTD) against a deadline — the repeatable proof that populated tables light up the rules.
+
+```bash
+exa simulate timing --scenario ai-exfil --tenant sademodev22
+exa simulate timing --scenario ai-exfil --deadline 300 --poll --interval 15   # watch until detected
+exa simulate timing --scenario ai-exfil --pdf --out reports/mttd.pdf
+exa simulate timing --scenario ai-exfil --once                                 # single pass (dry-run is the default)
 ```
 
 ## How It Works

@@ -1,8 +1,11 @@
 # Contributing to exa-tools
 
-exa-tools uses a single `main` branch. All new features and fixes are submitted
-directly to `main` via Pull Request. Contributors are expected to be familiar
-with Git, GitHub flow, and how to fork a repository and submit a PR.
+exa-tools uses a single `main` branch. **`main` is a protected branch: direct
+pushes are rejected — every change lands through a Pull Request**, and the
+required **"Heuristic Rules & Safety Verification"** status check must be green
+before a PR can merge. Work on a feature branch (`fix/…`, `feat/…`), push it,
+and open a PR. Contributors are expected to be familiar with Git, GitHub flow,
+and how to fork a repository and submit a PR.
 
 ---
 
@@ -91,6 +94,23 @@ as a test reference. Client secrets must always be entered interactively via
 `getpass` or read from environment variables at runtime. Never in code, never
 in config files, never in commits.
 
+:no_entry: **Secrets resolve from the OS credential store, never from files.**
+Tokens (e.g. the simulate webhook token) resolve in this order only:
+environment variable → OS keyring (`keyring.get_password`) → interactive
+prompt. See `exa/cli/simulate.py:_resolve_token`. Do not add a code path that
+reads a token from a config file, a dotfile, or a committed default, and do not
+log a resolved token.
+
+:no_entry: **Never promote customer-specific data or PII to shared knowledge.**
+The `assess` learn loop promotes only *generic* knowledge across tenants.
+Customer-specific values and anything that looks per-record (emails, long free
+text, SSNs / long digit runs, "matched for … / for user …" phrasing) are
+classified LOCAL and must never enter `vendor_packs.json`, the shared overlay,
+or any shareable surface — customer names are scrubbed from previews by default.
+The golden-corpus safety gate (auto-promote precision = 1.0, PII-withhold
+recall = 1.0) exists to catch a regression here; do not weaken those thresholds
+to make a change pass.
+
 :no_entry: **`@require_internal` on every internal function.** Any function
 under `exa/internal/` must have this decorator — no exceptions.
 
@@ -167,16 +187,48 @@ Every CLI command must have a corresponding `--help` test in
 `tests/test_help.py`. This test verifies:
 - The command responds to `--help` with exit code 0.
 - Key flags listed in the README appear in the help output.
+- The command's docstring carries an `Examples:` block (the discoverability
+  contract — a new command with no examples fails here).
 
-**When you add a new command or flag:**
-1. Add or update its test in `tests/test_help.py`.
-2. Update the Commands section in `README.md`.
-3. Run `uv run pytest tests/test_help.py -v` — all tests must pass.
+> Help tests strip ANSI before asserting, so they are robust to colourised
+> output. typer forces colour under `GITHUB_ACTIONS`/`FORCE_COLOR`, which
+> fragments option names like `--check` into escape-separated tokens; do not
+> reintroduce raw-`in`-`result.output` assertions without stripping.
 
-The help tests run as part of the standard test suite (`uv run pytest -v`)
-and are required to pass before any PR is merged. They act as a contract
-between the CLI surface and the documentation — if they diverge, the
-tests fail.
+### Doc-sync checklist — do all of these in the same PR as the change
+
+Adding, changing, or removing a **command, flag, MCP tool, or skill** is not
+"done" until every doc surface matches AND the AI-BOM is regenerated:
+
+1. `tests/test_help.py` — add/update the command's `--help` test.
+2. `README.md` — update the **Commands** section, and for tools/skills the
+   **Tools table** and the **`Skills (N)`** count + named list (all CI-checked).
+3. Regenerate the **AI-BOM**: `uv run security/gen_aibom.py`, then commit
+   `security/aibom.cdx.json` (+ `.html`). New modules make it stale.
+4. Run the doc-sync tests locally before pushing:
+   `uv run pytest tests/test_doc_inventory.py tests/test_aibom.py`.
+
+> **Trap:** the doc-sync gate (`test_doc_inventory` + `test_aibom`) runs in the
+> "CI" workflow, which is **not** a required status check — a PR can merge while
+> it is red, leaving `main` failing. Always run those two tests locally first.
+
+### CI pipeline structure
+
+- **Heuristic Rules & Safety Verification** (`ci-pipeline.yml`) — the blocking,
+  **required** check. Runs the deterministic test suite plus
+  `exa assess benchmark` against `tests/data/classifier_golden.jsonl`, enforcing
+  the safety gates (auto-promote precision = 1.0 / leaks = 0, PII-withhold
+  recall = 1.0, and the Wilson lower-bound floor that tightens as the corpus
+  grows). A PR cannot merge unless this is green.
+- **LLM leaderboard** (nightly, **non-blocking**) — runs the same golden corpus
+  through each model backend and tracks accuracy / latency / cost. Informational;
+  never gates a merge.
+- **Doc-sync** (`test_doc_inventory` + `test_aibom`) — runs in the "CI" workflow
+  but is **not** a required check (see the trap above).
+
+The help + doc tests run as part of the standard suite (`uv run pytest -v`).
+They act as a contract between the CLI surface and the documentation — if they
+diverge, the tests fail.
 
 ---
 
