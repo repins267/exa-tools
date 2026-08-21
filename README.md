@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/banner-light.svg">
+    <img alt="exa-tools" src="docs/banner-dark.svg" width="484">
+  </picture>
+</p>
+
 # exa-tools
 
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
