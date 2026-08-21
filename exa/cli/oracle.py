@@ -101,10 +101,10 @@ def build_cmd(
     console.print(
         f"  {st['parsers_processed']} parsers · {len(oracle['by_vendor'])} vendors · "
         f"{len(oracle['by_activity_type'])} activity types · "
-        f"{len(oracle['raw_to_cim2'])} raw→CIM2 maps",
+        f"{len(oracle['raw_to_cim2'])} raw->CIM2 maps",
         style="dim",
     )
-    console.print(f"  raw→CIM2: {st['raw_to_cim2_note']}", style="dim")
+    console.print(f"  raw->CIM2: {st['raw_to_cim2_note']}", style="dim")
 
 
 @oracle_app.command("use")
