@@ -271,6 +271,10 @@ from exa.cli.dashboard import dashboard_app  # noqa: E402
 
 app.add_typer(dashboard_app)
 
+from exa.cli.assess import assess_app  # noqa: E402
+
+app.add_typer(assess_app)
+
 
 # -- Health / licence --------------------------------------------------------
 
