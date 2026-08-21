@@ -56,6 +56,7 @@ live tenant server answered.
 | `exa-tam-report` | Branded TAM report for a tenant — ingest value, parser health, AI/LLM posture — tenant-aware (announces tenant + kind first). |
 | `exa-call-prep` | Pre-call brief for a customer/demo tenant: recent cases, health flags, and talking points. |
 | `exa-aillm-sync` | AI/LLM threat-detection posture and reference-table sync (demo tenants). |
+| `exa-assess` | Assess a tenant and make its OOTB dashboards work: discover sources, derive the required table+field map live (rules + dashboards), close the gap, and — gated — populate the context tables so the exact `field IN table` panel filters match. Read-only by default; classifies novel values (generic / customer-specific / PII) with you as the LLM-assist. |
 | `exa-dashboard-preview` | Renders an Exabeam dashboard `.config` as a chart-drawn branded preview so you can iterate before the manual UI import. |
 | `exa-vault` | Uses the ExaVault (Obsidian TAM knowledge vault) as durable context, paired with live MCP data. Code-first local file access. |
 | `exa-nymm` | NYMM ("Not Your Momma's Mouton") — detection-tuning insight for New-Scale Analytics, the replacement for the deprecated Mouton AA tuning tool. Ranks alert drivers by volume vs. escalation-to-case and flags tune/disable candidates. Read-only. |
