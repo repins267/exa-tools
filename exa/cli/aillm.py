@@ -1894,10 +1894,24 @@ def snapshot_cmd(
         m = load_manifest(path)
         tbl = Table(title="AI/LLM snapshot")
         tbl.add_column("Table", style="cyan", no_wrap=True)
-        tbl.add_column("Records", justify="right")
+        tbl.add_column("Records", justify="right")  # distinct, retrievable -- the truth
+        stale = []
         for t in m.tables:
-            tbl.add_row(t.get("name", "?"), str(t.get("record_count", 0)))
+            rc = t.get("record_count", 0)
+            rep = t.get("reported_count")
+            tbl.add_row(t.get("name", "?"), str(rc))
+            if rep is not None and rep != rc:
+                stale.append((t.get("name"), rep, rc))
         console.print(tbl)
+        if stale:
+            ex = stale[0]
+            console.print(
+                f"  Note: on {len(stale)} table(s) the API's totalItems disagrees with the "
+                f"retrievable records (e.g. {ex[0]}: totalItems={ex[1]} vs {ex[2]} retrievable). "
+                "totalItems is stale Exabeam metadata that a replace does not update; the "
+                "retrievable count is authoritative and is what snapshot/rollback use.",
+                style="dim",
+            )
         console.print(f"\n  Manifest: {path}", style="dim")
         console.print("  Restore later with: exa aillm rollback --tenant "
                       f"{tname} --confirm", style="dim")

@@ -53,10 +53,20 @@ def snapshot(client: ExaClient, tenant: str) -> Path:
         if not tid:
             continue
         records = get_all_records(client, tid)
+        # totalItems is stale Exabeam metadata: it can sit ABOVE the records the API
+        # actually serves via /records, and a full-table replace does NOT correct it
+        # (verified on sademodev22 2026-08-20 -- replace 5->2->0 changed the retrievable
+        # records but totalItems drifted unchanged). So record_count (distinct, retrievable)
+        # is authoritative and is what we snapshot and restore; reported_count is captured
+        # only to document the drift, never acted on.
+        reported = t.get("totalItems")
+        if reported is None:
+            reported = t.get("recordCount")
         captured.append({
             "table_id": tid,
             "name": t.get("name"),
-            "record_count": len(records),
+            "record_count": len(records),   # distinct, retrievable records -- what we restore
+            "reported_count": reported,     # API totalItems -- stale metadata, for documentation only
             "records": records,
         })
     ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
