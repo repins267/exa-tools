@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from exa.aillm.benchmark import (
+    GoldenEntry,
+    check_corpus_integrity,
     load_golden,
     score_golden,
     simulate_learn_loop,
@@ -23,6 +25,19 @@ def test_golden_corpus_passes_safety_metrics():
     assert r.auto_promote_precision == 1.0
     # Efficacy: don't wrongly withhold real generic AI values.
     assert r.ai_recall == 1.0
+
+
+def test_corpus_integrity_passes_on_real_corpus():
+    entries = load_golden(_GOLDEN)
+    assert check_corpus_integrity(entries, min_corpus=35) == []
+
+
+def test_corpus_integrity_catches_shrinkage_and_imbalance():
+    tiny = [GoldenEntry(value="x", reason="r", label="generic-ai", field="category")]
+    violations = check_corpus_integrity(tiny, min_corpus=35)
+    assert violations  # size + missing PII/generic examples + missing gate fields
+    assert any("size" in v for v in violations)
+    assert any("pii" in v for v in violations)
 
 
 def test_learn_loop_curve_and_zero_leak():

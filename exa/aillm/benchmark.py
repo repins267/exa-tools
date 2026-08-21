@@ -25,6 +25,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from exa.aillm.calibration import wilson_lower_bound
 from exa.aillm.learn import (
     AUTO,
     LOCAL,
@@ -53,7 +54,8 @@ class BenchmarkResult:
     model: str
     n: int
     per_verdict: dict[str, int] = field(default_factory=dict)
-    auto_promote_precision: float | None = None   # 1.0 = no leak in the auto tier
+    auto_promote_precision: float | None = None   # point estimate: 1.0 = no leak
+    auto_promote_precision_lb: float | None = None  # Wilson lower bound (rises with N)
     pii_withhold_recall: float | None = None       # 1.0 = every PII value local-only
     ai_recall: float | None = None                 # generic-AI not wrongly withheld
     leaks: list[str] = field(default_factory=list)  # unsafe values that auto-promoted
@@ -75,6 +77,30 @@ def load_golden(path: str | Path) -> list[GoldenEntry]:
             label=d.get("label", ""), field=d.get("field", ""),
         ))
     return out
+
+
+def check_corpus_integrity(
+    entries: list[GoldenEntry], *, min_corpus: int = 35, min_pii: int = 3, min_generic: int = 5
+) -> list[str]:
+    """Structural guards so the gate can't be 'fixed' by weakening the corpus.
+
+    Returns a list of violations (empty == OK). Enforces a minimum size and a
+    minimum representation of the safety-critical labels, so a silent deletion of
+    PII/generic examples is caught as a hard failure.
+    """
+    violations: list[str] = []
+    if len(entries) < min_corpus:
+        violations.append(f"corpus size {len(entries)} < min {min_corpus}")
+    labels = Counter(e.label for e in entries)
+    if labels.get("pii", 0) < min_pii:
+        violations.append(f"pii examples {labels.get('pii', 0)} < min {min_pii}")
+    if labels.get("generic-ai", 0) < min_generic:
+        violations.append(f"generic-ai examples {labels.get('generic-ai', 0)} < min {min_generic}")
+    fields = {e.field for e in entries if e.field}
+    for required in ("category", "app", "web_domain", "alert_name"):
+        if required not in fields:
+            violations.append(f"gate field '{required}' unrepresented")
+    return violations
 
 
 def score_golden(
@@ -116,6 +142,9 @@ def score_golden(
         n=len(entries),
         per_verdict=dict(per_verdict),
         auto_promote_precision=_ratio(auto_safe, auto_total) if auto_total else 1.0,
+        auto_promote_precision_lb=(
+            round(wilson_lower_bound(auto_safe, auto_total), 4) if auto_total else None
+        ),
         pii_withhold_recall=_ratio(pii_withheld, pii_total),
         ai_recall=_ratio(generic_kept, generic_total),
         leaks=leaks,

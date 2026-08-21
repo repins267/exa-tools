@@ -40,6 +40,36 @@ def benchmark_cmd(
         str,
         typer.Option("--model", help="heuristic | claude | chatgpt | gemini [default: heuristic]"),
     ] = "heuristic",
+    fail_under_precision: Annotated[
+        float,
+        typer.Option(
+            "--fail-under-precision",
+            help="Fail if auto-promote precision (point estimate) < this [default: 1.0]",
+        ),
+    ] = 1.0,
+    fail_under_pii_recall: Annotated[
+        float,
+        typer.Option(
+            "--fail-under-pii-recall",
+            help="Fail if PII-withhold recall < this [default: 1.0]",
+        ),
+    ] = 1.0,
+    min_corpus: Annotated[
+        int,
+        typer.Option("--min-corpus", help="Fail if golden corpus smaller than this [default: 35]"),
+    ] = 35,
+    min_precision_lb: Annotated[
+        float,
+        typer.Option(
+            "--min-precision-lb",
+            help="Fail if the Wilson lower bound of auto-promote precision < this "
+            "(0 = report only; ratchet up as the corpus grows) [default: 0.0]",
+        ),
+    ] = 0.0,
+    output_json: Annotated[
+        Path | None,
+        typer.Option("--output-json", help="Also write the scorecard JSON to this exact path"),
+    ] = None,
     out: Annotated[
         Path | None,
         typer.Option("--out", "-o", help="Scorecard base path [default: reports/assess/scorecard]"),
@@ -53,6 +83,7 @@ def benchmark_cmd(
       uv run exa assess benchmark --golden tests/data/classifier_golden.jsonl
     """
     from exa.aillm.benchmark import (
+        check_corpus_integrity,
         load_golden,
         render_scorecard_html,
         score_golden,
@@ -70,6 +101,14 @@ def benchmark_cmd(
         model = f"heuristic (requested {model})"
 
     entries = load_golden(golden)
+
+    # Structural integrity first -- a shrunken/imbalanced corpus is a hard fail.
+    integrity = check_corpus_integrity(entries, min_corpus=min_corpus)
+    if integrity:
+        for v in integrity:
+            console.print(f"  [red]corpus integrity FAIL:[/] {v}")
+        raise typer.Exit(1)
+
     result = score_golden(entries, model=model)
 
     console.rule("Classifier scorecard")
@@ -78,7 +117,8 @@ def benchmark_cmd(
     _fmt = lambda v: "n/a" if v is None else f"{v:.3f}"  # noqa: E731
     console.print(
         f"  [bold]auto-promote precision[/] (leak metric, target 1.000): "
-        f"{_fmt(result.auto_promote_precision)}"
+        f"{_fmt(result.auto_promote_precision)}  "
+        f"[dim](Wilson LB {_fmt(result.auto_promote_precision_lb)}; rises with corpus size)[/]"
     )
     console.print(
         f"  [bold]PII-withhold recall[/] (safety, target 1.000): "
@@ -108,17 +148,42 @@ def benchmark_cmd(
         f"{'[green]zero leaked[/]' if not loop.leaked else f'[red]{len(loop.leaked)} leaked[/]'}"
     )
 
+    # Scorecard artifacts (always written, even on failure)
     base = Path(out) if out else Path("reports") / "assess" / "scorecard"
     base.parent.mkdir(parents=True, exist_ok=True)
     payload = {"results": [result.to_dict()], "learn_loop": loop.__dict__}
-    base.with_suffix(".json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    base.with_suffix(".html").write_text(
-        render_scorecard_html([result], loop), encoding="utf-8"
-    )
-    verdict = "PASS" if (result.pii_withhold_recall in (1.0, None)
-                         and not result.leaks and not loop.leaked) else "FAIL"
+    scorecard_json = json.dumps(payload, indent=2)
+    base.with_suffix(".json").write_text(scorecard_json, encoding="utf-8")
+    base.with_suffix(".html").write_text(render_scorecard_html([result], loop), encoding="utf-8")
+    if output_json is not None:
+        Path(output_json).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_json).write_text(scorecard_json, encoding="utf-8")
+
+    # Hard invariants: point estimates on labelled data -- a defect is a defect.
+    pii_recall = result.pii_withhold_recall if result.pii_withhold_recall is not None else 1.0
+    failures: list[str] = []
+    if result.leaks:
+        failures.append(f"{len(result.leaks)} unsafe value(s) auto-promoted: {result.leaks}")
+    if (result.auto_promote_precision or 0.0) < fail_under_precision:
+        failures.append(
+            f"auto-promote precision {result.auto_promote_precision} < {fail_under_precision}"
+        )
+    if pii_recall < fail_under_pii_recall:
+        failures.append(f"PII-withhold recall {pii_recall} < {fail_under_pii_recall}")
+    if loop.leaked:
+        failures.append(f"learn loop leaked {len(loop.leaked)} value(s)")
+    # Statistical floor on the Wilson lower bound (0 by default = report-only).
+    if (result.auto_promote_precision_lb is not None
+            and result.auto_promote_precision_lb < min_precision_lb):
+        failures.append(
+            f"precision lower bound {result.auto_promote_precision_lb} < {min_precision_lb}"
+        )
+
+    verdict = "PASS" if not failures else "FAIL"
     console.print(f"\n  Verdict: [bold]{verdict}[/]  scorecard -> {base.with_suffix('.html')}")
-    if verdict != "PASS":
+    for f in failures:
+        console.print(f"  [red]FAIL:[/] {f}")
+    if failures:
         raise typer.Exit(1)
 
 
