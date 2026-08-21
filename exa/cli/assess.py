@@ -59,6 +59,21 @@ def assess_main(
         bool,
         typer.Option("--apply/--no-apply", help="Write the proposed values [default: no-apply]"),
     ] = False,
+    promote_learned: Annotated[
+        bool,
+        typer.Option(
+            "--promote/--no-promote",
+            help="Promote newly-learned GENERIC knowledge to the shared base "
+            "(auto-tier only unless --approve-reviews) [default: no-promote]",
+        ),
+    ] = False,
+    approve_reviews: Annotated[
+        bool,
+        typer.Option(
+            "--approve-reviews",
+            help="With --promote, also promote the review-tier candidates",
+        ),
+    ] = False,
     confirm: Annotated[
         bool,
         typer.Option(
@@ -148,6 +163,34 @@ def assess_main(
         console.print(gtbl)
         console.print(f"  Reviewable gaps written: {gaps_path}", style="dim")
 
+        # 3b. Learn: capture NEW generic knowledge (customer data stripped)
+        from exa.aillm.learn import (
+            AUTO,
+            LOCAL,
+            REVIEW,
+            extract_learn_candidates,
+            promote,
+            write_learn_file,
+        )
+        cands = extract_learn_candidates(gaps_dict)
+        learn_path = write_learn_file(name, cands)
+        n_auto = sum(1 for c in cands if c.verdict == AUTO)
+        n_review = sum(1 for c in cands if c.verdict == REVIEW)
+        n_local = sum(1 for c in cands if c.verdict == LOCAL)
+        console.print(
+            f"  Learned (new to exa-tools): {n_auto} auto-promote · {n_review} review · "
+            f"{n_local} local-only -> {learn_path}",
+            style="dim",
+        )
+        promoted_added = []
+        if promote_learned and (n_auto or (approve_reviews and n_review)):
+            promoted_added = promote(cands, approve_reviews=approve_reviews)
+            console.print(
+                f"  Promoted {len(promoted_added)} generic value(s) to the shared "
+                "knowledge base (customer data never promoted).",
+                style="green",
+            )
+
         # 4. Assessment record
         record = {
             "tenant": name,
@@ -160,6 +203,8 @@ def assess_main(
             "gap_summary": {t.get("table"): len(t.get("propose", []))
                             for t in gaps_dict.get("tables", [])},
             "total_proposed": total_propose,
+            "learned": {"auto_promote": n_auto, "review": n_review,
+                        "local_only": n_local, "promoted": len(promoted_added)},
         }
         rec_path = Path(out) if out else _ASSESS_DIR / name / f"{ts}.json"
         rec_path.parent.mkdir(parents=True, exist_ok=True)
