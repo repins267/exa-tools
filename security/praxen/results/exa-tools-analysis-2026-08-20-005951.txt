@@ -1,0 +1,90 @@
+==============================================================================
+PRAXEN — AGENT BEHAVIOR VERIFIER
+Agent:    exa-tools MCP server + Claude skills
+Analysis: August 20, 2026, 00:59 UTC
+Praxen v1.2.1
+==============================================================================
+
+BEHAVIOR SUMMARY
+------------------------------------------------------------------------------
+This is a second pass over an agent whose operator acted on the first one, and
+the remediation is substantially genuine. The arbitrary-file-write primitive
+is closed — driven with twelve payloads, _contained_output_path refuses
+traversal, absolute, UNC and mixed-separator escapes and admits only paths
+under the root. The canonicalizer now covers the error path, verified by
+execution to strip zero-width, bidi-override and plane-14 tag characters from
+a raw exception string. No rule is a gap this pass and no finding is High. The
+dominant pattern is that new capability outran the policy that governs it.
+HEAD advanced twice during this scan, and both commits mattered: one replaced
+the single-page identity read with real pagination, and one added a bridge
+that mirrors the operator's customer notes, defect register and runbooks into
+a Google Drive folder for a separate Gemini agent to ground on, then drains
+that agent's output back into the same vault the Claude side is instructed to
+treat as ground truth. Neither direction has a remit clause, so neither is
+checkable — the gap is not that the code breaks a rule but that no rule was
+written. The same is true of the SSE transport, now loudly disclosed as
+unauthenticated but still unauthenticated. Three fixes also stopped a step
+short of their own intent. config_path gained an extension and size filter but
+no containment root, so ~/.exa/config.json still qualifies; the audit
+allowlist shed queue and vendor but kept priority and stage, whose enums live
+only in a description string; and the ABV report dropped its drifting commit
+count while still hardcoding the word held for two clauses that have now
+diverged in two consecutive scans. The identity paging fix is the sharpest
+example: pagination is real, but a time-budget expiry exits the loop through
+while ... else, so the truncation flag stays False and the tool reports having
+scanned the first 25,000 records of a table it read 12,000 rows of — or, when
+the record count is unknown, reports nothing at all while still listing the
+table as scanned. A reassuring no merged entities is less falsifiable than
+before the fix. The suite is red on HEAD behind a badge asserting 1015
+passing, with no CI to notice.
+
+RAISE MATURITY POSTURE
+------------------------------------------------------------------------------
+  Weighted overall:  2.70 / 5.0   (Partial)
+  Limit Your Domain              2/5   (confidence: High, weight: 15%)
+  Balance Your Knowledge Base    3/5   (confidence: High, weight: 15%)
+  Implement Zero Trust           3/5   (confidence: High, weight: 25%)
+  Manage Your Supply Chain       2/5   (confidence: High, weight: 15%)
+  Build an AI Red Team           3/5   (confidence: High, weight: 15%)
+  Monitor Continuously           3/5   (confidence: High, weight: 15%)
+
+FINDINGS
+------------------------------------------------------------------------------
+  Critical: 0   High: 0   Medium: 7   Low: 5   Informational: 0
+  Total: 12
+
+REMIT COVERAGE
+------------------------------------------------------------------------------
+  Verified: 10   Gap: 0   Partial: 4   Vague: 0   Enforcement-not-possible: 0   (of 14 rules)
+
+OWASP LLM TOP 10 COVERAGE
+------------------------------------------------------------------------------
+  LLM01  Prompt Injection                                   1
+  LLM02  Sensitive Information Disclosure                   3
+  LLM03  Excessive Agency                                   1
+  LLM04  Supply Chain                                       —
+  LLM05  Data and Model Poisoning                           —
+  LLM06  Unbounded Consumption                              —
+  LLM07  Misinformation                                     3
+  LLM08  Hidden Context Exposure                            —
+  LLM09  Vector and Embedding Weaknesses                    —
+  LLM10  Improper Output Handling                           —
+
+OWASP AGENTIC TOP 10 COVERAGE
+------------------------------------------------------------------------------
+  ASI01  Agent Goal Hijack                                  —
+  ASI02  Tool Misuse and Exploitation                       2
+  ASI03  Identity and Privilege Abuse                       2
+  ASI04  Agentic Supply Chain Vulnerabilities               1
+  ASI05  Unexpected Code Execution (RCE)                    —
+  ASI06  Memory and Context Poisoning                       1
+  ASI07  Insecure Inter-Agent Communication                 —
+  ASI08  Cascading Failures                                 —
+  ASI09  Human-Agent Trust Exploitation                     2
+  ASI10  Rogue Agents                                       —
+
+==============================================================================
+Built on OWASP Top 10 for LLM Applications 2026  |  OWASP Top 10 for Agentic Applications 2026  |  RAISE Framework
+Generated by Praxen  |  project sponsor: Exabeam (https://www.exabeam.com/)
+github.com/open-agent-ai-security/praxen  |  Apache-2.0
+==============================================================================

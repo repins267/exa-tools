@@ -22,6 +22,13 @@ SKIP_ALWAYS = frozenset({
     "POST /auth/v1/token",
 })
 
+# Endpoints that return binary/non-JSON responses — will always 406 with a JSON client.
+# Spec does not document the Accept header requirement or content-type for these.
+# Skipped with reason "binary_response" so the audit table shows them clearly.
+BINARY_RESPONSE_PATHS = frozenset({
+    "/site-collectors/v1/cores/{coreId}/certificates/download",
+})
+
 # Endpoints that modify data — skipped unless --destructive is passed
 DESTRUCTIVE_METHODS = frozenset({"DELETE", "PUT", "PATCH"})
 # POST endpoints known to create or modify data (GET paths are never destructive).
@@ -78,9 +85,50 @@ def is_destructive(endpoint: dict[str, Any]) -> bool:
 
 
 def is_skipped(endpoint: dict[str, Any]) -> bool:
-    """Return True if this endpoint should always be skipped."""
+    """Return True if this endpoint should always be excluded from results entirely."""
     key = f"{endpoint.get('method', '').upper()} {endpoint.get('path', '')}"
     return key in SKIP_ALWAYS
+
+
+def is_binary_response(endpoint: dict[str, Any]) -> bool:
+    """Return True if this endpoint returns binary/non-JSON content.
+
+    These endpoints will always return HTTP 406 when called with Accept: application/json.
+    The spec does not document the content-type constraint. Skip them to avoid false findings.
+    """
+    return endpoint.get("path", "") in BINARY_RESPONSE_PATHS
+
+
+def known_specs(catalog: list[dict[str, Any]]) -> list[str]:
+    """Every accepted --spec value, slug and title, sorted for error messages."""
+    names: set[str] = set()
+    for ep in catalog:
+        for key in ("spec", "spec_title"):
+            value = ep.get(key)
+            if value:
+                names.add(str(value))
+    return sorted(names)
+
+
+def spec_matches(ep: dict[str, Any], spec: str) -> bool:
+    """Match a --spec value against either the slug or the display title.
+
+    The catalog carries both: `spec` is the slug ("threat-center") and
+    `spec_title` is the display name ("Threat Center"). Matching only the slug
+    made the documented example `--spec "Threat Center"` silently select zero
+    endpoints and report "0 OK, 0 new findings" -- a clean audit that tested
+    nothing. Accept either, and normalize spaces/underscores to hyphens so
+    "threat center" works too.
+    """
+    def norm(value: str) -> str:
+        return value.strip().lower().replace(" ", "-").replace("_", "-")
+
+    target = norm(spec)
+    return any(
+        norm(str(ep.get(key, ""))) == target
+        for key in ("spec", "spec_title")
+        if ep.get(key)
+    )
 
 
 def filter_catalog(
@@ -96,12 +144,14 @@ def filter_catalog(
         if is_skipped(ep):
             continue
         # Apply spec/path filters first so --spec and --endpoint always scope the output,
-        # even for destructive entries that will be shown as skipped.
-        if spec and ep.get("spec", "").lower() != spec.lower():
+        # even for entries that will be shown as skipped.
+        if spec and not spec_matches(ep, spec):
             continue
         if path_filter and path_filter.lower() not in ep.get("path", "").lower():
             continue
-        if not include_destructive and is_destructive(ep):
+        if is_binary_response(ep):
+            ep = {**ep, "_skipped": "binary_response"}
+        elif not include_destructive and is_destructive(ep):
             ep = {**ep, "_skipped": "destructive"}
         results.append(ep)
     return results

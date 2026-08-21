@@ -1,10 +1,17 @@
 """Threat Center case operations.
 
 API endpoints:
-  POST /threat-center/v1/search/cases   — search cases
-  GET  /threat-center/v1/cases/{id}     — get case details
-  POST /threat-center/v1/cases/{id}     — update case
-  POST /threat-center/v1/cases          — create case
+  POST /threat-center/v1/search/cases   — search cases (verified 200, SA, 2026-05-28)
+  GET  /threat-center/v1/cases/{id}     — get case details (verified 200, SA, 2026-05-28)
+  POST /threat-center/v2/cases/{id}     — update case (v1 DEPRECATED, see below)
+  POST /threat-center/v2/cases          — create case (v1 DEPRECATED, see below)
+
+v1 create/update were deprecated 2025-10-15 and scheduled for REMOVAL 2026-04-15
+(developers.exabeam.com/exabeam/changelog/legacy-threat-center-endpoints). Both
+write paths — v1 and v2 — are `skipped: write` in api-verification-results.json
+and have NEVER been probed against a live tenant, so v2 is documented but not
+proven. Until a live test says otherwise, v2 is tried first and v1 is the
+fallback. Remove the fallback once v2 is confirmed.
 """
 
 from __future__ import annotations
@@ -12,8 +19,38 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
+from exa.exceptions import ExaAPIError
+
 if TYPE_CHECKING:
     from exa.client import ExaClient
+
+# Statuses that prove the request never reached a handler, so retrying the legacy
+# path cannot double-write. 500 is deliberately EXCLUDED: this API is documented
+# (CLAUDE.md, the EXA-* register) to return success for writes that have not
+# landed and to fail after doing work, so a retry on 500 risks creating a second
+# case. Prefer a loud failure over a silent duplicate.
+_ENDPOINT_ABSENT_STATUS = frozenset({404, 405, 501})
+
+
+def _post_case_write(
+    client: ExaClient,
+    v2_path: str,
+    v1_path: str,
+    body: dict[str, Any],
+) -> dict[str, Any]:
+    """POST a case write to v2, falling back to v1 only when v2 is absent.
+
+    Falls back ONLY on a status proving no handler was reached. Any other error
+    — 400, 401, 403, 409, 500 — means v2 exists and the request itself was
+    rejected, so it propagates rather than being retried against a deprecated
+    path that may double-write.
+    """
+    try:
+        return client.post(v2_path, json=body)
+    except ExaAPIError as exc:
+        if exc.status_code not in _ENDPOINT_ABSENT_STATUS:
+            raise
+    return client.post(v1_path, json=body)
 
 
 def search_cases(
@@ -124,7 +161,8 @@ def update_case(
     Returns:
         Updated case attribute dict.
 
-    API: POST /threat-center/v1/cases/{caseId}
+    API: POST /threat-center/v2/cases/{caseId}, falling back to v1 while v2 is
+         unproven. v1 was scheduled for removal 2026-04-15.
     Updatable fields: alertName, alertDescription, stage, closedReason,
                       queue, assignee, priority, tags
     """
@@ -146,7 +184,12 @@ def update_case(
     if tags is not None:
         body["tags"] = tags
 
-    return client.post(f"/threat-center/v1/cases/{case_id}", json=body)
+    return _post_case_write(
+        client,
+        f"/threat-center/v2/cases/{case_id}",
+        f"/threat-center/v1/cases/{case_id}",
+        body,
+    )
 
 
 def create_case(
@@ -173,7 +216,8 @@ def create_case(
     Returns:
         Created case attribute dict.
 
-    API: POST /threat-center/v1/cases
+    API: POST /threat-center/v2/cases, falling back to v1 while v2 is unproven.
+         v1 was scheduled for removal 2026-04-15.
     """
     body: dict[str, Any] = {"alertId": alert_id}
     if stage is not None:
@@ -187,4 +231,9 @@ def create_case(
     if closed_reason is not None:
         body["closedReason"] = closed_reason
 
-    return client.post("/threat-center/v1/cases", json=body)
+    return _post_case_write(
+        client,
+        "/threat-center/v2/cases",
+        "/threat-center/v1/cases",
+        body,
+    )

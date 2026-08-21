@@ -59,190 +59,92 @@ def _coverage_bar(pct: int) -> str:
     )
 
 
-def generate_html_report(report: AuditReport) -> str:
-    """Generate a self-contained HTML report from an AuditReport."""
-    parts: list[str] = []
+def generate_html_report(report: "AuditReport") -> str:
+    """Self-contained, Exabeam-branded HTML report from an AuditReport.
 
-    # Family summary
-    family_stats: dict[str, dict[str, int]] = defaultdict(
-        lambda: {"pass": 0, "fail": 0, "total": 0}
+    Renders through the shared exa.report theme (light/dark, embedded logo) so
+    it matches every other exa-tools report.
+    """
+    from exa.report import coverage_bar, data_table, page, panel, stat_card
+
+    cov = round(report.coverage_pct)
+    cov_status = "good" if cov >= 80 else "warn" if cov >= 50 else "bad"
+    cards = "".join([
+        stat_card("Framework", report.framework_name),
+        stat_card("Coverage", f"{cov}%", cov_status,
+                  f"{report.controls_pass}/{report.siem_testable_count} testable controls"),
+        stat_card("Pass", report.controls_pass, "good"),
+        stat_card("Insufficient", report.controls_fail,
+                  "bad" if report.controls_fail else "good", "below evidence threshold"),
+        stat_card("SIEM-testable", report.siem_testable_count, "",
+                  f"of {report.total_leaf_controls} leaf controls"),
+        stat_card("Manual controls", report.manual_control_count, "", "not machine-testable"),
+        stat_card("Evidence events", f"{report.total_evidence:,}", "",
+                  f"last {report.lookback_days}d"),
+        stat_card("Min evidence", report.minimum_evidence, "", "per control"),
+    ])
+
+    def _rows(results):
+        return [{
+            "Control": cr.control_id, "Family": cr.family, "Description": cr.description,
+            "Status": cr.status, "Evidence": cr.evidence_count, "Min": cr.minimum_evidence,
+        } for cr in results]
+
+    cov_panel = panel(
+        "Coverage",
+        coverage_bar(cov) +
+        f'<div class="footer-note">{report.controls_pass} of {report.siem_testable_count} '
+        f'testable controls have at least {report.minimum_evidence} supporting events in the last '
+        f'{report.lookback_days} days. Coverage is evidence in the window, not a checklist.</div>',
+        f"{report.framework_name} â gap analysis",
     )
+    failing = [cr for cr in report.control_results if cr.status != "Pass"]
+    fail_body = (
+        data_table(_rows(failing), "tblFail") if failing
+        else '<div class="footer-note">None â all testable controls have sufficient evidence.</div>'
+    )
+    fail_panel = panel(f"Insufficient / failing controls ({len(failing)})", fail_body,
+                       "Controls below the evidence threshold.")
+    full_panel = panel(f"All results ({len(report.control_results)})",
+                       data_table(_rows(report.control_results), "tblAll"),
+                       "Every SIEM-testable control.")
+    meta = (
+        f"<div>{_esc(report.framework)}</div>"
+        f"<div>Generated {_esc(report.timestamp)}</div>"
+        f"<div>exa-tools Â· read-only</div>"
+    )
+    disc = (
+        '<div class="disc" style="grid-column:span 12;color:var(--muted);'
+        'font-size:11px;margin-top:2px;line-height:1.5">'
+        + _esc(_DISCLAIMER) + '</div>'
+    )
+    return page(
+        f"exa-tools · {report.framework_name}",
+        f"Compliance gap analysis · Generated {report.timestamp}",
+        cards, cov_panel + fail_panel + full_panel + disc, meta, initial_theme="dark",
+    )
+
+
+def report_to_csv(report: "AuditReport") -> str:
+    """Control results as CSV text (one row per control)."""
+    import csv
+    import io
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["control_id", "family", "description", "status",
+                "evidence_count", "minimum_evidence"])
     for cr in report.control_results:
-        family_stats[cr.family]["total"] += 1
-        if cr.status == "Pass":
-            family_stats[cr.family]["pass"] += 1
-        else:
-            family_stats[cr.family]["fail"] += 1
+        w.writerow([cr.control_id, cr.family, cr.description, cr.status,
+                    cr.evidence_count, cr.minimum_evidence])
+    return buf.getvalue()
 
-    # Logo
-    logo_b64 = _load_logo_b64()
-    logo_html = ""
-    if logo_b64:
-        logo_html = (
-            f'<img src="data:image/png;base64,{logo_b64}" '
-            f'alt="Exabeam" style="height:32px;margin-right:16px;'
-            f'vertical-align:middle">'
-        )
 
-    # --- Build HTML ---
-    parts.append(f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{_esc(report.framework_name)} — Gap Analysis Report</title>
-<style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",
-  Roboto,sans-serif;color:#333;background:#f5f6f8}}
-.header{{background:linear-gradient(135deg,#009D00,#006BFF);
-  color:#fff;padding:32px 40px}}
-.header h1{{font-size:24px;font-weight:600;
-  display:flex;align-items:center}}
-.header .sub{{opacity:.9;margin-top:6px;font-size:14px}}
-.wrap{{max-width:1100px;margin:0 auto;padding:24px}}
-.cards{{display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:16px;margin:24px 0}}
-.card{{background:#fff;border-radius:8px;padding:20px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);text-align:center}}
-.card .value{{font-size:32px;font-weight:800}}
-.card .label{{font-size:13px;color:#666;margin-top:4px}}
-.card.pass .value{{color:#2e7d32}}
-.card.fail .value{{color:#c62828}}
-.card.cov .value{{color:#006BFF}}
-.card.ev .value{{color:#718096}}
-h2{{font-size:18px;margin:28px 0 12px;color:#009D00}}
-table{{width:100%;border-collapse:collapse;background:#fff;
-  border-radius:8px;overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:24px}}
-th{{background:#e8f5e9;text-align:left;padding:10px 14px;
-  font-size:13px;font-weight:600;color:#006400}}
-td{{padding:10px 14px;border-top:1px solid #eee;font-size:13px}}
-tr:hover{{background:#fafbfc}}
-.status-pass{{background:#e8f5e9;color:#2e7d32;font-weight:600}}
-.status-fail{{background:#ffebee;color:#c62828;font-weight:600}}
-.bar-bg{{display:inline-block;width:80px;height:10px;
-  background:#e9ecef;border-radius:5px;vertical-align:middle}}
-.bar{{height:10px;border-radius:5px}}
-.disc{{background:#fff3cd;border:1px solid #ffc107;
-  border-radius:8px;padding:16px 20px;margin:32px 0;
-  font-size:13px;color:#664d03}}
-.ft{{text-align:center;font-size:12px;color:#999;padding:20px}}
-@media print{{
-  @page{{margin:1.5cm 1.5cm}}
-  body{{min-height:unset!important}}
-  .container{{min-height:unset!important}}
-  *:last-child{{page-break-after:avoid!important}}
-}}
-</style>
-</head>
-<body>""")
-
-    # Header with logo
-    ts = _esc(report.timestamp[:19])
-    fw = _esc(report.framework_name)
-    parts.append(
-        f'<div class="header">'
-        f"<h1>{logo_html}exa-tools | {fw}</h1>"
-        f'<div class="sub">Generated: {ts} UTC '
-        f'| Lookback: {report.lookback_days} days</div></div>'
-    )
-
-    parts.append('<div class="wrap">')
-
-    # Executive Summary cards
-    parts.append("<h2>Executive Summary</h2>")
-    parts.append('<div class="cards">')
-    parts.append(_card("pass", str(report.controls_pass), "Pass"))
-    parts.append(_card("fail", str(report.controls_fail), "Fail"))
-    parts.append(
-        _card("cov", f"{report.coverage_pct}%", "Coverage")
-    )
-    parts.append(
-        _card("ev", f"{report.total_evidence:,}", "Evidence Events")
-    )
-    parts.append("</div>")
-
-    # Coverage by Family
-    parts.append("<h2>Coverage by Family</h2>")
-    parts.append(
-        "<table><tr><th>Family</th><th>Controls</th>"
-        "<th>Pass</th><th>Fail</th><th>Coverage</th></tr>"
-    )
-    for fam in sorted(family_stats):
-        s = family_stats[fam]
-        pct = (
-            round(s["pass"] / s["total"] * 100) if s["total"] else 0
-        )
-        parts.append(
-            f"<tr><td>{_esc(fam)}</td><td>{s['total']}</td>"
-            f"<td>{s['pass']}</td><td>{s['fail']}</td>"
-            f"<td>{_coverage_bar(pct)}</td></tr>"
-        )
-    parts.append("</table>")
-
-    # Gap Analysis (failures only)
-    failures = [
-        cr for cr in report.control_results if cr.status == "Fail"
-    ]
-    parts.append(
-        f"<h2>Gap Analysis — Detection Gaps ({len(failures)})</h2>"
-    )
-    if failures:
-        parts.append(
-            "<table><tr><th>Control ID</th><th>Title</th>"
-            "<th>Family</th><th>Events Found</th>"
-            "<th>Min Required</th></tr>"
-        )
-        for cr in failures:
-            parts.append(
-                f"<tr><td>{_esc(cr.control_id)}</td>"
-                f"<td>{_esc(cr.description)}</td>"
-                f"<td>{_esc(cr.family)}</td>"
-                f"<td>{cr.evidence_count}</td>"
-                f"<td>{cr.minimum_evidence}</td></tr>"
-            )
-        parts.append("</table>")
-    else:
-        parts.append(
-            '<p style="color:#2e7d32;font-weight:600">'
-            "No detection gaps found.</p>"
-        )
-
-    # Full Results
-    n = len(report.control_results)
-    parts.append(f"<h2>Full Results ({n} controls)</h2>")
-    parts.append(
-        "<table><tr><th>Control ID</th><th>Title</th>"
-        "<th>Family</th><th>Status</th><th>Events</th>"
-        "<th>Min Required</th></tr>"
-    )
-    for cr in report.control_results:
-        cls = "pass" if cr.status == "Pass" else "fail"
-        parts.append(
-            f'<tr><td>{_esc(cr.control_id)}</td>'
-            f"<td>{_esc(cr.description)}</td>"
-            f"<td>{_esc(cr.family)}</td>"
-            f'<td class="status-{cls}">{cr.status}</td>'
-            f"<td>{cr.evidence_count}</td>"
-            f"<td>{cr.minimum_evidence}</td></tr>"
-        )
-    parts.append("</table>")
-
-    # Disclaimer
-    parts.append(f'<div class="disc">{_esc(_DISCLAIMER)}</div>')
-
-    # Footer
-    parts.append("</div>")
-    parts.append(
-        f'<div class="ft">exa-tools | {fw} '
-        f"| {_esc(report.timestamp[:10])}</div>"
-    )
-    parts.append("</body></html>")
-
-    return "\n".join(parts)
-
+def save_csv_report(report: "AuditReport", path: "str | Path") -> None:
+    """Write the control-results CSV to disk."""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(report_to_csv(report), encoding="utf-8")
 
 def default_report_path(
     tenant: str,

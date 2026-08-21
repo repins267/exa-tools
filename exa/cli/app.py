@@ -33,7 +33,14 @@ def _make_client(tenant: str | None = None) -> ExaClient:
 
 @app.command()
 def configure() -> None:
-    """Set up tenant credentials (stored in Windows Credential Manager)."""
+    """Set up tenant credentials (stored in Windows Credential Manager).
+
+    \b
+    Related:
+      exa config tenants   list the tenants already configured
+      exa auth -t <name>   verify one of them works
+      exa config remove    remove a tenant and its stored credentials
+    """
     from rich.prompt import Prompt
 
     from exa.config import resolve_fqdn, save_profile, set_default_tenant
@@ -51,11 +58,11 @@ def configure() -> None:
     try:
         nickname, fqdn, api_server, region = resolve_fqdn(fqdn_input)
     except ValueError as e:
-        console.print(f"✗ {e}", style="red")
+        console.print(f"x {e}", style="red")
         raise typer.Exit(1)
 
     console.print(
-        f"✓ Resolved: {fqdn} → {region} ({api_server})",
+        f"OK Resolved: {fqdn} -> {region} ({api_server})",
         style="green",
     )
 
@@ -81,7 +88,7 @@ def configure() -> None:
         test_client.close()
     except Exception as e:
         console.print(
-            f"✗ Connection failed — "
+            f"x Connection failed — "
             f"verify credentials and region\n"
             f"  API server tried: {api_server}\n"
             f"  Error: {e}",
@@ -90,7 +97,7 @@ def configure() -> None:
         raise typer.Exit(1)
 
     console.print(
-        f"✓ Connected — {fqdn} ({region})",
+        f"OK Connected — {fqdn} ({region})",
         style="green",
     )
 
@@ -143,7 +150,17 @@ def auth(
         typer.Option("--tenant", "-t", help=_TENANT_HELP),
     ] = None,
 ) -> None:
-    """Test authentication against saved tenant credentials."""
+    """Test authentication against saved tenant credentials.
+
+    \b
+    Examples:
+      exa auth                      # the saved default tenant
+      exa auth -t baystate          # a specific tenant by nickname
+      exa config tenants            # which nicknames exist
+
+    -t takes a tenant NICKNAME or FQDN. It is not a subcommand -- `exa auth -t
+    list` looks for a tenant literally named "list". Use `exa config tenants`.
+    """
     import time
 
     try:
@@ -169,6 +186,74 @@ def version() -> None:
     console.print(f"exa-tools {_version('exa-tools')}")
 
 
+@app.command()
+def commands(
+    search: Annotated[
+        str | None,
+        typer.Argument(help="Only show commands matching this text [default: show all]"),
+    ] = None,
+) -> None:
+    """List every command, including subcommands, in one flat searchable list.
+
+    `exa --help` shows the 22 top-level groups but none of the ~90 subcommands
+    beneath them, so a command you half-remember is effectively unfindable --
+    you have to guess which group owns it and run `--help` again. This searches
+    names and descriptions in one pass.
+
+    \b
+    Examples:
+      exa commands              # everything
+      exa commands tenant       # anything mentioning tenants
+      exa commands ai           # the AI/LLM surface
+      exa commands rule         # rule-related commands across every group
+    """
+    needle = (search or "").strip().lower()
+    rows: list[tuple[str, str]] = []
+
+    def _help_of(obj: object) -> str:
+        text = getattr(obj, "help", None) or (getattr(obj, "callback", None).__doc__ or "")
+        return " ".join(str(text).split()).split(". ")[0][:90]
+
+    for cmd in app.registered_commands:
+        name = cmd.name or (cmd.callback.__name__ if cmd.callback else "")
+        rows.append((f"exa {name}", _help_of(cmd)))
+
+    for group in app.registered_groups:
+        inner = group.typer_instance
+        if inner is None:
+            continue
+        gname = inner.info.name
+        if not isinstance(gname, str):
+            continue
+        if getattr(inner.info, "hidden", False):
+            continue
+        for cmd in inner.registered_commands:
+            cname = cmd.name or (cmd.callback.__name__ if cmd.callback else "")
+            rows.append((f"exa {gname} {cname}", _help_of(cmd)))
+        # Sub-groups, e.g. `exa tables records list`
+        for sub in inner.registered_groups:
+            si = sub.typer_instance
+            if si is None or not isinstance(si.info.name, str):
+                continue
+            for cmd in si.registered_commands:
+                cname = cmd.name or (cmd.callback.__name__ if cmd.callback else "")
+                rows.append((f"exa {gname} {si.info.name} {cname}", _help_of(cmd)))
+
+    if needle:
+        rows = [r for r in rows if needle in r[0].lower() or needle in r[1].lower()]
+
+    if not rows:
+        console.print(f"No commands match '{search}'.", style="yellow")
+        console.print("Run 'exa commands' with no argument to see all.", style="dim")
+        raise typer.Exit(1)
+
+    width = max(len(r[0]) for r in rows)
+    for name, desc in sorted(rows):
+        console.print(f"  [cyan]{name:<{width}}[/cyan]  {desc}")
+    suffix = f" matching '{search}'" if search else ""
+    console.print(f"\n  {len(rows)} command(s){suffix}", style="dim")
+
+
 # -- Context tables -----------------------------------------------------------
 
 from exa.cli.tables import tables_app  # noqa: E402
@@ -181,6 +266,21 @@ app.add_typer(tables_app)
 from exa.cli.aillm import aillm_app  # noqa: E402
 
 app.add_typer(aillm_app)
+
+from exa.cli.dashboard import dashboard_app  # noqa: E402
+
+app.add_typer(dashboard_app)
+
+from exa.cli.assess import assess_app  # noqa: E402
+
+app.add_typer(assess_app)
+
+
+# -- Health / licence --------------------------------------------------------
+
+from exa.cli.health import health_app  # noqa: E402
+
+app.add_typer(health_app)
 
 # -- Threat Center (cases + alerts + case triage) ----------------------------
 
@@ -308,13 +408,13 @@ def search(
 
     # ── Mutex conflict detection (before any API call) ─────────────────────
     if as_json and csv_path:
-        console.print("✗ Cannot combine --json and --csv", style="red")
+        console.print("x Cannot combine --json and --csv", style="red")
         raise typer.Exit(1)
     if unique and count:
-        console.print("✗ Cannot combine --unique and --count", style="red")
+        console.print("x Cannot combine --unique and --count", style="red")
         raise typer.Exit(1)
     if csv_path and count:
-        console.print("✗ --count produces no rows; use without --csv", style="red")
+        console.print("x --count produces no rows; use without --csv", style="red")
         raise typer.Exit(1)
     if unique and fields:
         console.print("  --fields ignored when --unique is set", style="yellow")
@@ -511,6 +611,13 @@ app.add_typer(compliance_app)
 from exa.cli.mcp import mcp_app  # noqa: E402
 
 app.add_typer(mcp_app)
+
+
+# -- Selftest ----------------------------------------------------------------
+
+from exa.cli.selftest import selftest_app  # noqa: E402
+
+app.add_typer(selftest_app)
 
 
 # -- HotKey -------------------------------------------------------------------

@@ -1,0 +1,589 @@
+{
+  "schema_version": "3.0",
+  "praxen_version": "1.2.1",
+  "scan": {
+    "agent": "exa-tools MCP server + Claude skills",
+    "agent_slug": "exa-tools",
+    "scan_date": "2026-08-20",
+    "scan_timestamp": "2026-08-20T00:59:51Z",
+    "workspace": "C:\\Github\\exa-tools",
+    "artifact_count": 20
+  },
+  "intro_band": {
+    "agent_remit_summary": "A read-first assurance and reporting tool over a single Exabeam New-Scale tenant, run as an MCP server under Claude Desktop or Claude Code for TAM and SOC work. It may read alerts, cases, events, rules, license, collectors and parser/ingest health, and — newly declared this pass — Context Management tables and identity-directory data for identity-resolution diagnostics. It may create or update cases, update alerts and add case notes <strong>only</strong> when started with <code>--allow-writes</code>. Local file access is scoped to report files under <code>reports/</code> and the audit log. Forbidden outright: letting a credential reach the model, persisting un-neutralized active content or verbatim secrets/PII into any written artifact, recording free text in the audit log, shell or subprocess execution, and contacting any network destination other than the configured tenant.",
+    "agent_structure_summary": "Python 3.12 package exposing 33 MCP tools from a single <code>dispatch_tool</code> match statement in <code>exa/mcp/tools.py</code>, over stdio and over an HTTP/SSE Starlette app in <code>exa/mcp/server.py</code>. Guardrails are two pure passes vendored from socxen: <code>scrub_result</code> canonicalizes tool results — now on both the success and the error path — and <code>neutralize_write_args</code> defangs write inputs. A new <code>_contained_output_path</code> helper resolves caller-supplied report paths under the <code>reports/</code> root. A metadata-only JSONL audit log writes to <code>~/.exa/audit.jsonl</code>, and <code>exa/config.py</code> persists tenant selection to <code>~/.exa/config.json</code>. Outside the MCP surface, <code>scripts/vault_gemini_sync.py</code> mirrors the operator's Obsidian knowledge vault into a Google Drive folder for a separate Gemini agent and drains that agent's output back into the vault. This is the second scan of this agent; seven commits since the first one address eight of its ten findings, and the fixes that landed are real rather than cosmetic.",
+    "remit_path": "security/praxen/WORKER_REMIT.md"
+  },
+  "behavior_summary": "<p>This is a second pass over an agent whose operator acted on the first one, and the remediation is substantially genuine. The arbitrary-file-write primitive is closed — driven with twelve payloads, <code>_contained_output_path</code> refuses traversal, absolute, UNC and mixed-separator escapes and admits only paths under the root. The canonicalizer now covers the error path, verified by execution to strip zero-width, bidi-override and plane-14 tag characters from a raw exception string. No rule is a gap this pass and no finding is High.</p><p>The dominant pattern is that new capability outran the policy that governs it. HEAD advanced twice during this scan, and both commits mattered: one replaced the single-page identity read with real pagination, and one added a bridge that mirrors the operator's customer notes, defect register and runbooks into a Google Drive folder for a separate Gemini agent to ground on, then drains that agent's output back into the same vault the Claude side is instructed to treat as ground truth. Neither direction has a remit clause, so neither is checkable — the gap is not that the code breaks a rule but that no rule was written. The same is true of the SSE transport, now loudly disclosed as unauthenticated but still unauthenticated.</p><p>Three fixes also stopped a step short of their own intent. <code>config_path</code> gained an extension and size filter but no containment root, so <code>~/.exa/config.json</code> still qualifies; the audit allowlist shed <code>queue</code> and <code>vendor</code> but kept <code>priority</code> and <code>stage</code>, whose enums live only in a description string; and the ABV report dropped its drifting commit count while still hardcoding the word held for two clauses that have now diverged in two consecutive scans. The identity paging fix is the sharpest example: pagination is real, but a time-budget expiry exits the loop through <code>while ... else</code>, so the truncation flag stays False and the tool reports having scanned the first 25,000 records of a table it read 12,000 rows of — or, when the record count is unknown, reports nothing at all while still listing the table as scanned. A reassuring no merged entities is less falsifiable than before the fix. The suite is red on HEAD behind a badge asserting 1015 passing, with no CI to notice.</p>",
+  "remit_coverage": {
+    "stat_counts": {
+      "verified": 10,
+      "gap": 0,
+      "partial": 4,
+      "vague": 0,
+      "enp": 0,
+      "total": 14
+    },
+    "rules": [
+      {
+        "rule_id": "R-01",
+        "section": "Permitted actions",
+        "rule_text": "MAY read alerts, cases, events, rules, license, collectors, and parser/ingest health from the configured Exabeam tenant.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-02",
+        "section": "Permitted actions",
+        "rule_text": "MAY read Context Management tables (including User Entity Links) and identity-directory data, for identity-resolution diagnostics (merged entities, GUID ghost users).",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-03",
+        "section": "Permitted actions",
+        "rule_text": "MAY create/update cases, update alerts, and add case notes **only** when the server is started with `--allow-writes`.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-04",
+        "section": "Permitted actions",
+        "rule_text": "MAY read and write local report files under `reports/` and the local audit log.",
+        "status": "partial",
+        "finding_id": "PRAX-2026-08-20-001"
+      },
+      {
+        "rule_id": "R-05",
+        "section": "Forbidden actions",
+        "rule_text": "MUST default to read-only: the four write tools MUST be hidden from the tool list and refused server-side unless `--allow-writes` is set.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-06",
+        "section": "Forbidden actions",
+        "rule_text": "MUST NOT let any credential/secret reach the model or a tool result; switching tenants is a nickname lookup only.",
+        "status": "partial",
+        "finding_id": "PRAX-2026-08-20-001"
+      },
+      {
+        "rule_id": "R-07",
+        "section": "Forbidden actions",
+        "rule_text": "MUST NOT persist un-neutralized active content (spreadsheet formulas, phishing links) or verbatim secrets/PII into any written artifact (case note, update, tag).",
+        "status": "partial",
+        "finding_id": "PRAX-2026-08-20-005"
+      },
+      {
+        "rule_id": "R-08",
+        "section": "Forbidden actions",
+        "rule_text": "MUST NOT record free-text field values, notes, secrets, or payloads into the audit log — the audit log is metadata only.",
+        "status": "partial",
+        "finding_id": "PRAX-2026-08-20-006"
+      },
+      {
+        "rule_id": "R-09",
+        "section": "Forbidden actions",
+        "rule_text": "MUST NOT exceed a bounded result size (no context-window exhaustion).",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-10",
+        "section": "Forbidden tools",
+        "rule_text": "MUST NOT execute shell commands, spawn subprocesses, or `eval`/`exec` arbitrary code.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-11",
+        "section": "Forbidden tools",
+        "rule_text": "MUST NOT contact any network destination other than the configured Exabeam tenant.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-12",
+        "section": "Data handling",
+        "rule_text": "Telemetry read from Exabeam MUST be canonicalized (invisible smuggling code points stripped) before it reaches the model.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-13",
+        "section": "Data handling",
+        "rule_text": "Secrets MUST live only in the OS credential store, never in files or results.",
+        "status": "verified",
+        "finding_id": null
+      },
+      {
+        "rule_id": "R-14",
+        "section": "Data handling",
+        "rule_text": "The tenant's kind (demo/customer) MUST be readable so a customer-tenant guardrail can act on it.",
+        "status": "verified",
+        "finding_id": null
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "PRAX-2026-08-20-001",
+      "severity": "Medium",
+      "summary": "Switching tenants now rewrites operator config on disk, so it is no longer the nickname lookup the remit declares.",
+      "description": "To make a switch survive the stdio server being respawned, <code>set_active_tenant</code> now calls <code>set_default_tenant(target)</code>, which rewrites <code>~/.exa/config.json</code>. That is a third local write sink beyond the <code>reports/</code> tree and the audit log the remit grants, and it converts a session-scoped lookup into a persistent mutation that outlives the session and is read by every other process, including the <code>exa</code> CLI. The failure path is swallowed by a bare <code>except Exception: pass</code>, though the result does report <code>persisted_as_default: false</code>. On the unauthenticated SSE transport this compounds: any client that can reach the port can durably repoint the operator's default tenant.",
+      "tags": [
+        {"kind": "raise", "label": "Implement Zero Trust"},
+        {"kind": "owasp_llm", "label": "LLM03 — Excessive Agency"},
+        {"kind": "owasp_agentic", "label": "ASI03 — Identity and Privilege Abuse"}
+      ],
+      "policy_rule_ids": ["R-06", "R-04"],
+      "policy_rule_text": [
+        "MUST NOT let any credential/secret reach the model or a tool result; switching tenants is a nickname lookup only.",
+        "MAY read and write local report files under `reports/` and the local audit log."
+      ],
+      "evidence": [
+        {"file": "exa/mcp/tools.py", "line": 1152, "snippet": "set_active_tenant, lines 1149-1165 — from exa.config import set_default_tenant; set_default_tenant(target) inside try/except Exception: pass, then info[\"persisted_as_default\"] = persisted."},
+        {"file": "exa/config.py", "line": 282, "snippet": "def set_default_tenant(tenant): config = _read_config_file(); config[\"default_tenant\"] = tenant; _write_config_file(config) — a persistent rewrite of ~/.exa/config.json, not a lookup."}
+      ],
+      "recommended_actions": [
+        "Reconcile policy and behavior: either amend the remit to declare ~/.exe/config.json as a writable sink and drop the \"nickname lookup only\" wording, or gate persistence behind an explicit persist=true argument so the default path stays session-scoped.",
+        "Record the config write in the audit log and surface the swallowed exception reason rather than only a false persisted_as_default flag."
+      ],
+      "raise_category": "implement_zero_trust",
+      "owasp_llm": "LLM03",
+      "owasp_agentic": "ASI03",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-002", "PRAX-2026-08-20-008"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-002",
+      "severity": "Medium",
+      "summary": "render_dashboard config_path is filtered by extension and size but still not contained to a root.",
+      "description": "The fix for the previous scan's arbitrary-read finding requires a <code>.json</code> or <code>.config</code> suffix and a size under 5 MB. It does not resolve the path against a root, so any qualifying file anywhere on the host is still readable and, if it parses to a dict, still rendered into an HTML artifact. <code>~/.exa/config.json</code> exists on this host, carries the tenant inventory — nicknames, regions, API servers, demo/customer tags — and satisfies both filters; no credential material is exposed because secrets stay in the OS keyring. The error branch also still returns the probed path and the OS error text, so the parameter remains a filesystem oracle even when the read is refused.",
+      "tags": [
+        {"kind": "raise", "label": "Implement Zero Trust"},
+        {"kind": "owasp_llm", "label": "LLM02 — Sensitive Information Disclosure"},
+        {"kind": "owasp_agentic", "label": "ASI02 — Tool Misuse and Exploitation"}
+      ],
+      "policy_rule_ids": ["R-04"],
+      "policy_rule_text": ["MAY read and write local report files under `reports/` and the local audit log."],
+      "evidence": [
+        {"file": "exa/mcp/tools.py", "line": 1327, "snippet": "lines 1325-1334 — cp.suffix.lower() not in (\".json\", \".config\") and cp.stat().st_size > 5_000_000 are the only checks; no resolve-and-compare against a base directory."},
+        {"file": "exa/mcp/tools.py", "line": 1334, "snippet": "except Exception as exc: return _err(f\"could not read config_path: {exc}\") — still returns the caller-supplied path and OS error, now canonicalized but not withheld."}
+      ],
+      "recommended_actions": [
+        "Route config_path through the same _contained_output_path resolve-and-compare logic (against reports/ or an explicit dashboards/ input root) so the extension filter is a second layer rather than the only one.",
+        "Return a fixed error string for config_path failures and log the path and exception to the audit trail instead of the model context."
+      ],
+      "raise_category": "implement_zero_trust",
+      "owasp_llm": "LLM02",
+      "owasp_agentic": "ASI02",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-001", "PRAX-2026-08-20-009"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-003",
+      "severity": "Medium",
+      "summary": "A time-budget expiry truncates the identity scan without setting the truncation flag, so partial coverage is reported as full.",
+      "description": "The paging rewrite is real — small pages under a shared deadline — but the deadline exits the page loop through <code>while ... else</code>, which runs on normal termination, so <code>page_cut</code> is computed as <code>len(records) >= max_records_per_table</code> and lands False on exactly the path that lost coverage. Stubbing the record reader and expiring the budget after 12,000 rows of a 40,000-row table, the note claimed <em>scanned only the first 25,000 records</em>; with the record count unknown the note was empty and the table still appeared in <code>tables_scanned</code>. In neither run did the <code>timed_out</code> note fire, because <code>timed_out</code> is only set at the top of the following table's iteration — so a budget expiry on the last candidate is never reported at all, and the affected output is the reassuring negative that no identifier maps to two users.",
+      "tags": [
+        {"kind": "raise", "label": "Balance Your Knowledge Base"},
+        {"kind": "owasp_llm", "label": "LLM07 — Misinformation"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "exa/health/identity.py", "line": 138, "snippet": "lines 138-149 — while len(records) < max_records_per_table and time.time() < deadline: ... else: page_cut = len(records) >= max_records_per_table. A deadline exit is a normal exit, so else runs and page_cut is False; the note at :182-185 then reports the requested cap, never len(records)."},
+        {"file": "exa/health/identity.py", "line": 129, "snippet": "lines 129-131 — timed_out is set only when the NEXT table's iteration begins, so expiry during the final candidate emits no time-budget note; :156 appends the table to scanned regardless of how much of it was read."}
+      ],
+      "recommended_actions": [
+        "Set the truncation flag on the deadline path too and report measured coverage — interpolate len(records) rather than max_records_per_table — so a partial table can never read as complete.",
+        "Check the deadline after the page loop rather than only at the top of the next iteration, and record dropped-as-empty tables in the note the way over_cap tables already are."
+      ],
+      "raise_category": "balance_your_knowledge_base",
+      "owasp_llm": "LLM07",
+      "owasp_agentic": null,
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-004", "PRAX-2026-08-20-005"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-004",
+      "severity": "Medium",
+      "summary": "README advertises 1015 tests passing while HEAD fails one, and no CI exists to catch the gap.",
+      "description": "The suite collects 1015 and returns 1014 passed, 1 failed on HEAD, while the README badge asserts <code>tests-1015 passing</code> in brightgreen. <code>.github/workflows/</code> still does not exist, so the badge is a hand-maintained claim with nothing measuring it — the same frozen-attestation pattern the previous scan raised against the ABV report and which was fixed there. The failing test is not incidental to this codebase's stated risk model: <code>User=\"admin\"</code> converts to <code>full_name:\"admin\"</code> rather than <code>user:\"admin\"</code>, so a generated EQL rule queries the wrong CIM2 field and returns a plausible, quiet, wrong result set rather than an error.",
+      "tags": [
+        {"kind": "raise", "label": "Monitor Continuously"},
+        {"kind": "owasp_llm", "label": "LLM07 — Misinformation"},
+        {"kind": "owasp_agentic", "label": "ASI09 — Human-Agent Trust Exploitation"},
+        {"kind": "mcp", "label": "CI/CD security gates present for tool changes"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "README.md", "line": 7, "snippet": "![Tests](https://img.shields.io/badge/tests-1015%20passing-brightgreen) — measured this pass: 1014 passed, 1 failed, 1015 collected. No .github/workflows/ directory exists."},
+        {"file": "tests/test_splunk_to_sigma.py", "line": 232, "snippet": "test_eql_user_maps_to_cim2_user — assert 'user:\"admin\"' in rule[\"eql_query\"] fails against 'activity_type:\"process-create\" AND (full_name:\"admin\")'."}
+      ],
+      "recommended_actions": [
+        "Fix or explicitly quarantine the failing field-mapping test, then add a GitHub Actions workflow running ruff and pytest on push so the badge is generated from a measured run rather than edited by hand.",
+        "Treat the User -> full_name mapping as a correctness defect in its own right: confirm the intended CIM2 field against exa/sigma/converter.py fieldMap and correct whichever side is wrong."
+      ],
+      "raise_category": "monitor_continuously",
+      "owasp_llm": "LLM07",
+      "owasp_agentic": "ASI09",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-010", "PRAX-2026-08-20-003"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-005",
+      "severity": "Medium",
+      "summary": "Identity reports write shared emails and UPNs verbatim into HTML artifacts and into the model context.",
+      "description": "The previous scan raised this as two halves — undeclared read scope and unminimized PII. The remit was amended to authorize the reads, closing the first half, but nothing changed on the second. <code>identity_summary</code> still returns up to 50 merge groups carrying <code>shared_value</code> — the recycled email or UPN itself — alongside the complete list of affected user keys, and <code>render_identity</code> writes both into a report table as <code>Value</code> and a comma-joined <code>Merged users</code> column. The remit forbids persisting verbatim PII into <em>any</em> written artifact; its parenthetical names case notes, updates and tags, but a rendered HTML report on the operator's disk is squarely within the clause as written.",
+      "tags": [
+        {"kind": "raise", "label": "Balance Your Knowledge Base"},
+        {"kind": "owasp_llm", "label": "LLM02 — Sensitive Information Disclosure"}
+      ],
+      "policy_rule_ids": ["R-07"],
+      "policy_rule_text": ["MUST NOT persist un-neutralized active content (spreadsheet formulas, phishing links) or verbatim secrets/PII into any written artifact (case note, update, tag)."],
+      "evidence": [
+        {"file": "exa/health/identity.py", "line": 264, "snippet": "render_identity, lines 263-267 — rows = [{\"Table\": m.table, \"Shared attribute\": m.attribute, \"Value\": m.value, \"Merged users\": \", \".join(m.users), ...}] written into the report HTML for up to 50 groups."},
+        {"file": "exa/health/identity.py", "line": 241, "snippet": "identity_summary, line 241 — {\"table\":..., \"shared_value\": m.value, \"users\": m.users} returned to the model unchanged from the previous scan."}
+      ],
+      "recommended_actions": [
+        "Default to minimized output: emit a stable hash or a masked form of shared_value plus user counts, and require an explicit reveal argument for raw identifiers.",
+        "Either narrow the R-07 clause to Exabeam-side writes if local reports are intended to carry PII, or apply the minimization so code and policy agree."
+      ],
+      "raise_category": "balance_your_knowledge_base",
+      "owasp_llm": "LLM02",
+      "owasp_agentic": null,
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-003", "PRAX-2026-08-20-011"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-011",
+      "severity": "Medium",
+      "summary": "A new script mirrors customer notes and the defect register into Google Drive for a second AI agent, with no governing clause.",
+      "description": "<code>scripts/vault_gemini_sync.py</code> copies every <code>.md</code> file under <code>10-Customers</code>, <code>20-Defects</code>, <code>30-Runbooks</code> and <code>40-Reference</code> from the operator's knowledge vault into a Drive-synced folder so a Gemini/Agentspace data store can ground on it — customer call notes, per-tenant findings and the accumulated API defect register, selected by folder name with no content filter and no per-customer allowlist for third-party AI processing. The mitigations are real and deliberate: it is dry-run until <code>--apply</code>, one-way, excludes <code>Personal/</code> and <code>wiki/</code>, issues no network call of its own, and is wired into neither the MCP surface nor the CLI. What is missing is policy — the remit governs the agent's tenant reads and its two local write sinks and says nothing about bulk export of customer material to a third-party service, so there is no clause against which this can be checked or approved.",
+      "tags": [
+        {"kind": "raise", "label": "Limit Your Domain"},
+        {"kind": "owasp_llm", "label": "LLM02 — Sensitive Information Disclosure"},
+        {"kind": "owasp_agentic", "label": "ASI04 — Agentic Supply Chain Vulnerabilities"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "scripts/vault_gemini_sync.py", "line": 39, "snippet": "READ_FOLDERS = (\"10-Customers\", \"20-Defects\", \"30-Runbooks\", \"40-Reference\") — folder-name selection; _OFF_LIMITS at :41 excludes Personal, wiki, .obsidian, .git but nothing content-based."},
+        {"file": "scripts/vault_gemini_sync.py", "line": 77, "snippet": "mirror_read, lines 68-97 — for src in src_root.rglob(\"*.md\") ... shutil.copy2(src, dst) into VAULT_DRIVE_MIRROR; every markdown file in those trees is copied, and stale mirror files are unlinked."}
+      ],
+      "recommended_actions": [
+        "Add a Data Boundaries clause to the Worker Remit stating whether customer-identifying vault content may be exported to a third-party service or a second AI agent, and under what consent, so the behavior becomes checkable instead of undeclared.",
+        "Gate the mirror on an explicit per-folder or per-customer allowlist rather than folder-name inclusion, and print the file count and destination before copying so an unintended tree cannot be mirrored silently."
+      ],
+      "raise_category": "limit_your_domain",
+      "owasp_llm": "LLM02",
+      "owasp_agentic": "ASI04",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-012", "PRAX-2026-08-20-005"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-012",
+      "severity": "Medium",
+      "summary": "The same script drains another agent's output into the vault this agent is told to treat as ground truth.",
+      "description": "<code>drain_inbox</code> moves Gemini-authored markdown out of the Drive inbox into the vault's own <code>90-Inbox</code>, landing text written by a different model inside the directory tree the operator's project instructions direct this agent to search before concluding a fact is unrecorded — so an inbox note is in the read path immediately, ahead of any human triage. Nothing marks the provenance of those files and nothing canonicalizes them: the smuggling-code-point strip the remit requires is implemented for Exabeam telemetry arriving through the MCP tools and does not sit on this path, so zero-width and bidi-override sequences in another agent's output reach the vault intact. The design does resist the worst version of this — it deliberately refuses to auto-append to customer notes, disambiguates rather than overwrites, and leaves triage to a human or a skill — which is why this is a poisoning surface rather than a live injection.",
+      "tags": [
+        {"kind": "raise", "label": "Balance Your Knowledge Base"},
+        {"kind": "owasp_llm", "label": "LLM01 — Prompt Injection"},
+        {"kind": "owasp_agentic", "label": "ASI06 — Memory and Context Poisoning"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "scripts/vault_gemini_sync.py", "line": 107, "snippet": "drain_inbox, lines 100-120 — for f in src_inbox.rglob(\"*.md\") ... shutil.move(str(f), str(dst)) into vault/90-Inbox; no provenance marker written, no canonicalization applied to the moved content."},
+        {"file": "exa/mcp/guardrails/canonicalize.py", "line": 31, "snippet": "The strip set (C0/C1, ZWSP, bidi overrides, plane-14 tag characters) is reached only via scrub_result on MCP tool results — nothing in the vault ingest path calls it."}
+      ],
+      "recommended_actions": [
+        "Canonicalize ingested files on the way in and stamp each with its origin — a front-matter source field naming the generating agent — so vault content read later is distinguishable from operator-authored notes.",
+        "Quarantine ingested notes outside the tree the agent is instructed to grep as ground truth until a human promotes them, or declare 90-Inbox untrusted in the remit and the project instructions."
+      ],
+      "raise_category": "balance_your_knowledge_base",
+      "owasp_llm": "LLM01",
+      "owasp_agentic": "ASI06",
+      "confidence": "Medium",
+      "related_findings": ["PRAX-2026-08-20-011"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-006",
+      "severity": "Low",
+      "summary": "The audit allowlist dropped queue and vendor but kept priority and stage, which are unconstrained strings.",
+      "description": "The allowlist comment promises ids and enums, never free text, and the fix removed the two fields the previous scan named. Of what remains, <code>alert_id</code> and <code>case_id</code> are ids, <code>tenant</code> is an allowlisted nickname, and <code>kind</code> is genuinely enum-constrained in its schema. <code>priority</code> and <code>stage</code> are not: both are declared <code>{\"type\": \"string\"}</code> with their permitted values stated only in the human-readable description, so a model may place arbitrary text in either and the audit writer will record it verbatim. Because the record is written after the call completes regardless of outcome, a write the tenant API rejects still deposits its payload in the log.",
+      "tags": [
+        {"kind": "raise", "label": "Monitor Continuously"},
+        {"kind": "mcp", "label": "Sensitive parameters redacted from logs"}
+      ],
+      "policy_rule_ids": ["R-08"],
+      "policy_rule_text": ["MUST NOT record free-text field values, notes, secrets, or payloads into the audit log — the audit log is metadata only."],
+      "evidence": [
+        {"file": "exa/mcp/audit.py", "line": 38, "snippet": "_SAFE_ACTION_FIELDS = (\"alert_id\", \"case_id\", \"priority\", \"stage\", \"kind\", \"tenant\") under the comment \"ids and enums, never free text\"."},
+        {"file": "exa/mcp/tools.py", "line": 303, "snippet": "update_case schema lines 303-311 — \"stage\": {\"type\": \"string\", \"description\": \"OPEN, IN PROGRESS, or CLOSED\"} and \"priority\": {\"type\": \"string\", ...}; no enum key, unlike set_tenant_kind's \"kind\" at :573-577."}
+      ],
+      "recommended_actions": [
+        "Add enum constraints to priority and stage in the write-tool schemas, matching the enum already used for kind, so the allowlist comment becomes true by construction.",
+        "As defense in depth, cap the recorded length of every allowlisted value in safe_action rather than trusting the field name."
+      ],
+      "raise_category": "monitor_continuously",
+      "owasp_llm": null,
+      "owasp_agentic": null,
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-007"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-007",
+      "severity": "Low",
+      "summary": "The audit trail still cannot show that a guardrail fired or where a report was written.",
+      "description": "Three parts of the previous audit finding are unchanged. <code>dispatch_tool</code> rebinds <code>arguments</code> to the neutralized dict as a local name, so the caller in <code>server.py</code> hands <code>record_tool_call</code> its own original pre-neutralization dict. The <code>_guardrail_notes</code> list returned alongside it is discarded at the point of use, so when the neutralizer defangs a formula or redacts a credential in a case note nothing records that it acted. And no field carries the resolved destination of a written report, which is the one detail that would let a reviewer confirm after the fact that the new containment check held. Impact is bounded by the narrowed field allowlist — this is a reconstructability gap, not an exposure.",
+      "tags": [
+        {"kind": "raise", "label": "Monitor Continuously"},
+        {"kind": "mcp", "label": "All tool invocations logged with identity and parameters"}
+      ],
+      "policy_rule_ids": ["R-08"],
+      "policy_rule_text": ["MUST NOT record free-text field values, notes, secrets, or payloads into the audit log — the audit log is metadata only."],
+      "evidence": [
+        {"file": "exa/mcp/tools.py", "line": 884, "snippet": "arguments, _guardrail_notes = neutralize_write_args(arguments) — rebinds a local; the notes list is never read, and server.py:91 calls audit.record_tool_call(name, args, ...) with its own original dict."},
+        {"file": "exa/mcp/audit.py", "line": 139, "snippet": "record_tool_call emits a fixed key set ending in \"action\": safe_action(arguments) — no guardrail-outcome field and no destination path for the render_* tools."}
+      ],
+      "recommended_actions": [
+        "Record guardrail outcomes as metadata — the count and note types from _guardrail_notes — and add the resolved output path for every tool that writes a file.",
+        "Pass the neutralized argument dict to record_tool_call, or neutralize once at the server boundary, so the recorded values and the sent values cannot diverge."
+      ],
+      "raise_category": "monitor_continuously",
+      "owasp_llm": null,
+      "owasp_agentic": null,
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-006", "PRAX-2026-08-20-009"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-008",
+      "severity": "Low",
+      "summary": "The SSE transport is now loudly disclosed as unauthenticated, but it is still unauthenticated.",
+      "description": "<code>run_sse_server</code> prints a stderr warning that the transport shares one tenant session across all clients, plus a louder danger line on any non-loopback bind. That is an honest and useful disclosure, and stdio — the default — is unaffected. It is not a control: there is still no client authentication on <code>/sse</code> or <code>/messages/</code>, no TLS, one process-wide mutable <code>TenantSession</code>, and no per-connection cleanup. The remit still contains no clause covering the inbound transport, so the posture is an undocumented risk acceptance rather than a stated one — and the newly persistent tenant switch means a connected client's effect now outlives the connection.",
+      "tags": [
+        {"kind": "raise", "label": "Implement Zero Trust"},
+        {"kind": "owasp_agentic", "label": "ASI03 — Identity and Privilege Abuse"},
+        {"kind": "mcp", "label": "Client authentication enforced"},
+        {"kind": "mcp", "label": "Sessions isolated with deterministic cleanup"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "exa/mcp/server.py", "line": 130, "snippet": "lines 130-142 — sys.stderr.write of a WARNING plus a DANGER line when host not in (\"127.0.0.1\", \"::1\", \"localhost\"); no auth dependency is added to either route."},
+        {"file": "exa/mcp/server.py", "line": 15, "snippet": "TenantSession, lines 15-50 — one process-wide holder whose switch() swaps self.client for every caller, now also persisting the choice via tools.py:1149-1165."}
+      ],
+      "recommended_actions": [
+        "Refuse to start on a non-loopback bind unless an explicit acknowledgement flag is passed, and require a bearer token on both SSE routes before any tool is served.",
+        "Add an inbound-transport clause to the Worker Remit stating who may connect and whether sessions must be isolated, so this becomes a checkable rule instead of a warning string."
+      ],
+      "raise_category": "implement_zero_trust",
+      "owasp_llm": null,
+      "owasp_agentic": "ASI03",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-001"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-009",
+      "severity": "Low",
+      "summary": "The new containment root is derived from the working directory, so it moves with the process.",
+      "description": "<code>_contained_output_path</code> anchors on <code>Path(\"reports\").resolve()</code>, which is relative to the server process's current working directory, and then calls <code>mkdir(parents=True, exist_ok=True)</code>. Containment itself holds — nothing escapes the base — but the base is wherever the process happened to start, and a stdio server launched by Claude Desktop does not start in the repository. Executed from <code>C:\\Windows\\Temp</code>, the helper resolved its root to <code>C:\\Windows\\Temp\\reports</code> and created that directory tree; it was removed afterward. The pre-existing <code>_report_path</code> shares the anchor, so reports and the containment boundary drift together rather than one catching the other.",
+      "tags": [
+        {"kind": "raise", "label": "Implement Zero Trust"},
+        {"kind": "owasp_agentic", "label": "ASI02 — Tool Misuse and Exploitation"}
+      ],
+      "policy_rule_ids": ["R-04"],
+      "policy_rule_text": ["MAY read and write local report files under `reports/` and the local audit log."],
+      "evidence": [
+        {"file": "exa/mcp/tools.py", "line": 131, "snippet": "lines 131-139 — base = Path(\"reports\").resolve(); target = (base / str(candidate)).resolve(); is_relative_to check; then target.parent.mkdir(parents=True, exist_ok=True). Verified: run from C:\\Windows\\Temp the base became C:\\Windows\\Temp\\reports and was created."},
+        {"file": "exa/mcp/tools.py", "line": 96, "snippet": "_report_path, lines 96-121 — the default path builder uses the same bare Path(\"reports\") anchor, so both the safe default and the containment root follow the working directory."}
+      ],
+      "recommended_actions": [
+        "Pin the reports root to an absolute, configuration-derived location — a REPORTS_DIR setting or a path under the user profile alongside ~/.exa — and resolve both _report_path and _contained_output_path against it.",
+        "Log the resolved root once at server start so the operator can see where artifacts will land before a tool writes one."
+      ],
+      "raise_category": "implement_zero_trust",
+      "owasp_llm": null,
+      "owasp_agentic": "ASI02",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-002", "PRAX-2026-08-20-007"],
+      "escalation": "log_only"
+    },
+    {
+      "id": "PRAX-2026-08-20-010",
+      "severity": "Low",
+      "summary": "render_abv no longer drifts on commit and test count but still hardcodes a held verdict for diverged clauses.",
+      "description": "The remediation was largely good faith: the stat cards no longer assert a stale commit or test total, the render is labeled a point-in-time snapshot, and a new panel states plainly that an independent scan found items this manual pass missed. Two things did not change. The verdict card is still the literal <code>\"Policy holds\"</code>, computed from nothing, and the <code>ABV[\"clauses\"]</code> table still records ABV-003 canonicalization and ABV-005 audit-log as HELD — the two clauses both independent scans found diverged. The verdict card is now the more misleading element precisely because the surrounding honesty makes the report read as current.",
+      "tags": [
+        {"kind": "raise", "label": "Monitor Continuously"},
+        {"kind": "owasp_llm", "label": "LLM07 — Misinformation"},
+        {"kind": "owasp_agentic", "label": "ASI09 — Human-Agent Trust Exploitation"}
+      ],
+      "policy_rule_ids": null,
+      "policy_rule_text": null,
+      "evidence": [
+        {"file": "exa/report/abv.py", "line": 120, "snippet": "stat_card(\"Verdict\", \"Policy holds\", \"good\", \"manual pass; see Praxen note\") — still a literal, not derived from the clause statuses beside it."},
+        {"file": "exa/report/abv.py", "line": 26, "snippet": "ABV[\"clauses\"] lines 24-30 — ABV-003 \"Telemetry canonicalized before it reaches the model\" and ABV-005 audit-log both carry \"status\": \"HELD\"; the 2026-08-19 scan found the first a gap and the second partial."}
+      ],
+      "recommended_actions": [
+        "Derive the verdict card from the clause statuses so a DIVERGENCE row changes the headline, and update the ABV-003 and ABV-005 rows to match the adjudicated results now recorded in security/praxen/results/.",
+        "Have the tool read the newest findings JSON in that directory instead of a hardcoded dict, so the branded render cannot disagree with the scan it summarizes."
+      ],
+      "raise_category": "monitor_continuously",
+      "owasp_llm": "LLM07",
+      "owasp_agentic": "ASI09",
+      "confidence": "High",
+      "related_findings": ["PRAX-2026-08-20-004"],
+      "escalation": "log_only"
+    }
+  ],
+  "positives": [
+    {
+      "title": "The arbitrary-file-write primitive is genuinely closed, confirmed by execution",
+      "description": "_contained_output_path was driven with twelve payloads. It refused ../evil.html, ../../evil.html, C:/Windows/Temp/evil.html, /etc/passwd, //server/share/e.html, ..\\..\\evil.html, reports/../../evil.html and a/../../../evil.html, allowing only paths that resolve inside the root. The resolve-and-compare approach rejects traversal, absolute and UNC escapes in a single test.",
+      "evidence_path": "exa/mcp/tools.py:124-140, applied at :1197-1204 (render_report), :1341-1345 (render_dashboard), :1359-1363 (render_abv)"
+    },
+    {
+      "title": "Canonicalization now covers the error path, verified against real smuggling code points",
+      "description": "_err routes its message through scrub_result. Executed on a raw string, it strips U+200B, the U+202E bidi override and plane-14 tag characters, and normalizes U+2028 to a newline instead of deleting it. The previous scan's largest gap — raw tenant response bodies reaching the model on any HTTP error — is closed.",
+      "evidence_path": "exa/mcp/tools.py:71-75; strip set at exa/mcp/guardrails/canonicalize.py:31-42"
+    },
+    {
+      "title": "Remediation targeted the named gaps with regression tests, not just code edits",
+      "description": "The commits added TestOutputPathContainment (absolute and traversal rejection, plus the allowed case), TestConfigPathGuard, TestErrCanonicalizes and two identity-bounding tests. These are precisely the coverage holes the previous scan called out, which is the difference between a fix and a fix that stays fixed.",
+      "evidence_path": "tests/test_mcp.py (TestOutputPathContainment, TestConfigPathGuard, TestErrCanonicalizes); tests/test_identity.py (test_skips_empty_tables_and_bounds, test_guid_scan_can_be_disabled)"
+    },
+    {
+      "title": "The silent-zero identity check now fails loudly",
+      "description": "find_guid_users records the last exception and raises RuntimeError when every host-field attempt fails, instead of returning an empty list that read as a clean result. collect_identity_health catches it into a visible note, and a deliberately skipped scan is also noted, so zero and did-not-run are now distinguishable.",
+      "evidence_path": "exa/health/identity.py:181-186 (raise), :220-226 (note on failure and on guid_scan=false)"
+    },
+    {
+      "title": "Policy was corrected where the code was right, not only the reverse",
+      "description": "Rather than removing the context-table and identity tooling flagged as outside the declared read scope, the operator added an explicit clause authorizing those reads for identity-resolution diagnostics. Amending the remit is the correct resolution when the capability is intended, and it makes the scope checkable instead of ambiguous.",
+      "evidence_path": "security/praxen/WORKER_REMIT.md:32-33"
+    },
+    {
+      "title": "Write-tool descriptions no longer claim a control that does not ship",
+      "description": "All four write-tool descriptions previously told the model that a Claude Code permission pack was the hard lock, which the plugin never shipped. They now name the server's --allow-writes flag as the only hard technical control and the in-prompt confirmation as the layer above it, matching what the remit says and what the code does.",
+      "evidence_path": "exa/mcp/tools.py:267-272, :292-297, :329-334, :356-361"
+    },
+    {
+      "title": "The write gate remains double-enforced and the neutralizer allowlist grew",
+      "description": "Read-only mode still both hides the four write tools and refuses them at dispatch off the same frozenset. The neutralization allowlist now covers assignee and queue alongside the ABV-004 tags list, so the two remaining free-text write fields the previous scan identified are defanged before they persist.",
+      "evidence_path": "exa/mcp/tools.py:826-835 and :872-877; exa/mcp/guardrails/__init__.py:25-31"
+    },
+    {
+      "title": "Bounding was iterated on until it actually completed, and partial results are surfaced rather than swallowed",
+      "description": "The first bounding attempt still exceeded the 30s HTTP timeout on a large tenant, and the follow-up fixed the real cause: each table is now read in 2,000-record pages under a shared time budget, so a 45,000-record table returns partial results instead of failing the whole sweep. context_table emits a truncated_scan note at its own cap, the identity sweep reports over-cap tables and orders the smallest first, and the misleading \"no identity table found\" that fired when the read raised before any table was scanned is gone.",
+      "evidence_path": "exa/health/identity.py:134-149 (paged read under deadline), :186-188 (over_cap note); exa/mcp/tools.py:1299-1315 (truncated_scan note)"
+    }
+  ],
+  "log_files": {
+    "present": true,
+    "no_logs_note": "",
+    "rows": [
+      {
+        "path": "~/.exa/audit.jsonl",
+        "source": "exa/mcp/audit.py — record() via record_session_start and record_tool_call, called from exa/mcp/server.py:91",
+        "content_type": "structured JSON lines, one metadata event per line",
+        "purpose": "Tool-invocation audit: timestamp, tool name, tenant and kind, write flag, read-only posture, status, duration, result_bytes, and an allowlisted action object now narrowed to alert_id, case_id, priority, stage, kind and tenant. Rotates at 10 MB across 5 backups; EXA_AUDIT and EXA_AUDIT_PATH control it.",
+        "mtime": "2026-08-19",
+        "status": "active"
+      },
+      {
+        "path": "~/.exa/config.json",
+        "source": "exa/config.py:282 set_default_tenant, now invoked by exa/mcp/tools.py:1152 on every set_active_tenant",
+        "content_type": "JSON configuration object",
+        "purpose": "Tenant inventory and the persisted default tenant. Newly writable from a model-invoked tool this pass, and readable through render_dashboard's config_path filter, which is why it appears in findings 001 and 002. Holds no credential material — secrets remain in the OS keyring.",
+        "mtime": "2026-08-20",
+        "status": "active"
+      },
+      {
+        "path": "reports/{kind}/{tenant}/*.html",
+        "source": "exa/mcp/tools.py _report_path() and _contained_output_path(), used by the render branches of ingest_value, source_detail, identity_health, soc_kpis, tuning_report and the three render_* tools",
+        "content_type": "self-contained branded HTML artifacts",
+        "purpose": "Rendered health, identity, KPI and dashboard-preview reports. Now containment-checked, but the root follows the process working directory (finding 009) and destinations are still absent from the audit log (finding 007).",
+        "mtime": "unknown",
+        "status": "inferred"
+      }
+    ]
+  },
+  "raise_posture": {
+    "weighted_overall": 2.7,
+    "weighted_rationale": "Partial, and stronger than the 2.45 recorded on 2026-08-19 — but by less than the remediation alone would suggest, because new capability landed faster than the policy governing it. The two most serious items from the first scan are genuinely closed and were confirmed by execution rather than by reading, which lifts Zero Trust and Balance Your Knowledge Base a full point each. Working against that, Limit Your Domain moved down: a bridge added during this scan exports customer notes and the defect register to a third-party service for a second AI agent and drains that agent's output back into this one's knowledge substrate, and no remit clause covers either direction. The rest of the residue is fidelity rather than control — three fixes stopped a step short of their own intent, and the repository's own assurance signals still overstate the position, with a green badge over a red suite and no CI to catch it.",
+    "categories": [
+      {
+        "key": "limit_your_domain",
+        "name": "Limit Your Domain",
+        "score": 2,
+        "confidence": "High",
+        "weight": 0.15,
+        "rationale": "The MCP tool surface itself stays explicit and narrow, the write gate is unchanged, and the previously undeclared context-table reads are now authorized by a clause rather than left ambiguous — on the tool surface alone this would still be a 3. It comes down a point because three boundaries moved outward this pass and none is declared: a model-invoked tenant switch now writes operator configuration outside the two granted sinks, the report containment root follows the process working directory, and a new script exports customer notes and the defect register to a third-party service for a second agent to ground on. The export is operator-run rather than model-invoked and excludes the personal trees, so this is a scope-declaration failure rather than an agent overreach."
+      },
+      {
+        "key": "balance_your_knowledge_base",
+        "name": "Balance Your Knowledge Base",
+        "score": 3,
+        "confidence": "High",
+        "weight": 0.15,
+        "rationale": "Canonicalization now guards both the success and the failure path — verified by execution — and the silent-zero GUID check raises instead of returning a clean empty, which is the single most valuable change of the pass for this category. Against that, verbatim shared emails and UPNs still reach both the model and rendered artifacts unminimized; the identity coverage note reports the cap requested rather than the rows actually read whenever the time budget truncates a table; and another agent's output is now moved into the vault this agent is instructed to treat as ground truth, un-canonicalized and unmarked, because the strip set sits only on the MCP result path."
+      },
+      {
+        "key": "implement_zero_trust",
+        "name": "Implement Zero Trust",
+        "score": 3,
+        "confidence": "High",
+        "weight": 0.25,
+        "rationale": "The strongest improvement of the pass and the heaviest weight: the arbitrary-write primitive is closed and was confirmed by driving twelve traversal, absolute and UNC payloads through the check, and the error channel is canonicalized. Remaining boundaries are softer than they look — config_path is filtered by extension and size but not resolved against a root, the SSE transport is disclosed rather than authenticated, and the reports root is not pinned."
+      },
+      {
+        "key": "manage_your_supply_chain",
+        "name": "Manage Your Supply Chain",
+        "score": 2,
+        "confidence": "High",
+        "weight": 0.15,
+        "rationale": "Unchanged since the previous scan, and the only category that did not improve. uv.lock is committed and the vendored Apache-2.0 guardrails are properly attributed, but .github/workflows still does not exist, so there is no CI gate and no dependency or CVE scanning; pyproject.toml uses floor pins; and exa mcp install --docs still generates an unpinned npx -y mcp-remote entry. The failing test shipping unnoticed on HEAD is the practical consequence."
+      },
+      {
+        "key": "build_an_ai_red_team",
+        "name": "Build an AI Red Team",
+        "score": 3,
+        "confidence": "High",
+        "weight": 0.15,
+        "rationale": "The response to the previous scan was to add targeted regression tests at exactly the points it named — output-path containment including the traversal case, the config_path guard, error-path canonicalization and the identity bounds — which is the behavior that keeps a fix fixed. The suite is nonetheless red on HEAD with nothing gating it, and there is still no test that a rendered artifact excludes verbatim PII."
+      },
+      {
+        "key": "monitor_continuously",
+        "name": "Monitor Continuously",
+        "score": 3,
+        "confidence": "High",
+        "weight": 0.15,
+        "rationale": "The audit log is closer to its own specification now that the two free-text fields are gone, and the ABV report stopped asserting a stale commit and test count. But the log still cannot show that a guardrail fired or where a report landed, priority and stage remain unconstrained strings inside an allowlist described as enums, and two hand-maintained claims — the README badge and the hardcoded held verdict — currently disagree with what a measured run reports."
+      }
+    ]
+  },
+  "footer": {
+    "severity_counts": {
+      "critical": 0,
+      "high": 0,
+      "medium": 7,
+      "low": 5,
+      "info": 0
+    }
+  }
+}

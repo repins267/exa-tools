@@ -104,7 +104,7 @@ def detection_list(
             payload = json.dumps(rules, indent=2)
             if output:
                 output.write_text(payload, encoding="utf-8")
-                console.print(f"Wrote {len(rules)} rules → [bold]{output}[/bold]")
+                console.print(f"Wrote {len(rules)} rules -> [bold]{output}[/bold]")
             else:
                 console.print_json(payload)
             return
@@ -133,7 +133,7 @@ def detection_list(
                 if output:
                     dest.close()
             if output:
-                console.print(f"Wrote {len(rules)} rules → [bold]{output}[/bold]")
+                console.print(f"Wrote {len(rules)} rules -> [bold]{output}[/bold]")
             return
 
         # ── Rich table ────────────────────────────────────────────────────────

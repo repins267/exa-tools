@@ -41,10 +41,33 @@ class TestScenarios:
         assert "Impact" in stages
         assert "Credential Access" in stages
 
-    def test_every_behavior_names_a_rule(self):
+    def test_every_behavior_has_a_verifiable_outcome(self):
+        """A behavior must be checkable after it is sent.
+
+        Rule-backed behaviors verify by the named rule firing. Table-backed ones
+        (the AI tooling scenario) have no Sigma rule -- they verify by their
+        process_name becoming discoverable in a context table. Either satisfies
+        the invariant; neither does not, because a behavior with no expected
+        outcome cannot be told apart from one that silently failed to parse.
+        """
         for behavior in list_behaviors():
-            assert behavior.rule_name, f"{behavior.key} has no rule_name"
+            assert behavior.rule_name or behavior.feeds_table, (
+                f"{behavior.key} has neither rule_name nor feeds_table"
+            )
             assert behavior.attack.startswith("T")
+
+    def test_table_backed_behaviors_name_a_real_table(self):
+        from exa.aillm.sync import TABLE_MAP
+
+        known = set(TABLE_MAP.values()) | {
+            "AI Agent Process Names",
+            "AI Dev Framework Process Names",
+        }
+        for behavior in list_behaviors():
+            if behavior.feeds_table:
+                assert behavior.feeds_table in known, (
+                    f"{behavior.key} targets unknown table {behavior.feeds_table!r}"
+                )
 
     def test_events_satisfy_sysmon_parser_conditions(self):
         """All four parser match conditions must appear in the raw JSON."""
@@ -196,3 +219,158 @@ class TestWebhook:
         with pytest.raises(ExaAPIError) as exc:
             send_events(_FakeClient(), build_events("healthcare"), token="bad")
         assert exc.value.status_code == 401
+
+
+class TestAbaScenarios:
+    """ABA / Observra agent-telemetry generation.
+
+    The whole point of this module is emitting the SENSOR wire schema directly,
+    so no transform is needed. Observra's own library output fails the parser's
+    match conditions; these tests guard against regressing to that shape.
+    """
+
+    def test_all_events_satisfy_parser_match_conditions(self):
+        """All three conditions are ANDed and checked before any extraction."""
+        import json as _json
+        import re as _re
+
+        from exa.simulate.aba import ABA_SCENARIOS, build_aba_events
+
+        for key in ABA_SCENARIOS:
+            for event in build_aba_events(key):
+                raw = _json.dumps(event)
+                assert _re.search(r'"type"\s*:', raw), f"{key}: no type"
+                assert _re.search(r'"framework"\s*:\s*"', raw), f"{key}: no framework"
+                assert _re.search(r'"schema"\s*:', raw), f"{key}: no schema"
+
+    def test_does_not_emit_library_schema_keys(self):
+        """Regression guard: library keys are what fails to parse."""
+        from exa.simulate.aba import build_aba_events
+
+        for event in build_aba_events():
+            for bad in ("event_type", "session_id", "agent_name", "timestamp",
+                        "library_version"):
+                assert bad not in event, f"{bad} is library shape and will not parse"
+
+    def test_cost_is_top_level_not_nested(self):
+        """Parser reads $.cost_usd; nesting it in data silently drops the field."""
+        from exa.simulate.aba import build_aba_events
+
+        priced = [e for e in build_aba_events("aba-activity") if "cost_usd" in e]
+        assert priced, "expected at least one priced event"
+        for event in priced:
+            assert isinstance(event["cost_usd"], float)
+            assert "cost_usd" not in (event.get("data") or {})
+
+    def test_injection_text_is_in_request_not_response(self):
+        """Injection rules key on llm_request ($.text). $.response maps to
+        llm_response and will NOT fire them."""
+        from exa.simulate.aba import build_aba_events
+
+        for event in build_aba_events("aba-injection"):
+            assert event.get("text"), "injection payload must be in text"
+            assert not event.get("response")
+
+    def test_guardrail_events_carry_violation_result(self):
+        from exa.simulate.aba import build_aba_events
+
+        results = {e["data"]["result"] for e in build_aba_events("aba-guardrail")}
+        assert "guardrail_violation" in results
+
+    def test_lifecycle_covers_all_four_agent_actions(self):
+        from exa.simulate.aba import build_aba_events
+
+        actions = {e["data"]["action"] for e in build_aba_events("aba-lifecycle")}
+        assert actions == {"create_agent", "modify_agent", "share_agent",
+                           "delete_agent"}
+
+    def test_events_share_one_session(self):
+        """Events must correlate on conversation_id within a run."""
+        from exa.simulate.aba import build_aba_events
+
+        events = build_aba_events("aba-activity")
+        assert len({e["session"] for e in events}) == 1
+        assert len({e["data"]["session_key"] for e in events}) == 1
+
+    def test_events_ordered_in_time(self):
+        from exa.simulate.aba import build_aba_events
+
+        stamps = [e["ts"] for e in build_aba_events("aba-activity")]
+        assert stamps == sorted(stamps)
+
+    def test_schema_marker_is_configurable(self):
+        from exa.simulate.aba import SCHEMA_ABA, build_aba_events
+
+        events = build_aba_events("aba-injection", schema=SCHEMA_ABA)
+        assert all(e["schema"] == "aba-1.0" for e in events)
+
+    def test_marker_present_for_traceability(self):
+        from exa.simulate.aba import build_aba_events
+
+        events = build_aba_events("aba-lifecycle", marker="MY-TAG")
+        assert all(e["sim_marker"] == "MY-TAG" for e in events)
+
+    def test_unknown_scenario_and_event_raise(self):
+        import pytest as _pytest
+
+        from exa.simulate.aba import build_aba_events, get_aba_scenario
+
+        with _pytest.raises(ValueError, match="aba-injection"):
+            get_aba_scenario("nope")
+        with _pytest.raises(ValueError, match="Unknown ABA event"):
+            build_aba_events("aba-injection", event_key="nope")
+
+
+class TestAbaSupplyChain:
+    """Skill provenance and the signals the published parser discards.
+
+    This scenario is deliberately built around fields that have no CIM2
+    destination today. It exists to validate an extended parser against real
+    payloads, and to quantify the extraction gap — so these tests assert the
+    gap is reported honestly, not that the fields land.
+    """
+
+    def test_supply_chain_events_still_satisfy_match_conditions(self):
+        """Extra fields must not break parsing — the event still has to match."""
+        import json as _json
+
+        from exa.simulate.aba import build_aba_events
+
+        for ev in build_aba_events("aba-supplychain"):
+            raw = _json.dumps(ev, separators=(",", ":"))
+            for cond in ('"type":', '"framework":"', '"schema":"'):
+                assert cond in raw, f"{ev.get('type')} lost match condition {cond}"
+
+    def test_skill_provenance_is_emitted(self):
+        from exa.simulate.aba import build_aba_events
+
+        first = build_aba_events("aba-supplychain", event_key="supply-skill-first-seen")[0]
+        assert first["skill"] == "invoice-normaliser"
+        assert first["skill_source"] == "clawhub"
+        assert first["skill_publisher"] == "acme-invoice-tools"
+        assert first["skill_version"] == "0.1.4"
+        assert first["skill_digest"].startswith("sha256:")
+
+    def test_provenance_fields_are_reported_as_dropped(self):
+        """The point of the scenario: these parse, then get discarded."""
+        from exa.simulate.aba import build_aba_events, dropped_at_extraction
+
+        dropped = dropped_at_extraction(build_aba_events("aba-supplychain"))
+        for key in ("skill", "skill_source", "skill_publisher", "skill_digest",
+                    "current_depth", "max_depth", "source_agent", "target_agent",
+                    "triggered_rules", "max_severity"):
+            assert key in dropped, f"{key} should be reported as dropped"
+
+    def test_no_mapped_field_is_also_reported_dropped(self):
+        """A field cannot be both extracted and discarded — guards the tables."""
+        from exa.simulate.aba import PARSER_TOP_LEVEL, UNMAPPED
+
+        assert not (set(PARSER_TOP_LEVEL) & set(UNMAPPED))
+
+    def test_events_without_security_signals_report_nothing_spurious(self):
+        """Scenarios that set no signals should not appear to lose provenance."""
+        from exa.simulate.aba import build_aba_events, dropped_at_extraction
+
+        dropped = dropped_at_extraction(build_aba_events("aba-lifecycle"))
+        assert "skill" not in dropped
+        assert "current_depth" not in dropped

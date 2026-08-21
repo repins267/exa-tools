@@ -4,7 +4,7 @@
 ![uv](https://img.shields.io/badge/package%20manager-uv-blueviolet)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Platform: Exabeam NSA/SIEM](https://img.shields.io/badge/platform-Exabeam%20New--Scale%20Analytics%20%28NSA%29%20%2F%20SIEM-orange)
-![Tests](https://img.shields.io/badge/tests-533%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1018%20passing-brightgreen)
 
 Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built for security engineers who need to move fast across detection engineering, compliance, and content management without living in the UI.
 
@@ -25,6 +25,58 @@ Python automation toolkit for Exabeam New-Scale Analytics (NSA) / SIEM. Built fo
 All from the command line.
 
 ![Pipeline Animation](docs/pipeline-animation.svg)
+
+## Claude / MCP Tools
+
+exa-tools ships an **MCP server** (`exa mcp serve`) that exposes a curated, **read-only-by-default** slice of the CLI to **Claude Desktop** and **Claude Code**, plus a plugin with agentic **skills** and a branded **report renderer**.
+
+**Install**
+- Claude Code: `claude plugin install exa-tools@exa-tools` (loads the MCP server + skills from the repo).
+- Claude Desktop: `exa mcp install --tenant <tenant>`, then fully quit and reopen. Check **Settings → Developer** for the `exabeam` server. You never run `exa mcp serve` yourself — Claude spawns it.
+- Not sure which client/build you have? `exa mcp install --tenant <tenant> --print` shows the exact config block **and every config path for your OS** with live `detected / not present` state, and flags a Store build that can't run MCP.
+
+**Which Claude client works?** Your Claude *plan* is not the blocker — the **Free plan works**. What matters is the **app build**: local MCP is a feature of the app, not the subscription.
+
+| Client | Runs exa-tools? | Why / config path |
+| --- | --- | --- |
+| **Claude Desktop — standalone** (claude.ai/download) | ✅ Yes, even on Free | Has Developer Mode (**Settings → Developer**). Config: `%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`) |
+| **Claude Desktop — Microsoft Store** (MSIX) | ❌ No | Sandboxed, no Developer Mode — the config is written but never read. **Fix:** uninstall it, install the standalone app instead |
+| **Claude Desktop — work AWS Bedrock** ("Claude-3p") | ✅ Yes | Enterprise build. Config: `%LOCALAPPDATA%\Claude-3p\claude_desktop_config.json`; the `--docs` server is proxied via `npx mcp-remote` |
+| **Claude Code** (Free or licensed) | ✅ Yes | `claude mcp add …` or a project `.mcp.json`; never hits the Store-sandbox problem |
+
+**Safety** — read-only by default. The four write tools (`create_case`, `update_case`, `update_alert`, `add_case_note`) are hidden and refused unless the server is started with `--allow-writes`. Secrets stay in the OS credential store; switching tenants is a nickname lookup, so no secret reaches the model.
+
+**Guardrails & audit** (adapted from [socxen](https://github.com/open-agent-ai-security/socxen) / [observra](https://github.com/open-agent-ai-security/observra)) — every tool **result** is canonicalized (invisible smuggling code points stripped, NFC-normalized) so injection hidden in a log field can't reach the model; free-text **write** inputs are neutralized (spreadsheet formulas quote-prefixed, links defanged, secrets redacted) before they persist. A metadata-only **audit log** (default on, fail-open, rotating JSONL at `~/.exa/audit.jsonl`) records every call — tool, tenant/kind, read/write, duration, status, result size, and safe id fields — **never** notes, secrets, or payloads. Disable with `EXA_AUDIT=off`. Both guardrails are regression-tested against socxen's red-team attack corpus (`tests/redteam/`) — zero-width, formula/link injection, and secret/PII leak fixtures. `security/` also carries a CycloneDX **AI-BOM** (`uv run security/gen_aibom.py`) and a Praxen **Agent Behavior Verification** report (`security/praxen/`) checking declared policy against actual behavior. Full attribution for adapted code, pulled data, and reviewed tools is in [CREDITS.md](CREDITS.md).
+
+**Tools (33)**
+
+| Group | Tools |
+| --- | --- |
+| Search / cases / alerts | `search_alerts` `get_alert` `search_cases` `get_case` `search_events` `create_case`\* `update_case`\* `update_alert`\* `add_case_note`\* |
+| Health | `get_license_consumption` `get_app_status` `list_collectors` `parser_health` `ingest_value` `source_detail` |
+| Identity / context | `identity_health` `context_table` |
+| SOC / tuning | `soc_kpis` `tuning_report` (NYMM) |
+| AI/LLM | `aillm_sources` `aillm_validate` `aillm_rules` `aillm_risk` `aillm_gaps` `ai_domain_lookup` |
+| Detection | `list_detection_rules` |
+| Tenant | `get_active_tenant` `list_tenants` `set_active_tenant` `set_tenant_kind` |
+| Reports | `render_report` `render_dashboard` `render_abv` |
+
+\* write tools, gated behind `--allow-writes`.
+
+**Skills (17)** — `exa-health-check`, `exa-tam-report`, `exa-call-prep`, `exa-aillm-sync`, `exa-assess`, `exa-dashboard-preview`, `exa-vault`, `exa-nymm`, `exa-soc-review`, `exa-ingest-review`, `exa-identity`, `exa-detection` (Code-first), `exa-compliance` (Code-first), `exa-selftest` (Code-first), `exa-event-explorer`, `exa-upgrade-readiness`, `exa-upgrade-validation`. The tenant-aware skills announce the active tenant + kind (demo/customer) before reporting or writing.
+
+**Demo/onboarding preflight** — `exa selftest --tenant <t>` exercises every read tool through the same path Claude Desktop uses, times each against a Desktop-latency budget, classifies ok/slow/timeout/error, and writes `reports/selftest/<tenant>-<date>.json` (exit non-zero on any timeout/error, so a scheduled task can alert). The MCP server also **warms the AI/LLM tenant field-profile in the background on start**, so the first AI/LLM query in a fresh Claude Desktop session no longer eats the ~35s cold-collection cost and looks hung.
+
+**Reports** — compliance audit, parser health, ingest value, source deep-dive, SOC KPIs, and NYMM tuning render through a branded, self-contained theme (dark default, light/dark toggle, embedded logo) as HTML / PDF / CSV / JSON. Rendered output is auto-organized under `reports/{kind}/{tenant}/` (e.g. `reports/customer/baystate/`) — the tenant's kind tag and nickname, with intermediate directories created automatically; pass `output_path` to override.
+
+### NYMM — detection tuning (Mouton replacement)
+
+`tuning_report` + the `exa-nymm` skill are the New-Scale-native replacement for the deprecated **Mouton** Advanced Analytics tuning tool. Mouton ranked rules by `NotableReductionOnDeletion` — how many *notables* would vanish if a rule were disabled (the noise). NSA has no notables or histograms; it has **alerts → cases**, so NYMM uses the analog: **a detection that fires a lot but rarely escalates to a case is noise.**
+
+It ranks alert drivers by volume with **% of all**, average risk, and **escalation-to-case rate**, then flags each **Keep / Review / Tune-disable**. Read-only — it *recommends*, never disables a rule; a TAM confirms against the account before acting. Params: `lookback_days` (default 30), `top_n` (default 20), `render` (branded HTML report).
+
+**Covers today:** the tuning (`rules.csv`) half of Mouton — driver ranking, escalation fidelity, recommendations, branded report.
+**Not yet / by design:** silent-rule (enabled-but-unreachable) detail, trend over time with a stored baseline, rule-level (vs alert-name) aggregation, and data-health rollup are roadmap; NSA-only (does not query legacy AA); alerts sampled at 5,000, so on a busy tenant the driver mix is a lower bound.
 
 ## Prerequisites
 

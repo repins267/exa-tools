@@ -1,0 +1,24 @@
+# Secrets and credentials — never include in Claude context
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Local exa-tools credential cache
+~/.exa/
+
+# Large data / exports that would bloat context
+*.csv
+*.zip
+*.tar.gz
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Build artifacts
+dist/
+*.egg-info/

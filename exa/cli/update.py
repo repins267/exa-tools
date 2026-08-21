@@ -103,7 +103,7 @@ def update_self(
 
     repo_root = _find_repo_root()
     if repo_root is None:
-        console.print("[red]✗ exa-tools does not appear to be installed from a git repo.[/red]")
+        console.print("[red]x exa-tools does not appear to be installed from a git repo.[/red]")
         console.print("  Run: git clone <repo> && cd exa-tools && uv sync")
         raise typer.Exit(1)
 
@@ -113,11 +113,11 @@ def update_self(
     try:
         result = subprocess.run(git_cmd, cwd=repo_root, capture_output=False, text=True)
     except FileNotFoundError:
-        console.print("[red]✗ git not found in PATH. Install git and try again.[/red]")
+        console.print("[red]x git not found in PATH. Install git and try again.[/red]")
         raise typer.Exit(1)
 
     if result.returncode != 0:
-        console.print(f"[red]✗ git pull failed (exit {result.returncode})[/red]")
+        console.print(f"[red]x git pull failed (exit {result.returncode})[/red]")
         raise typer.Exit(result.returncode)
 
     console.print()
@@ -126,16 +126,16 @@ def update_self(
         result = subprocess.run(["uv", "sync"], cwd=repo_root, capture_output=False, text=True)
     except FileNotFoundError:
         console.print(
-            "[red]✗ uv not found in PATH. Install uv (https://docs.astral.sh/uv/) and try again.[/red]"
+            "[red]x uv not found in PATH. Install uv (https://docs.astral.sh/uv/) and try again.[/red]"
         )
         raise typer.Exit(1)
 
     if result.returncode != 0:
-        console.print(f"[red]✗ uv sync failed (exit {result.returncode})[/red]")
+        console.print(f"[red]x uv sync failed (exit {result.returncode})[/red]")
         raise typer.Exit(result.returncode)
 
     console.print(
-        "[green]✓ exa-tools updated. Restart your shell or re-run exa if the version changed.[/green]"
+        "[green]OK exa-tools updated. Restart your shell or re-run exa if the version changed.[/green]"
     )
 
 

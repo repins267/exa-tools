@@ -403,6 +403,13 @@ def audit(
             help="Explicit PDF output path; implies --output-pdf [default: none]",
         ),
     ] = None,
+    output_csv: Annotated[
+        str | None,
+        typer.Option(
+            "--output-csv",
+            help="Save control results as CSV (auto-saved beside the HTML otherwise) [default: none]",
+        ),
+    ] = None,
     tenant_aware: Annotated[
         bool,
         typer.Option(
@@ -455,6 +462,7 @@ def audit(
         from exa.compliance.report import (
             default_report_path,
             generate_html_report,
+            save_csv_report,
             save_html_report,
         )
 
@@ -474,6 +482,15 @@ def audit(
         if html_path is not None:
             save_html_report(report, html_path)
             console.print(f"\n  HTML report saved: {html_path}", style="green")
+
+        csv_target = None
+        if output_csv is not None:
+            csv_target = Path(output_csv)
+        elif html_path is not None:
+            csv_target = html_path.with_suffix(".csv")
+        if csv_target is not None:
+            save_csv_report(report, csv_target)
+            console.print(f"  CSV report saved: {csv_target}", style="green")
 
         if want_pdf:
             if pdf_path:
@@ -497,44 +514,21 @@ def audit(
                 tmp_path = None
 
             try:
-                edge_candidates = [
-                    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-                ]
-                edge = next((p for p in edge_candidates if Path(p).exists()), None)
+                from exa.report.pdf import PdfUnavailableError, html_to_pdf
 
-                if edge:
-                    try:
-                        subprocess.run(
-                            [
-                                edge,
-                                "--headless",
-                                "--disable-gpu",
-                                "--print-to-pdf-no-header",
-                                f"--print-to-pdf={resolved_pdf.resolve()}",
-                                str(src_path.resolve()),
-                            ],
-                            capture_output=True,
-                            timeout=60,
-                            check=True,
-                        )
-                        if resolved_pdf.exists() and resolved_pdf.stat().st_size > 0:
-                            console.print(f"[green]PDF report saved:[/green] {resolved_pdf}")
-                        else:
-                            console.print(
-                                "[red]PDF generation failed:[/red] "
-                                "Edge ran but no PDF was written"
-                            )
-                    except subprocess.CalledProcessError as exc:
-                        console.print(f"[red]PDF generation failed:[/red] {exc}")
-                    except subprocess.TimeoutExpired:
-                        console.print("[red]PDF generation timed out[/red]")
-                else:
+                try:
+                    html_to_pdf(src_path, resolved_pdf)
+                    console.print(f"[green]PDF report saved:[/green] {resolved_pdf}")
+                except PdfUnavailableError:
                     console.print(
                         "[yellow]PDF skipped:[/yellow] Microsoft Edge not found. "
                         "Install Edge or open the HTML report and use "
-                        "File → Print → Save as PDF."
+                        "File -> Print -> Save as PDF."
                     )
+                except subprocess.TimeoutExpired:
+                    console.print("[red]PDF generation timed out[/red]")
+                except Exception as exc:  # noqa: BLE001 -- Edge nonzero exit / no PDF
+                    console.print(f"[red]PDF generation failed:[/red] {exc}")
             finally:
                 if tmp_path is not None:
                     tmp_path.unlink(missing_ok=True)

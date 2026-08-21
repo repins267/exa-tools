@@ -10,7 +10,12 @@ from rich.table import Table
 
 config_app = typer.Typer(
     name="config",
-    help="View and modify exa-tools configuration (~/.exa/config.json).",
+    help=(
+        "View and modify exa-tools configuration (~/.exa/config.json). "
+        "Takes SUBCOMMANDS, not flags -- try 'exa config tenants'. "
+        "To ADD a tenant, use 'exa configure' (no -ure/-ig confusion: "
+        "'configure' sets one up, 'config' inspects what exists)."
+    ),
     no_args_is_help=True,
 )
 console = Console()
@@ -156,6 +161,32 @@ def config_tenants() -> None:
         f"Secrets in Windows Credential Manager",
         style="dim",
     )
+
+
+@config_app.command("set-kind")
+def config_set_kind(
+    tenant: Annotated[str, typer.Argument(help="Tenant nickname (see 'exa config tenants')")],
+    kind: Annotated[str, typer.Argument(help="'demo' or 'customer'")],
+) -> None:
+    """Tag a tenant as demo or customer.
+
+    The label is surfaced by the MCP get_active_tenant / list_tenants tools so an
+    agent can tell a customer tenant from a demo one before writing. Stored as
+    non-secret metadata in ~/.exa/config.json.
+
+    
+    Examples:
+      uv run exa config set-kind sademodev22 demo
+      uv run exa config set-kind lvcva customer
+    """
+    from exa.config import set_tenant_kind
+
+    try:
+        set_tenant_kind(tenant, kind)
+    except Exception as e:
+        console.print(f"  {e}", style="red")
+        raise typer.Exit(1)
+    console.print(f"  {tenant} tagged as [bold]{kind.strip().lower()}[/bold]", style="green")
 
 
 @config_app.command("remove")

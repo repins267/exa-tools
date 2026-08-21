@@ -53,6 +53,13 @@ def _tables_response(table_id: str = "tbl-dlp-001") -> list[dict]:
             "totalItems": 0,
             "source": "Custom",
             "contextType": "Other",
+            # The live /tables endpoint returns `attributes` on every table, and
+            # the key attribute is resolved from it rather than assumed to be
+            # "key" (EXA-TABLE-KEY-ATTR). Omitting it here made the fixture
+            # thinner than the real response and forced an extra round trip.
+            "attributes": [
+                {"id": "key", "displayName": "Key", "isKey": True, "type": "string"}
+            ],
         }
     ]
 

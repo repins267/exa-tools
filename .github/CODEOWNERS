@@ -1,0 +1,10 @@
+# Review gate over the statistical source of truth for the safety benchmark.
+# Changes to the golden corpus or the gate logic require sign-off, so the CI
+# gate cannot be "passed" by silently weakening the test set.
+# TODO: add a @<org>/security-architecture team here once it exists.
+
+/tests/data/classifier_golden.jsonl   @repins267
+/exa/aillm/benchmark.py                @repins267
+/exa/aillm/learn.py                    @repins267
+/exa/aillm/calibration.py              @repins267
+/.github/workflows/ci-pipeline.yml     @repins267

@@ -9,6 +9,7 @@ Commands:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -23,6 +24,22 @@ aillm_app = typer.Typer(
 console = Console()
 
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
+
+
+def _warn_if_reference_stale() -> None:
+    """Print the age of the reference data behind a verdict.
+
+    Every "is this AI-related" call in the module resolves against this data.
+    When it is stale nothing errors -- a service that became an AI product last
+    month simply reads as ordinary web traffic and never reaches the report.
+    A clean result and an out-of-date result look identical, so the age has to
+    be stated next to the verdict rather than left for the reader to wonder about.
+    """
+    from exa.aillm.reference import reference_freshness
+
+    fresh = reference_freshness()
+    style = "yellow" if fresh.stale else "dim"
+    console.print(f"\n  Reference data: {fresh.summary}", style=style)
 
 
 def _make_client(tenant: str | None = None):
@@ -253,7 +270,8 @@ def discover_cmd(
         bool,
         typer.Option(
             "--add-rulesets/--no-add-rulesets",
-            help="Write matched alert names to AI/LLM DLP Rulesets table [default: no-add-rulesets]",
+            help="Write matched alert names to AI/LLM DLP Rulesets "
+            "[default: no-add-rulesets]",
         ),
     ] = False,
     add_apps: Annotated[
@@ -419,6 +437,1440 @@ _RULESETS_LABEL = "AI/LLM DLP Rulesets"
 # -- status -------------------------------------------------------------------
 
 
+@aillm_app.command("validate")
+def validate_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Output as JSON [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Verify AI/LLM context tables match values the tenant actually emits.
+
+    Record count is not a health signal. A table can hold hundreds of entries,
+    report Healthy, and match nothing -- silently starving every analytics rule
+    that reads it via ContextListContains(). This measures real overlap.
+
+    \b
+    Status meanings:
+      OK    -- entries match live values
+      WEAK  -- few matches for the table size (often registered-domain vs host)
+      DEAD  -- zero overlap; rules reading this table cannot fire
+      EMPTY -- table has no records
+
+    Exits non-zero if any rule-backed table is DEAD.
+
+    \b
+    Examples:
+      uv run exa aillm validate --tenant geha
+      uv run exa aillm validate --refresh --json --tenant geha
+    """
+    import json as _json
+
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.validate import (
+        STATUS_DEAD,
+        STATUS_OK,
+        STATUS_WEAK,
+        has_dead_tables,
+        validate_aillm_tables,
+    )
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(
+            client, lookback_days=lookback, refresh=refresh
+        )
+        results = validate_aillm_tables(client, profile=profile)
+
+        if json_out:
+            console.print_json(
+                _json.dumps(
+                    {
+                        "tenant": profile.tenant,
+                        "collected_at": profile.collected_at,
+                        "api_calls": profile.api_calls,
+                        "tables": [
+                            {
+                                "table": r.table_name,
+                                "records": r.records,
+                                "live_field": r.live_field,
+                                "live_values": r.live_values,
+                                "overlap": r.overlap,
+                                "status": r.status,
+                                "read_by_rules": r.read_by_rules,
+                                "note": r.note,
+                            }
+                            for r in results
+                        ],
+                    }
+                )
+            )
+        else:
+            tbl = Table(show_header=True, header_style="bold")
+            tbl.add_column("Table", style="cyan", no_wrap=True)
+            tbl.add_column("Records", justify="right")
+            tbl.add_column("Live Field", style="dim")
+            tbl.add_column("Live Values", justify="right")
+            tbl.add_column("Overlap", justify="right")
+            tbl.add_column("Rules", justify="center")
+            tbl.add_column("Status")
+
+            colours = {STATUS_OK: "green", STATUS_WEAK: "yellow", STATUS_DEAD: "red"}
+            for r in results:
+                tbl.add_row(
+                    r.table_name,
+                    str(r.records),
+                    r.live_field,
+                    str(r.live_values),
+                    str(r.overlap),
+                    "yes" if r.read_by_rules else "-",
+                    f"[{colours.get(r.status, 'dim')}]{r.status}[/]",
+                )
+            console.print(tbl)
+
+            for r in results:
+                if r.note:
+                    console.print(f"  {r.table_name}: {r.note}", style="dim")
+
+            console.print(
+                f"\n  Profile: {profile.api_calls} API call(s) this run "
+                f"(0 = served from cache)",
+                style="dim",
+            )
+
+        _warn_if_reference_stale()
+
+        if has_dead_tables(results):
+            console.print(
+                "\n  One or more rule-backed tables are DEAD -- "
+                "analytics rules reading them cannot fire.",
+                style="red",
+            )
+            raise typer.Exit(code=1)
+    finally:
+        client.close()
+
+
+@aillm_app.command("rules")
+def rules_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option("--refresh/--no-refresh", help="Re-collect the tenant profile "
+                     "[default: no-refresh]"),
+    ] = False,
+    show_blocked: Annotated[
+        bool,
+        typer.Option("--show-blocked/--no-show-blocked",
+                     help="List each blocked rule by name [default: show-blocked]"),
+    ] = True,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Show which AI analytics rules can fire against this tenant's data.
+
+    Every rule declares requiredFields. A rule whose required fields are absent
+    or unpopulated is enabled, Active, and silently unable to fire. This compares
+    declared requirements against the observed field inventory.
+
+    Rules blocked ONLY by agent-only fields (llm_request, llm_response,
+    ai_token_*, ai_function_name) are called out separately -- no proxy, DLP or
+    context table can populate those. That set is the agent-telemetry case.
+
+    \b
+    Examples:
+      uv run exa aillm rules --tenant geha
+      uv run exa aillm rules --refresh --tenant geha
+    """
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.rules import analyze_ai_rules
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(client, lookback_days=lookback, refresh=refresh)
+        rep = analyze_ai_rules(client, profile=profile)
+
+        console.print(f"\n  Analytics rules on tenant : {rep.total_rules}")
+        console.print(f"  AI-scoped                 : {rep.ai_rules}")
+        console.print(
+            f"  Enabled / disabled        : {rep.enabled} / {rep.disabled}"
+        )
+        console.print(f"  [green]Reachable today           : {len(rep.reachable)}[/]")
+        console.print(f"  [red]Blocked                   : {len(rep.blocked)}[/]")
+
+        if rep.blockers:
+            tbl = Table(show_header=True, header_style="bold", title="Blocking fields")
+            tbl.add_column("Missing field", style="cyan")
+            tbl.add_column("Rules blocked", justify="right")
+            tbl.add_column("Agent-only", justify="center")
+            from exa.aillm.rules import AGENT_ONLY_FIELDS
+
+            for fname, names in rep.blockers.items():
+                tbl.add_row(
+                    fname,
+                    str(len(names)),
+                    "yes" if fname in AGENT_ONLY_FIELDS else "-",
+                )
+            console.print()
+            console.print(tbl)
+
+        agent_blocked = rep.agent_blocked
+        if agent_blocked:
+            console.print(
+                f"\n  [yellow]{len(agent_blocked)} rule(s) are blocked solely by "
+                f"agent-only telemetry.[/]"
+            )
+            console.print(
+                "  No proxy, DLP or context table can populate those fields.",
+                style="dim",
+            )
+
+        if show_blocked and rep.blocked:
+            console.print("\n  Blocked rules:", style="dim")
+            for r in rep.blocked:
+                console.print(
+                    f"    {r.name[:72]}", style="dim"
+                )
+                console.print(
+                    f"      missing: {', '.join(r.missing_fields)}", style="dim"
+                )
+
+        if rep.context_consumers:
+            console.print("\n  Context tables consumed by rules:", style="dim")
+            for table_name, names in rep.context_consumers.items():
+                console.print(f"    {table_name}: {len(names)} rule(s)", style="dim")
+
+        console.print(
+            f"\n  Profile: {profile.api_calls} API call(s) this run "
+            f"(0 = served from cache)",
+            style="dim",
+        )
+    finally:
+        client.close()
+
+
+@aillm_app.command("risk")
+def risk_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option("--refresh/--no-refresh", help="Re-collect the tenant profile "
+                     "[default: no-refresh]"),
+    ] = False,
+    show_unlisted: Annotated[
+        bool,
+        typer.Option("--show-unlisted/--no-show-unlisted",
+                     help="List AI-looking domains absent from reference data "
+                          "[default: show-unlisted]"),
+    ] = True,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Report the risk tiers of AI domains this tenant actually reaches.
+
+    Joins observed web_domain values to the curated risk levels in
+    'Public AI Domains and Risk'. Also maintains a high-risk watchlist: an empty
+    watchlist is the good outcome and is itself a reportable finding.
+
+    \b
+    Examples:
+      uv run exa aillm risk --tenant geha
+      uv run exa aillm risk --refresh --no-show-unlisted --tenant geha
+    """
+    from exa.aillm.profile import collect_tenant_profile
+    from exa.aillm.risk import build_risk_report
+
+    client = _make_client(tenant)
+    try:
+        profile = collect_tenant_profile(client, lookback_days=lookback, refresh=refresh)
+        rep = build_risk_report(client, profile=profile)
+
+        colours = {"critical": "red", "high": "red", "medium": "yellow", "low": "green"}
+        tbl = Table(show_header=True, header_style="bold")
+        tbl.add_column("Risk", style="cyan")
+        tbl.add_column("Domains", justify="right")
+        tbl.add_column("Examples", style="dim")
+        for tier, domains in rep.by_risk.items():
+            tbl.add_row(
+                f"[{colours.get(tier, 'dim')}]{tier.upper()}[/]",
+                str(len(domains)),
+                ", ".join(d.domain for d in domains[:4]),
+            )
+        console.print(tbl)
+
+        if rep.watchlist_clear:
+            console.print(
+                f"\n  [green]High-risk watchlist CLEAR[/] — none of the "
+                f"{rep.watchlist_total} high-risk domains were reached.",
+            )
+        else:
+            console.print(
+                f"\n  [red]High-risk watchlist: {len(rep.watchlist_hits)} hit(s)[/]"
+            )
+            for d in rep.watchlist_hits:
+                console.print(f"    {d.domain}  ({d.provider} / {d.category})")
+
+        if show_unlisted and rep.unlisted:
+            console.print(
+                f"\n  {len(rep.unlisted)} AI-looking domain(s) not in reference data "
+                f"— candidates for the ai-llm-domains repo:",
+                style="dim",
+            )
+            for d in rep.unlisted[:40]:
+                console.print(f"    {d}", style="dim")
+
+        if rep.sample_truncated:
+            console.print(
+                "\n  NOTE: web_domain sample was truncated — treat counts as a "
+                "lower bound.",
+                style="yellow",
+            )
+        console.print(
+            f"\n  Profile: {profile.api_calls} API call(s) this run "
+            f"(0 = served from cache)",
+            style="dim",
+        )
+    finally:
+        client.close()
+
+
+@aillm_app.command("sources")
+def sources_cmd(
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to enumerate"),
+    ] = 7,
+    show_all: Annotated[
+        bool,
+        typer.Option(
+            "--all/--ai-only",
+            help="Include sources with no AI/LLM relevance [default: ai-only]",
+        ),
+    ] = False,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Inventory the vendors, products and collectors feeding this tenant.
+
+    Run this FIRST. Every later step assumes a source exists to populate the
+    field it measures, and that assumption is worth two API calls to check --
+    a DNS-only tenant emits dns-response rather than web-activity, so the OOTB
+    AI rules cannot fire regardless of how well the context tables are filled.
+
+    Reports which sources exist and what they emit, never how much: group_by
+    returns distinct values with no count field at all.
+
+    \b
+    Examples:
+      uv run exa aillm sources --tenant baystate
+      uv run exa aillm sources --all --lookback 30 --tenant baystate
+      uv run exa aillm sources --json --tenant baystate | jq .
+    """
+    import dataclasses
+    import json as _json
+
+    from exa.aillm.sources import collect_sources
+
+    client = _make_client(tenant)
+    try:
+        inv = collect_sources(client, lookback_days=lookback)
+
+        if json_out:
+            payload = {
+                "lookback_days": inv.lookback_days,
+                "api_calls": inv.api_calls,
+                "truncated": inv.truncated,
+                "collectors_available": inv.collectors_available,
+                "missing_roles": inv.missing_roles(),
+                "sources": [
+                    {
+                        **{
+                            k: v
+                            for k, v in dataclasses.asdict(s).items()
+                            if k != "pack"
+                        },
+                        "pack": s.pack.key if s.pack else None,
+                        "ai_relevant": s.ai_relevant,
+                        "recognised": s.recognised,
+                    }
+                    for s in inv.sources
+                ],
+            }
+            console.print_json(_json.dumps(payload))
+            return
+
+        console.rule(f"Source inventory — last {inv.lookback_days} days")
+
+        if not inv.sources:
+            console.print(
+                "\n  No vendor/product values returned. Either the tenant is "
+                "silent over this window, or `vendor`/`product` are unpopulated.",
+                style="yellow",
+            )
+            return
+
+        shown = inv.sources if show_all else inv.ai_sources
+        tbl = Table(show_header=True, header_style="bold")
+        tbl.add_column("Vendor", style="cyan", no_wrap=True)
+        tbl.add_column("Product", no_wrap=True)
+        tbl.add_column("Role")
+        tbl.add_column("Known", justify="center")
+        tbl.add_column("Activity types", max_width=40)
+        tbl.add_column("Collector", max_width=34)
+        for s in shown:
+            acts = ", ".join(s.activity_types[:3])
+            if len(s.activity_types) > 3:
+                acts += f" (+{len(s.activity_types) - 3})"
+            coll = ", ".join(s.collectors[:2])
+            if len(s.collectors) > 2:
+                coll += f" (+{len(s.collectors) - 2})"
+            tbl.add_row(
+                s.vendor,
+                s.product,
+                s.role,
+                "yes" if s.recognised else "-",
+                acts or "-",
+                coll or "-",
+            )
+        console.print(tbl)
+
+        total, ai = len(inv.sources), len(inv.ai_sources)
+        if not show_all:
+            console.print(
+                f"\n  {ai} AI-relevant of {total} sources. "
+                "Use --all to see the rest.",
+                style="dim",
+            )
+
+        missing = inv.missing_roles()
+        if missing:
+            console.print(
+                f"\n  No source for: {', '.join(missing)}",
+                style="yellow",
+            )
+            if "agent" in missing:
+                console.print(
+                    "    Without an agent source, llm_request / ai_token_* / result "
+                    "are unpopulated and the rules needing them cannot fire —\n"
+                    "    no amount of context-table population changes that.",
+                    style="dim",
+                )
+            if "edr" in missing:
+                console.print(
+                    "    Without endpoint telemetry there is no detection path for "
+                    "locally-run models (ollama, lm studio, llama.cpp).",
+                    style="dim",
+                )
+
+        unknown = inv.unrecognised
+        if unknown:
+            console.print(
+                f"\n  {len(unknown)} source(s) have no vendor pack — "
+                "candidates to add after this engagement:",
+                style="dim",
+            )
+            for s in unknown[:10]:
+                console.print(f"    {s.key}  ({s.role})", style="dim")
+
+        if not inv.collectors_available:
+            console.print(
+                "\n  Cloud Collector listing unavailable — the tenant may ingest "
+                "via Site Collectors or syslog instead.",
+                style="dim",
+            )
+        if inv.truncated:
+            console.print(
+                "\n  Sample truncated — treat this inventory as a LOWER BOUND.",
+                style="yellow",
+            )
+        console.print(
+            f"\n  {inv.api_calls} API call(s) this run", style="dim"
+        )
+    finally:
+        client.close()
+
+
+# No help= here on purpose: Typer prefers it over the callback docstring, and
+# the docstring is what carries the withhold-reason table and the examples that
+# tests/test_help.py requires of every command.
+gaps_app = typer.Typer(name="gaps", invoke_without_command=True)
+aillm_app.add_typer(gaps_app)
+
+
+@gaps_app.callback(invoke_without_command=True)
+def gaps_cmd(
+    ctx: typer.Context,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the reviewable JSON gap report to this path [default: none]",
+        ),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    deep: Annotated[
+        bool,
+        typer.Option(
+            "--deep/--no-deep",
+            help="Re-enumerate any field whose standing 5,000-value sample was "
+            "truncated, at a 50,000 row cap. One read-only API call per "
+            "truncated field, and the reason the proposal counts are right "
+            "[default: deep]",
+        ),
+    ] = True,
+    include_withheld_values: Annotated[
+        bool,
+        typer.Option(
+            "--include-withheld-values/--no-include-withheld-values",
+            help="Write withheld alert_name text into the report. Those strings "
+            "are free text from the source product and can carry customer "
+            "content [default: no-include-withheld-values]",
+        ),
+    ] = False,
+    max_listed: Annotated[
+        int,
+        typer.Option(
+            "--max-listed",
+            help="Withheld entries listed per reason in the output; 0 lists all. "
+            "Counts are always complete -- this caps the listing only "
+            "[default: 200]",
+        ),
+    ] = 200,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Show what this tenant emits that the AI/LLM context tables do not hold.
+
+    READ-ONLY -- this command never writes to a tenant. It classifies every
+    missing value into propose (safe to add) or withhold (with a machine-readable
+    reason), and never drops one silently: examined always equals accounted for.
+
+    Values are normalised through the vendor pack first. Microsoft Purview wraps
+    each classic DLP match with the message subject, so 19,134 distinct live
+    values collapsed to 2 real policy names on one tenant -- diffing the raw
+    strings compares one-shot text and proposes adding all of it.
+
+    \b
+    Withhold reasons:
+      high-cardinality-per-record -- one distinct value per event; unmatchable
+      machine-generated           -- vendor noise tokens (dga-*, *.TC.*)
+      not-ai-related              -- no AI/LLM signal
+      excluded-martech            -- adtech riding the .ai TLD
+      needs-review                -- plausible, but not safe unattended
+      covered-after-normalisation -- already in the table once normalised
+
+    Counts are LOWER BOUNDS wherever the live sample was truncated. --deep (on
+    by default) re-enumerates any capped field at a 50,000 row cap first: the
+    standing 5,000-value sample hid six of eight genuine AI alert names behind
+    per-email DLP noise on a live tenant.
+
+    \b
+    Examples:
+      uv run exa aillm gaps --tenant baystate
+      uv run exa aillm gaps --tenant baystate --out gaps.json
+      uv run exa aillm gaps --no-deep --json --tenant baystate
+      uv run exa aillm gaps apply gaps.json --tenant baystate
+    """
+    import json as _json
+
+    from exa.aillm.gaps import analyze_gaps, gap_report_to_dict
+
+    # This is a group callback so 'gaps apply' can hang off it. Click runs the
+    # callback before every subcommand, so without this guard 'gaps apply' would
+    # silently re-run the whole analysis -- ~10 API calls -- before writing.
+    if ctx.invoked_subcommand is not None:
+        return
+
+    client = _make_client(tenant)
+    try:
+        report = analyze_gaps(
+            client,
+            lookback_days=lookback,
+            refresh=refresh,
+            include_withheld_values=include_withheld_values,
+            deep=deep,
+        )
+    finally:
+        client.close()
+
+    payload = gap_report_to_dict(report, max_listed_per_reason=max_listed)
+
+    if output is not None:
+        output.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+
+    if json_out:
+        console.print_json(_json.dumps(payload))
+        return
+
+    console.rule("AI/LLM context table gaps -- read only")
+
+    def _bound(n: int, truncated: bool) -> str:
+        return f">= {n}" if truncated else str(n)
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Field", style="dim")
+    tbl.add_column("Missing", justify="right")
+    tbl.add_column("Propose", justify="right")
+    tbl.add_column("Withhold", justify="right")
+    tbl.add_column("Top withhold reason", max_width=32)
+    tbl.add_column("Status")
+
+    colours = {"OK": "green", "WEAK": "yellow", "DEAD": "red", "EMPTY": "red"}
+    for t in report.tables:
+        reasons = t.by_reason()
+        top = next(iter(reasons.items()), None)
+        tbl.add_row(
+            t.table_name,
+            ", ".join(t.fields),
+            _bound(t.examined, t.truncated_sample),
+            str(t.proposed),
+            _bound(t.withheld_values, t.truncated_sample),
+            f"{top[0]} ({top[1]})" if top else "-",
+            f"[{colours.get(t.status, 'dim')}]{t.status}[/]",
+        )
+    console.print(tbl)
+
+    for t in report.tables:
+        if not t.propose:
+            continue
+        console.print(f"\n  {t.table_name} -- {len(t.propose)} proposed:", style="bold")
+        for g in t.propose:
+            src = f"  [{', '.join(g.sources)}]" if g.sources else ""
+            console.print(f"    + {g.value}", style="green")
+            console.print(f"        {g.reason}{src}", style="dim")
+
+    for t in report.tables:
+        reasons = t.by_reason()
+        if not reasons:
+            continue
+        console.print(f"\n  {t.table_name} -- withheld:", style="dim")
+        for reason, count in reasons.items():
+            console.print(
+                f"    {_bound(count, t.truncated_sample):>10}  {reason}", style="dim"
+            )
+
+    unbalanced = [t.table_name for t in report.tables if not t.balanced]
+    if unbalanced:
+        console.print(
+            f"\n  BUG: values unaccounted for in: {', '.join(unbalanced)}",
+            style="red",
+        )
+    else:
+        console.print(
+            "\n  Every examined value is accounted for in exactly one bucket.",
+            style="dim",
+        )
+
+    if report.deepened_fields:
+        console.print(
+            "\n  Re-enumerated at a 50,000 row cap (standing sample was capped "
+            f"at 5,000): {', '.join(report.deepened_fields)}",
+            style="dim",
+        )
+
+    if report.lower_bound:
+        console.print(
+            "\n  Live samples were truncated for: "
+            f"{', '.join(report.truncated_fields)}.\n"
+            "  EVERY count above is a LOWER BOUND -- a value absent here may "
+            "still be present on the tenant.",
+            style="yellow",
+        )
+
+    if output is not None:
+        console.print(f"\n  Wrote {output}", style="green")
+        if not include_withheld_values:
+            console.print(
+                "  Withheld alert_name text is redacted in that file "
+                "(--include-withheld-values to keep it).",
+                style="dim",
+            )
+    console.print(
+        f"\n  Profile: {report.api_calls} API call(s) this run "
+        f"(0 = served from cache)",
+        style="dim",
+    )
+    _warn_if_reference_stale()
+
+
+@gaps_app.command("apply")
+def gaps_apply_cmd(
+    report_file: Annotated[
+        Path,
+        typer.Argument(
+            help="gaps.json written by 'exa aillm gaps --out'",
+            exists=True,
+            dir_okay=False,
+        ),
+    ],
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run/--no-dry-run",
+            help="Show what would be written without writing it. "
+            "--no-dry-run writes to the tenant [default: dry-run]",
+        ),
+    ] = True,
+    table: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--table",
+            help="Restrict to this table display name; repeatable "
+            "[default: every table in the report]",
+        ),
+    ] = None,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Write a reviewed gap report's proposals into their context tables.
+
+    Reads the file rather than re-deriving the analysis, deliberately: a human
+    has to be able to read what will be written before it is written. Only the
+    'propose' bucket is ever written -- nothing withheld can be promoted from
+    here, at any flag.
+
+    DRY RUN IS THE DEFAULT. --no-dry-run writes to the tenant.
+
+    Two safeguards worth knowing about, because both cover failures the API
+    reports as success:
+
+    \b
+      - The key attribute is re-resolved per table. It is not always named
+        'key' -- writing under the wrong one is accepted and lands nothing.
+      - The table is re-read first, so a value that arrived between the report
+        and the apply is skipped. addRecords is additive; re-writing duplicates.
+
+    Writes are then polled to a terminal uploadStatus. The POST returns 200
+    before the records are queryable, so an immediate read reports the
+    pre-write state and reads exactly like a failed write.
+
+    \b
+    Examples:
+      uv run exa aillm gaps apply gaps.json --tenant baystate
+      uv run exa aillm gaps apply gaps.json --tenant baystate --no-dry-run
+      uv run exa aillm gaps apply gaps.json --table "AI/LLM DLP Rulesets"
+    """
+    import json as _json
+
+    from exa.aillm.gaps import apply_gaps
+
+    client = _make_client(tenant)
+    try:
+        results = apply_gaps(
+            client, report_file, dry_run=dry_run, tables=list(table) if table else None
+        )
+    finally:
+        client.close()
+
+    if json_out:
+        console.print_json(
+            _json.dumps(
+                {
+                    "dry_run": dry_run,
+                    "tables": [
+                        {
+                            "table": r.table_name,
+                            "table_id": r.table_id,
+                            "key_attr": r.key_attr,
+                            "proposed": r.proposed,
+                            "already_present": r.already_present,
+                            "written": r.written,
+                            "status": r.status,
+                            "errors": r.errors,
+                            "timed_out": r.timed_out,
+                            "skipped_reason": r.skipped_reason,
+                            "ok": r.ok,
+                        }
+                        for r in results
+                    ],
+                }
+            )
+        )
+        return
+
+    console.rule("AI/LLM gaps apply -- DRY RUN" if dry_run else "AI/LLM gaps apply")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Key attr", style="dim")
+    tbl.add_column("Proposed", justify="right")
+    tbl.add_column("Present", justify="right")
+    tbl.add_column("Written" if not dry_run else "Would write", justify="right")
+    tbl.add_column("Status")
+
+    for r in results:
+        if r.skipped_reason:
+            status = f"[dim]{r.skipped_reason}[/]"
+        elif r.timed_out:
+            status = "[yellow]still uploading -- re-check later[/]"
+        elif r.errors:
+            status = f"[red]{r.errors} error(s)[/]"
+        else:
+            status = f"[green]{r.status or 'ok'}[/]"
+        tbl.add_row(
+            r.table_name,
+            r.key_attr,
+            str(r.proposed),
+            str(r.already_present),
+            str(r.written),
+            status,
+        )
+    console.print(tbl)
+
+    total = sum(r.written for r in results)
+    if dry_run:
+        console.print(
+            f"\n  DRY RUN -- nothing was written. {total} record(s) would be "
+            "added.\n  Re-run with --no-dry-run to write.",
+            style="yellow",
+        )
+        return
+
+    failed = [r for r in results if not r.ok and not r.skipped_reason]
+    if failed:
+        console.print(
+            f"\n  {len(failed)} table(s) did not complete cleanly: "
+            f"{', '.join(r.table_name for r in failed)}",
+            style="red",
+        )
+    console.print(f"\n  {total} record(s) written.", style="green")
+    console.print(
+        "  Re-run 'exa aillm validate' to confirm overlap improved -- record "
+        "count alone does not prove a table matches live data.",
+        style="dim",
+    )
+
+
+@aillm_app.command("watch")
+def watch_cmd(
+    out_dir: Annotated[
+        Path,
+        typer.Option(
+            "--out-dir",
+            "-o",
+            help="Directory for per-tenant reports and the index "
+            "[default: reports/aillm-watch]",
+        ),
+    ] = Path("reports/aillm-watch"),
+    tenant: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tenant",
+            "-t",
+            help="Restrict to this tenant; repeatable [default: every configured tenant]",
+        ),
+    ] = None,
+    skip: Annotated[
+        list[str] | None,
+        typer.Option("--skip", help="Exclude this tenant; repeatable [default: none]"),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    drift: Annotated[
+        bool,
+        typer.Option(
+            "--drift/--no-drift",
+            help="Include drift analysis. Roughly ten API calls per tenant, so it "
+            "is off by default across a whole estate [default: no-drift]",
+        ),
+    ] = False,
+    save_baselines: Annotated[
+        bool,
+        typer.Option(
+            "--save-baselines/--no-save-baselines",
+            help="Store each run as the next run's comparison point "
+            "[default: save-baselines]",
+        ),
+    ] = True,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+) -> None:
+    """Report on every configured tenant in one pass, newest concerns first.
+
+    READ-ONLY against tenants. Writes one HTML report per tenant plus an index
+    page showing which need attention, and stores a baseline per tenant so the
+    next run can show movement.
+
+    Built for a scheduled weekly run -- Windows Task Scheduler or cron. Note it
+    is exa-tools that should be scheduled, not a Claude Desktop MCP session: this
+    mints and refreshes its own token per run, whereas a Desktop MCP config holds
+    a static ~4h bearer that is expired by Monday morning.
+
+    \b
+    Four states, and the third is not the second:
+      moved        counts changed since the stored baseline
+      quiet        baseline exists, nothing moved
+      no baseline  first run -- cannot be compared, which is NOT "nothing changed"
+      failed       auth, network or data error on that tenant only
+
+    One tenant failing never stops the run. A watch that aborts on tenant 3 of 10
+    reports on 2 and looks like it covered everything, so failures are collected
+    and listed rather than raised.
+
+    \b
+    Examples:
+      uv run exa aillm watch
+      uv run exa aillm watch --tenant baystate --tenant geha
+      uv run exa aillm watch --skip sademodev22 --skip sademodev23
+      uv run exa aillm watch --drift -o C:\\Reports\\weekly
+    """
+    import json as _json
+
+    from exa.aillm.watch import (
+        FAILED,
+        MOVED,
+        NO_BASELINE,
+        QUIET,
+        configured_tenants,
+        save_index,
+        watch_tenants,
+        watch_to_dict,
+    )
+
+    names = list(tenant) if tenant else configured_tenants()
+    if skip:
+        names = [n for n in names if n not in set(skip)]
+
+    if not names:
+        console.print(
+            "  No tenants to watch. Run 'exa config tenants' to see what is "
+            "configured.",
+            style="yellow",
+        )
+        raise typer.Exit(1)
+
+    if not json_out:
+        console.rule(f"AI/LLM watch -- {len(names)} tenant(s)")
+        console.print(f"  {', '.join(names)}\n", style="dim")
+
+    run = watch_tenants(
+        names,
+        out_dir=out_dir,
+        lookback_days=lookback,
+        drift=drift,
+        save_baselines=save_baselines,
+    )
+    index = save_index(run, out_dir)
+
+    if json_out:
+        payload = watch_to_dict(run)
+        payload["index"] = str(index)
+        console.print_json(_json.dumps(payload))
+        return
+
+    styles = {
+        MOVED: "yellow",
+        QUIET: "green",
+        NO_BASELINE: "dim",
+        FAILED: "red",
+    }
+    labels = {
+        MOVED: "moved",
+        QUIET: "quiet",
+        NO_BASELINE: "no baseline",
+        FAILED: "FAILED",
+    }
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Tenant", style="cyan", no_wrap=True)
+    tbl.add_column("State")
+    tbl.add_column("Records", justify="right")
+    tbl.add_column("Detail")
+
+    for t in run.ordered:
+        if t.state == FAILED:
+            detail = t.error
+        elif t.state == NO_BASELINE:
+            detail = "first run -- baseline stored"
+        elif t.state == MOVED:
+            detail = f"{t.changed_tables} table(s) changed"
+        else:
+            detail = "no counts moved"
+        if t.missing_tables:
+            detail += f" | {len(t.missing_tables)} table(s) absent"
+        tbl.add_row(
+            t.tenant,
+            f"[{styles[t.state]}]{labels[t.state]}[/]",
+            f"{t.total_records:,}{'+' if t.lower_bound else ''}",
+            detail,
+        )
+    console.print(tbl)
+
+    attention = [t for t in run.tenants if t.needs_attention]
+    if attention:
+        console.print(
+            f"\n  {len(attention)} tenant(s) need attention: "
+            f"{', '.join(t.tenant for t in attention)}",
+            style="yellow",
+        )
+    else:
+        console.print("\n  Nothing needs attention this run.", style="green")
+
+    failed = run.by_state(FAILED)
+    if failed:
+        console.print(
+            f"\n  {len(failed)} tenant(s) FAILED and were not reported on:",
+            style="red",
+        )
+        for t in failed:
+            console.print(f"    {t.tenant}: {t.error}", style="red")
+
+    if run.by_state(NO_BASELINE):
+        console.print(
+            f"\n  {len(run.by_state(NO_BASELINE))} tenant(s) had no baseline -- "
+            "stored now.\n  Not counted as quiet: 'cannot compare yet' is not "
+            "'nothing changed'.",
+            style="dim",
+        )
+
+    if run.any_lower_bound:
+        console.print(
+            "\n  Records marked '+' are LOWER BOUNDS (truncated live sample).\n"
+            "  Deliberately not summed -- a total built from floors reads as exact.",
+            style="yellow",
+        )
+
+    if not drift:
+        console.print(
+            "\n  Drift not collected (--drift to include; ~10 API calls per tenant).",
+            style="dim",
+        )
+
+    console.print(f"\n  Index: {index}", style="green")
+    _warn_if_reference_stale()
+
+
+@aillm_app.command("report")
+def report_cmd(
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the HTML report here "
+            "[default: reports/<tenant>-aillm-<date>.html]",
+        ),
+    ] = None,
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of tenant history to sample [default: 30]"),
+    ] = 30,
+    drift: Annotated[
+        bool,
+        typer.Option(
+            "--drift/--no-drift",
+            help="Include drift analysis. --no-drift skips the gap collection "
+            "and is much faster [default: drift]",
+        ),
+    ] = True,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            "--refresh/--no-refresh",
+            help="Re-collect the tenant profile instead of using today's cache "
+            "[default: no-refresh]",
+        ),
+    ] = False,
+    save_baseline_opt: Annotated[
+        bool,
+        typer.Option(
+            "--save-baseline/--no-save-baseline",
+            help="Store this run as the baseline for the next run's change "
+            "detection [default: save-baseline]",
+        ),
+    ] = True,
+    fmt: Annotated[
+        str | None,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output file format: html | pdf | json | csv "
+            "[default: inferred from --out extension, else html]",
+        ),
+    ] = None,
+    json_out: Annotated[
+        bool,
+        typer.Option("--json/--no-json", help="Emit JSON to stdout [default: no-json]"),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Report AI/LLM state, what changed since last run, and what is drifting in.
+
+    READ-ONLY. Writes an HTML report plus a state snapshot under
+    ~/.exa/aillm-reports/<tenant>/ so the next run can show movement.
+
+    \b
+      STATE    what the tables hold and whether dashboards are fed
+      CHANGES  record-count movement since the last snapshot
+      DRIFT    values this tenant emits that neither the tables nor the
+               shipped reference data know about
+
+    Drift is narrower than a gap. A gap is anything missing from a table;
+    drift is missing from the table AND unknown to the reference data -- new to
+    us, not merely not yet applied. Nothing filters on it and no rule matches
+    it, so it renders as absence everywhere and needs asking for by name.
+
+    On a first run there is no baseline, and the report says so rather than
+    showing an empty change list that reads as "nothing changed".
+
+    \b
+    Examples:
+      uv run exa aillm report --tenant baystate
+      uv run exa aillm report --tenant baystate -o baystate.html
+      uv run exa aillm report --format pdf --tenant baystate
+      uv run exa aillm report --format csv -o landscape.csv --tenant baystate
+      uv run exa aillm report --no-drift --tenant baystate
+      uv run exa aillm report --json --tenant baystate
+    """
+    import json as _json
+
+    from exa.aillm.report import (
+        build_report,
+        default_report_path,
+        report_to_dict,
+        save_baseline,
+        save_csv_report,
+        save_html_report,
+        save_json_report,
+        save_pdf_report,
+    )
+    from exa.config import get_default_tenant
+
+    # The snapshot is keyed by tenant name, so an unresolved --tenant would
+    # diff one tenant's state against another's baseline and report movement
+    # that never happened.
+    name = tenant or get_default_tenant()
+
+    client = _make_client(tenant)
+    try:
+        report = build_report(
+            client,
+            name,
+            lookback_days=lookback,
+            refresh=refresh,
+            include_drift=drift,
+        )
+    finally:
+        client.close()
+
+    # Resolve the output format: an explicit --format wins; else infer from the
+    # --out extension; else HTML. (--json is a separate stdout contract, below.)
+    known_formats = {"html", "pdf", "json", "csv"}
+    chosen = (fmt or "").strip().lower()
+    if not chosen and output is not None:
+        ext = output.suffix.lower().lstrip(".")
+        if ext in known_formats:
+            chosen = ext
+    if not chosen:
+        chosen = "html"
+    if chosen not in known_formats:
+        console.print(
+            f"[red]Unknown --format '{fmt}'. Use html, pdf, json, or csv.[/]"
+        )
+        raise typer.Exit(1)
+
+    # Default path carries the chosen format's extension so files don't collide.
+    if output is not None:
+        path = output
+    else:
+        path = default_report_path(name)
+        if chosen != "html":
+            path = path.with_suffix(f".{chosen}")
+
+    if chosen == "html":
+        save_html_report(report, path)
+    elif chosen == "json":
+        save_json_report(report, path)
+    elif chosen == "csv":
+        save_csv_report(report, path)
+    else:  # pdf
+        from exa.report.pdf import PdfUnavailableError
+
+        try:
+            save_pdf_report(report, path)
+        except PdfUnavailableError as exc:
+            console.print(f"[yellow]PDF skipped:[/] {exc}")
+            raise typer.Exit(1) from exc
+        except Exception as exc:  # noqa: BLE001 -- surface Edge failure/timeout
+            console.print(f"[red]PDF generation failed:[/] {exc}")
+            raise typer.Exit(1) from exc
+
+    snapshot = save_baseline(report) if save_baseline_opt else None
+
+    if json_out:
+        console.print_json(_json.dumps(report_to_dict(report)))
+        return
+
+    console.rule(f"AI/LLM report -- {name}")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Table", style="cyan", no_wrap=True)
+    tbl.add_column("Key attr", style="dim")
+    tbl.add_column("Records", justify="right")
+    tbl.add_column("Read by", style="dim")
+    tbl.add_column("Status")
+    for t in report.tables:
+        if not t.present:
+            status = "[red]not on tenant[/]"
+        elif t.records == 0:
+            status = "[red]empty[/]"
+        else:
+            status = "[green]populated[/]"
+        tbl.add_row(
+            t.name,
+            t.key_attr or "-",
+            f"{t.records:,}",
+            ", ".join(t.consumers) or "-",
+            status,
+        )
+    console.print(tbl)
+
+    moved = [c for c in report.changes if c.moved]
+    if not report.has_baseline:
+        console.print(
+            "\n  No previous snapshot -- this run is now the baseline. "
+            "Nothing to\n  compare against yet, which is not the same as "
+            "nothing having changed.",
+            style="yellow",
+        )
+    elif not moved:
+        console.print(
+            f"\n  No record counts moved since {report.baseline_at}.", style="dim"
+        )
+    else:
+        console.print(f"\n  Changes since {report.baseline_at}:", style="bold")
+        for c in moved:
+            style = "green" if c.delta > 0 else "red"
+            console.print(
+                f"    {c.name}: {c.before:,} -> {c.after:,} ({c.delta:+,})",
+                style=style,
+            )
+
+    if drift:
+        if report.drift:
+            bound = "+" if report.counts_are_lower_bound else ""
+            console.print(
+                f"\n  Drift -- {len(report.drift)}{bound} value(s) emitted here "
+                "but unknown to\n  both the tables and the reference data:",
+                style="bold",
+            )
+            for d in report.drift[:20]:
+                console.print(f"    {d.field_name}: {d.value}", style="yellow")
+            if len(report.drift) > 20:
+                console.print(
+                    f"    ... {len(report.drift) - 20} more -- see the report",
+                    style="dim",
+                )
+        else:
+            console.print(
+                "\n  No drift: everything AI-related this tenant emits is "
+                "already known.",
+                style="dim",
+            )
+
+    if report.counts_are_lower_bound:
+        console.print(
+            "\n  Live samples were truncated for "
+            f"{', '.join(report.truncated_fields)}.\n"
+            "  EVERY count above is a LOWER BOUND.",
+            style="yellow",
+        )
+
+    console.print(f"\n  Report: {path}", style="green")
+    if snapshot:
+        console.print(f"  Baseline stored: {snapshot}", style="dim")
+    _warn_if_reference_stale()
+
+
+@aillm_app.command("dashboard")
+def dashboard_cmd(
+    output: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Write the dashboard .config here [default: aillm-landscape.config]",
+        ),
+    ] = Path("aillm-landscape.config"),
+    title: Annotated[
+        str,
+        typer.Option(
+            "--title",
+            help="Dashboard title. Leave at the default to keep two tenants' "
+            "configs diffable [default: AI/LLM Landscape]",
+        ),
+    ] = "AI/LLM Landscape",
+    lookback: Annotated[
+        str,
+        typer.Option("--lookback", help="Relative timeframe [default: 30 day]"),
+    ] = "30 day",
+    header: Annotated[
+        bool,
+        typer.Option(
+            "--header/--no-header",
+            help="Include the explanatory text tile [default: header]",
+        ),
+    ] = True,
+    portable: Annotated[
+        bool,
+        typer.Option(
+            "--portable/--no-portable",
+            help="Strip resolved table IDs, for diffing two tenants' output. "
+            "NOT importable [default: no-portable]",
+        ),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Generate an AI/LLM Landscape dashboard that is identical on every tenant.
+
+    READ-ONLY -- resolves context table IDs and writes a file. Import it from
+    the Exabeam UI (Dashboards -> Import).
+
+    Every panel filters through a context table, so the only tenant-specific
+    values in the output are the resolved table IDs. Anything that varies by
+    tenant -- outcome vocabulary, vendor, category strings -- is a group-by or
+    a pivot instead. That is what makes the same config work at a Check Point
+    site and a Zscaler site with no edit, and it moves customisation into
+    Context Management where the customer can do it themselves.
+
+    A panel whose table is absent is SKIPPED and reported, never emitted
+    unfiltered. An unfiltered panel renders every event on the tenant and looks
+    like a working AI panel.
+
+    \b
+    Examples:
+      uv run exa aillm dashboard --tenant baystate
+      uv run exa aillm dashboard --tenant baystate -o bs.config
+      uv run exa aillm dashboard --tenant geha --lookback "7 day"
+      uv run exa aillm dashboard --tenant baystate --portable -o bs.portable.json
+    """
+    import json as _json
+
+    from exa.aillm.dashboard import build_dashboard, portable_form
+
+    client = _make_client(tenant)
+    try:
+        build = build_dashboard(
+            client, title=title, lookback=lookback, include_header=header
+        )
+    finally:
+        client.close()
+
+    payload = portable_form(build.config) if portable else build.config
+    output.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+
+    console.rule("AI/LLM Landscape dashboard")
+
+    tbl = Table(show_header=True, header_style="bold")
+    tbl.add_column("Context table", style="cyan", no_wrap=True)
+    tbl.add_column("Resolved ID", style="dim")
+    for name, table_id in sorted(build.resolved.items()):
+        tbl.add_row(name, table_id)
+    console.print(tbl)
+
+    console.print(f"\n  {build.panel_count} panel(s) written to {output}", style="green")
+
+    if build.skipped:
+        console.print(
+            f"\n  {len(build.skipped)} panel(s) SKIPPED -- table missing on this "
+            "tenant:",
+            style="yellow",
+        )
+        for s in build.skipped:
+            console.print(f"    - {s}", style="yellow")
+        console.print(
+            "  Skipped rather than emitted unfiltered: an unfiltered panel "
+            "renders\n  every event on the tenant and reads as working.",
+            style="dim",
+        )
+
+    if portable:
+        console.print(
+            "\n  --portable strips table IDs for diffing. This file will NOT "
+            "import.",
+            style="yellow",
+        )
+    else:
+        console.print(
+            "\n  Import via Dashboards -> Import in the Exabeam UI.", style="dim"
+        )
+    console.print(
+        "  A blank panel means its table holds nothing this tenant emits -- "
+        "run\n  'exa aillm gaps' before concluding there is no activity.",
+        style="dim",
+    )
+
+
 @aillm_app.command("status")
 def status_cmd(
     tenant: Annotated[
@@ -445,22 +1897,297 @@ def status_cmd(
 
         tbl = Table(show_header=True, header_style="bold")
         tbl.add_column("Table", style="cyan", no_wrap=True)
-        tbl.add_column("Records", justify="right")
+        tbl.add_column("Retrievable", justify="right")            # authoritative
+        tbl.add_column("Reported", justify="right", style="dim")  # totalItems (may be stale)
         tbl.add_column("Last Synced", style="dim")
 
-        total = 0
+        total_ret = 0
+        total_rep = 0
+        drift = 0
         for s in statuses:
             if not s.found:
-                tbl.add_row(s.table_name, "-", "Not found", style="dim")
+                tbl.add_row(s.table_name, "-", "-", "Not found", style="dim")
             else:
-                tbl.add_row(
-                    s.table_name,
-                    str(s.record_count),
-                    s.last_updated,
-                )
-                total += s.record_count
+                ret = str(s.retrievable) if s.retrievable is not None else "?"
+                tbl.add_row(s.table_name, ret, str(s.record_count), s.last_updated)
+                total_rep += s.record_count
+                if s.retrievable is not None:
+                    total_ret += s.retrievable
+                    drift += max(0, s.record_count - s.retrievable)
 
         console.print(tbl)
-        console.print(f"\n  Total records: {total}", style="dim")
+        console.print(
+            f"\n  Total retrievable: {total_ret}   (API totalItems: {total_rep})",
+            style="dim",
+        )
+        if drift:
+            console.print(
+                f"  totalItems exceeds retrievable by {drift} across tables -- it is stale "
+                "Exabeam metadata; the retrievable count is authoritative.",
+                style="dim",
+            )
     finally:
         client.close()
+
+
+# -- snapshot / rollback (demo guardrail) -------------------------------------
+
+
+@aillm_app.command("snapshot")
+def snapshot_cmd(
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Capture the current state of the 6 AI/LLM context tables to a rollback manifest.
+
+    Read-only. Pair with `exa aillm rollback` to restore this exact state later -- e.g.
+    snapshot the empty tables, run `exa aillm sync` for a demo, then roll back clean.
+    Manifest is written to ~/.exa/aillm-rollback/<tenant>/<timestamp>.json.
+
+    
+    Examples:
+      exa aillm snapshot --tenant sademodev22
+    """
+    from exa.aillm.rollback import load_manifest, snapshot
+
+    client = _make_client(tenant)
+    try:
+        tname = getattr(client, "tenant", None) or "default"
+        console.print(f"  Snapshotting AI/LLM tables on '{tname}'...", style="dim")
+        path = snapshot(client, tname)
+        m = load_manifest(path)
+        tbl = Table(title="AI/LLM snapshot")
+        tbl.add_column("Table", style="cyan", no_wrap=True)
+        tbl.add_column("Records", justify="right")  # distinct, retrievable -- the truth
+        stale = []
+        for t in m.tables:
+            rc = t.get("record_count", 0)
+            rep = t.get("reported_count")
+            tbl.add_row(t.get("name", "?"), str(rc))
+            if rep is not None and rep != rc:
+                stale.append((t.get("name"), rep, rc))
+        console.print(tbl)
+        if stale:
+            ex = stale[0]
+            console.print(
+                f"  Note: on {len(stale)} table(s) the API's totalItems disagrees with the "
+                f"retrievable records (e.g. {ex[0]}: totalItems={ex[1]} vs {ex[2]} retrievable). "
+                "totalItems is stale Exabeam metadata that a replace does not update; the "
+                "retrievable count is authoritative and is what snapshot/rollback use.",
+                style="dim",
+            )
+        console.print(f"\n  Manifest: {path}", style="dim")
+        console.print("  Restore later with: exa aillm rollback --tenant "
+                      f"{tname} --confirm", style="dim")
+    finally:
+        client.close()
+
+
+@aillm_app.command("rollback")
+def rollback_cmd(
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+    manifest: Annotated[
+        str | None,
+        typer.Option("--manifest", help="Manifest path [default: most recent for tenant]"),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show the restore plan without writing"),
+    ] = False,
+    confirm: Annotated[
+        bool,
+        typer.Option("--confirm", help="Required to actually write the restore"),
+    ] = False,
+) -> None:
+    """Restore the 6 AI/LLM context tables from a snapshot manifest (full-table replace).
+
+    Shows the current-vs-snapshot diff first. Writes only with --confirm; --dry-run
+    previews. Makes the empty->populated AI/LLM demo repeatable.
+
+    
+    Examples:
+      exa aillm rollback --tenant sademodev22 --dry-run
+      exa aillm rollback --tenant sademodev22 --confirm
+    """
+    from exa.aillm.rollback import latest_manifest, load_manifest, restore
+
+    client = _make_client(tenant)
+    try:
+        tname = getattr(client, "tenant", None) or "default"
+        path = Path(manifest) if manifest else latest_manifest(tname)
+        if not path or not path.exists():
+            console.print(
+                f"  No snapshot manifest for '{tname}'. Run `exa aillm snapshot "
+                f"--tenant {tname}` first.",
+                style="red",
+            )
+            raise typer.Exit(code=1)
+
+        m = load_manifest(path)
+        plan = restore(client, m, dry_run=True)
+        tbl = Table(title=f"Rollback plan ({path.name})")
+        tbl.add_column("Table", style="cyan", no_wrap=True)
+        tbl.add_column("Now", justify="right")
+        tbl.add_column("-> Snapshot", justify="right")
+        tbl.add_column("Action")
+        for r in plan:
+            now = r["current_count"] if r["current_count"] >= 0 else "?"
+            tbl.add_row(r["name"], str(now), str(r["snapshot_count"]), r["action"])
+        console.print(tbl)
+
+        if dry_run:
+            console.print("\n  Dry run -- nothing written.", style="yellow")
+            return
+        if not confirm:
+            console.print(
+                "\n  Preview only. Re-run with --confirm to restore the snapshot.",
+                style="yellow",
+            )
+            return
+
+        console.print("\n  Restoring tables to the snapshot state...", style="dim")
+        restore(client, m, dry_run=False)
+        console.print(f"  Restored {len(m.tables)} AI/LLM tables from {path.name}.",
+                      style="green")
+    finally:
+        client.close()
+
+
+@aillm_app.command("cycle")
+def cycle_cmd(
+    iterations: Annotated[
+        int,
+        typer.Option("--iterations", "-n", help="Number of cycles to run [default: 15]"),
+    ] = 15,
+    confirm_filter: Annotated[
+        str,
+        typer.Option(
+            "--confirm-filter",
+            help="EQL the confirm-search step must return rows for "
+            '[default: web_domain:"chatgpt.com"]',
+        ),
+    ] = 'web_domain:"chatgpt.com"',
+    lookback: Annotated[
+        int,
+        typer.Option("--lookback", help="Days of history for validate + search [default: 30]"),
+    ] = 30,
+    from_empty: Annotated[
+        bool,
+        typer.Option(
+            "--from-empty/--from-current",
+            help="Clear tables after snapshot so sync populates from empty, "
+            "exercising the demo arc [default: from-current]",
+        ),
+    ] = False,
+    slow_seconds: Annotated[
+        float,
+        typer.Option(
+            "--slow-seconds",
+            help="A step slower than this flags the iteration slow [default: 45]",
+        ),
+    ] = 45.0,
+    output: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "--output",
+            "-o",
+            help="Findings JSON path [default: reports/aillm-cycle/<tenant>-<date>.json]",
+        ),
+    ] = None,
+    confirm: Annotated[
+        bool,
+        typer.Option(
+            "--confirm/--dry-run",
+            help="Actually run the live write loop; without it prints the plan "
+            "[default: dry-run]",
+        ),
+    ] = False,
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Run the AI/LLM populate->audit->rollback cycle N times as a stability gate.
+
+    Each iteration snapshots the six tables, optionally clears them, runs sync to
+    populate, audits the Landscape dashboard (no panel skipped) and the tables (no
+    rule-backed table DEAD), confirms live data via a search, then rolls back to
+    the snapshot and verifies every table returned to its exact baseline. The
+    rollback runs even if a middle step fails, so an aborted iteration never
+    leaves the tenant dirty.
+
+    WRITES to the tenant (sync + rollback each iteration), so it needs --confirm.
+    Writes a findings JSON and exits non-zero if any iteration fails.
+
+    \b
+    Examples:
+      uv run exa aillm cycle --tenant sademodev22 --dry-run
+      uv run exa aillm cycle -n 15 --confirm --tenant sademodev22
+      uv run exa aillm cycle -n 20 --from-empty --confirm --tenant sademodev22
+    """
+    import json as _json
+    import time
+
+    from exa.aillm.cycle import run_cycles
+    from exa.config import get_default_tenant
+
+    name = tenant or get_default_tenant()
+
+    if not confirm:
+        console.print(
+            f"  [yellow]Dry run[/] -- would run {iterations} live cycle(s) on "
+            f"[cyan]{name}[/], each: snapshot -> "
+            + ("clear -> " if from_empty else "")
+            + "sync -> audit dashboard+tables -> confirm-search -> rollback.\n"
+            "  This WRITES to the tenant (sync + rollback per iteration). "
+            "Re-run with --confirm to execute."
+        )
+        return
+
+    date_str = time.strftime("%Y-%m-%d")
+    out_path = output or Path("reports") / "aillm-cycle" / f"{name}-{date_str}.json"
+
+    console.rule(f"AI/LLM cycle -- {name} ({iterations} iterations)")
+
+    def _progress(it) -> None:
+        color = {"ok": "green", "slow": "yellow", "fail": "red"}.get(it.status, "white")
+        fails = f" [{', '.join(it.failed_steps)}]" if it.failed_steps else ""
+        console.print(
+            f"  [{color}]#{it.index:>2} {it.status.upper():<4}[/] "
+            f"{it.seconds:6.1f}s{fails}"
+        )
+
+    client = _make_client(tenant)
+    try:
+        report = run_cycles(
+            client,
+            name,
+            iterations=iterations,
+            confirm_filter=confirm_filter,
+            lookback_days=lookback,
+            from_empty=from_empty,
+            slow_seconds=slow_seconds,
+            on_iteration=_progress,
+        )
+    finally:
+        client.close()
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(_json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+
+    c = report.counts
+    console.print(
+        f"\n  Verdict: [bold]{report.verdict}[/]  "
+        f"(ok {c['ok']} / slow {c['slow']} / fail {c['fail']} "
+        f"of {len(report.iterations)})"
+    )
+    console.print(f"  Clean iterations: {report.clean_iterations}/{len(report.iterations)}")
+    console.print(f"  Findings: {out_path}", style="dim")
+    if report.verdict != "PASS":
+        raise typer.Exit(1)

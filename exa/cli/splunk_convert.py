@@ -1,4 +1,4 @@
-"""Splunk SPL → Exabeam EQL CLI commands.
+"""Splunk SPL -> Exabeam EQL CLI commands.
 
 Commands:
   exa splunk convert  -- Convert Splunk searches from Excel to Exabeam rules
@@ -342,6 +342,12 @@ def deploy_cmd(
 ) -> None:
     """Deploy converted Splunk rules to Exabeam via the correlation rules API.
 
+    
+    Examples:
+      uv run exa splunk deploy payload.json --dry-run --tenant sademodev22
+      uv run exa splunk deploy payload.json --tenant sademodev22
+      uv run exa splunk deploy payload.json --enabled --tenant sademodev22
+
     Reads the JSON produced by 'exa splunk convert' and POSTs each rule
     to POST /correlation-rules/v2/rules.  Rules are created disabled by
     default — use --enabled to activate immediately (not recommended).
@@ -459,6 +465,11 @@ def create_tables_cmd(
     ] = None,
 ) -> None:
     """Create context tables on Exabeam from values extracted during SPL conversion.
+
+    
+    Examples:
+      uv run exa splunk create-tables tables.json --dry-run --tenant sademodev22
+      uv run exa splunk create-tables tables.json --tenant sademodev22
 
     Reads the .tables.json file produced by 'exa splunk convert' and creates a
     context table for each entry, uploading all values as records.  The table

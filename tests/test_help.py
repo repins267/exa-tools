@@ -383,3 +383,86 @@ def test_aillm_help():
 def test_frameworks_help():
     result = runner.invoke(app, ["frameworks", "--help"])
     assert result.exit_code == 0
+
+
+# ---------------------------------------------------------------------------
+# Discoverability contract -- applies to every command, including future ones
+# ---------------------------------------------------------------------------
+
+
+def _walk_commands(typer_app, prefix="exa"):
+    """Yield (invocation, callback) for every command, including sub-groups."""
+    for cmd in typer_app.registered_commands:
+        name = cmd.name or (cmd.callback.__name__ if cmd.callback else "")
+        yield f"{prefix} {name}", cmd.callback
+    for group in typer_app.registered_groups:
+        inner = group.typer_instance
+        if inner is None or not isinstance(inner.info.name, str):
+            continue
+        yield from _walk_commands(inner, f"{prefix} {inner.info.name}")
+
+
+# Commands that genuinely do not need examples: no options, no arguments, and a
+# single obvious behaviour. Keep this list SHORT -- if you are adding to it,
+# the command probably does need an example.
+_NO_EXAMPLES_NEEDED = {
+    "exa version",       # prints a version string, takes nothing
+    "exa configure",     # fully interactive prompt flow, carries a Related: block
+    "exa dev connect",   # no options; reads two env vars
+    "exa commands",      # its own output is the example
+}
+
+
+def test_every_command_shows_examples():
+    """Every command must carry an `Examples:` block in its help.
+
+    A group listing shows one line per command, which is rarely enough to know
+    how to invoke it. Real sessions have been lost to guesses like
+    `exa auth -t list`, `exa config --tenants` and `exa config -t` -- all
+    reasonable, all wrong, and all avoidable if the help had shown a worked
+    invocation.
+
+    This is a contract for NEW commands as much as existing ones: adding a
+    command without examples fails here.
+    """
+    missing = []
+    for name, callback in _walk_commands(app):
+        if name in _NO_EXAMPLES_NEEDED or callback is None:
+            continue
+        doc = callback.__doc__ or ""
+        if "Examples:" not in doc:
+            missing.append(name)
+    assert not missing, (
+        "These commands have no `Examples:` block in their docstring:\n  "
+        + "\n  ".join(sorted(missing))
+        + "\n\nAdd one using the \b escape so Typer preserves the line breaks:\n"
+        '    """One-line summary.\n\n'
+        "    \b\n"
+        "    Examples:\n"
+        "      exa thing do --flag value\n"
+        '    """'
+    )
+
+
+def test_commands_command_finds_subcommands_by_keyword():
+    """`exa commands <word>` must reach commands buried in groups.
+
+    `exa --help` lists groups only, so a command whose group you cannot guess is
+    unreachable from the top. This is the escape hatch; if it stops finding
+    subcommands, discovery is broken again.
+    """
+    result = runner.invoke(app, ["commands", "tenant"])
+    assert result.exit_code == 0
+    assert "exa config tenants" in result.output, (
+        "searching 'tenant' must surface `exa config tenants` -- the exact "
+        "command real sessions failed to find"
+    )
+
+
+def test_commands_command_lists_more_than_the_root_help():
+    """The flat list must be substantially larger than the group list."""
+    flat = runner.invoke(app, ["commands"])
+    root = runner.invoke(app, ["--help"])
+    assert flat.exit_code == 0 and root.exit_code == 0
+    flat_count = sum(1 for line in flat.output.splitlines() if line.strip().startswith("exa "))
+    assert flat_count > 60, f"expected the flat list to cover the whole surface, got {flat_count}"

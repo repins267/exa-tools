@@ -42,6 +42,12 @@ class Behavior:
     parent_image: str = r"C:\Windows\System32\cmd.exe"
     rule_name: str = ""
     rule_id: str = ""
+    # Context table this behavior's process_name should become discoverable in.
+    # A behavior must have a verifiable expected outcome: either it fires a named
+    # rule, or it puts a value somewhere a table can match. Table-backed behaviors
+    # have no Sigma rule and are not exempt from the invariant -- they satisfy the
+    # other half of it.
+    feeds_table: str = ""
     notes: str = ""
 
 
@@ -72,8 +78,11 @@ _HEALTHCARE = Scenario(
             attack="T1090",
             stage="Lateral Movement",
             image=r"C:\Windows\System32\netsh.exe",
+            # Lead with the full executable name, as Sysmon records it and as
+            # every other behavior here does. Bare "netsh " cannot satisfy a
+            # rule arm matching on the binary name in the command line.
             command_line=(
-                "netsh interface portproxy add v4tov4 listenport=3389 "
+                "netsh.exe interface portproxy add v4tov4 listenport=3389 "
                 "listenaddress=0.0.0.0 connectport=3389 connectaddress=10.20.30.40"
             ),
             rule_name="[Sigma] RDP Port Forwarding Rule Added Via Netsh.EXE",
@@ -167,9 +176,161 @@ _INSURANCE = Scenario(
 )
 
 
+# Unlike the two intrusion scenarios above, these behaviors do not map to a Sigma
+# rule. They exist to put realistic AI-tooling values into `process_name` and
+# `parent_process_name` -- what feeds the AI Agent Process Names and AI Dev Framework
+# Process Names context tables (6 analytics rules each). Both tables are DEAD on every
+# tenant measured, and endpoint process telemetry is the ONLY detection path for
+# locally-run models: ollama, LM Studio and llama.cpp leave no network trace once the
+# model is downloaded, so no proxy or DNS source can see them at all.
+#
+# `rule_name` is left empty; `feeds_table` names the target table instead, which is how
+# these still satisfy the "every behavior has a verifiable outcome" invariant. The MITRE
+# ids are the closest honest fit -- most of this is usage telemetry, not attacker
+# behavior, and it is labelled that way deliberately.
+#
+# Executable names are REPRESENTATIVE. Tune them to what a given customer actually
+# runs: a table populated from this list proves the pipeline works, not that the
+# customer runs these tools.
+_AI_TOOLING = Scenario(
+    key="ai-tooling",
+    title="Shadow AI and local model usage",
+    description=(
+        "Local model runtimes, desktop AI assistants, MCP servers and agent "
+        "frameworks executing on an endpoint. Populates the two AI process-name "
+        "context tables, which no network-side source can reach."
+    ),
+    behaviors=[
+        # --- AI Agent Process Names -------------------------------------------
+        Behavior(
+            key="ollama-serve",
+            title="Local model server started (ollama)",
+            attack="T1059",
+            stage="Local Model Runtime",
+            image=r"C:\Users\Public\ollama\ollama.exe",
+            command_line="ollama.exe serve",
+            feeds_table="AI Agent Process Names",
+            notes="No network trace after the model pull.",
+        ),
+        Behavior(
+            key="lmstudio-server",
+            title="LM Studio local inference server",
+            attack="T1059",
+            stage="Local Model Runtime",
+            image=r"C:\Program Files\LM Studio\LM Studio.exe",
+            command_line='"LM Studio.exe" --server --port 1234',
+            feeds_table="AI Agent Process Names",
+            notes="",
+        ),
+        Behavior(
+            key="llamacpp-server",
+            title="llama.cpp inference server",
+            attack="T1059",
+            stage="Local Model Runtime",
+            image=r"C:\Tools\llama.cpp\llama-server.exe",
+            command_line="llama-server.exe -m models/llama-3-8b.gguf --port 8080",
+            feeds_table="AI Agent Process Names",
+            notes="",
+        ),
+        Behavior(
+            key="gpt4all-desktop",
+            title="GPT4All desktop client",
+            attack="T1059",
+            stage="Local Model Runtime",
+            image=r"C:\Program Files\GPT4All\gpt4all.exe",
+            command_line="gpt4all.exe",
+            feeds_table="AI Agent Process Names",
+            notes="",
+        ),
+        Behavior(
+            key="claude-desktop",
+            title="Desktop AI assistant with MCP enabled",
+            attack="T1059",
+            stage="AI Assistant",
+            image=r"C:\Users\jsmith\AppData\Local\Claude\claude.exe",
+            command_line="claude.exe",
+            feeds_table="AI Agent Process Names",
+            notes="MCP config makes this a data-access path.",
+        ),
+        Behavior(
+            key="cursor-ide",
+            title="AI-assisted IDE",
+            attack="T1059",
+            stage="AI Assistant",
+            image=r"C:\Users\jsmith\AppData\Local\Programs\cursor\Cursor.exe",
+            command_line="Cursor.exe",
+            feeds_table="AI Agent Process Names",
+            notes="",
+        ),
+        Behavior(
+            key="mcp-server-fs",
+            title="MCP filesystem server spawned by an assistant",
+            attack="T1059.007",
+            stage="Agent Tooling",
+            image=r"C:\Program Files\nodejs\node.exe",
+            command_line=(
+                r"node.exe C:\Users\jsmith\AppData\Roaming\npm\mcp-server-filesystem"
+                r"\dist\index.js --root C:\Shared"
+            ),
+            parent_image=r"C:\Users\jsmith\AppData\Local\Claude\claude.exe",
+            feeds_table="AI Agent Process Names",
+            notes=(
+                "Parent is the assistant -- the parent/child pair is the signal, "
+                "not the binary alone."
+            ),
+        ),
+        # --- AI Dev Framework Process Names -----------------------------------
+        Behavior(
+            key="langchain-agent",
+            title="LangChain agent executed",
+            attack="T1059.006",
+            stage="Agent Framework",
+            image=r"C:\Python312\python.exe",
+            command_line="python.exe -m langchain.agents.run --tools shell,browser",
+            feeds_table="AI Dev Framework Process Names",
+            notes="",
+        ),
+        Behavior(
+            key="llamaindex-ingest",
+            title="LlamaIndex ingestion over a file share",
+            attack="T1059.006",
+            stage="Agent Framework",
+            image=r"C:\Python312\python.exe",
+            command_line=r"python.exe -m llama_index.ingest --src \\fileserver\finance",
+            feeds_table="AI Dev Framework Process Names",
+            notes=(
+                "The source path is the interesting part -- a framework reading a "
+                "corporate share."
+            ),
+        ),
+        Behavior(
+            key="autogen-multiagent",
+            title="AutoGen multi-agent run",
+            attack="T1059.006",
+            stage="Agent Framework",
+            image=r"C:\Python312\python.exe",
+            command_line="python.exe -m autogen.agentchat --agents planner,coder,executor",
+            feeds_table="AI Dev Framework Process Names",
+            notes="Multi-agent implies delegation depth.",
+        ),
+        Behavior(
+            key="crewai-run",
+            title="CrewAI crew execution",
+            attack="T1059.006",
+            stage="Agent Framework",
+            image=r"C:\Python312\python.exe",
+            command_line="python.exe -m crewai run --crew research_crew",
+            feeds_table="AI Dev Framework Process Names",
+            notes="",
+        ),
+    ],
+)
+
+
 SCENARIOS: dict[str, Scenario] = {
     _HEALTHCARE.key: _HEALTHCARE,
     _INSURANCE.key: _INSURANCE,
+    _AI_TOOLING.key: _AI_TOOLING,
 }
 
 
@@ -271,6 +432,13 @@ def build_events(
     *,
     behavior_key: str | None = None,
     hostname: str = "SIM-CLINICAL-01",
+    # Verified 2026-07-31 on sademodev22: webhook-ingested Sysmon JSON lands
+    # with `user` and `process_name` empty regardless of format (tested
+    # DOMAIN\user and bare user; path, basename and forward-slash Image).
+    # parent_process_name extracts from an identical regex, so this is a
+    # platform-side extraction gap, not a payload shape problem. Entity
+    # attribution therefore comes from `host`, and rules must match the binary
+    # via process_command_line. Kept in the realistic DOMAIN\user form.
     user: str = "HOSPITAL\\svc_imaging",
     marker: str = "EXA-SIMULATION",
     start: datetime | None = None,

@@ -8,6 +8,8 @@ API base path: /context-management/v1/
 from __future__ import annotations
 
 import math
+import time
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -132,6 +134,74 @@ def get_all_records(
     return all_records
 
 
+def resolve_table_schema(
+    client: ExaClient,
+    table: str | dict[str, Any],
+) -> tuple[str, dict[str, str]]:
+    """Resolve a table's real key attribute and its other attribute IDs.
+
+    NEVER assume the key attribute is named "key" (EXA-TABLE-KEY-ATTR). Each
+    table defines its own. Reading records with r.get("key") against a table
+    that uses a different attribute returns an EMPTY list while totalItems
+    reports a healthy count — it looks like an empty table but is fully
+    populated. Confirmed on "Public AI Domains and Risk", which uses
+    `aillm_domain` + `risk_level`.
+
+    Args:
+        client: Authenticated ExaClient.
+        table: Table ID, or a table object from get_tables() (which already
+            includes `attributes` — pass it to avoid a second round trip).
+
+    Returns:
+        (key_attr_id, {display_name_lower: attr_id}) for non-key attributes.
+        Falls back to ("key", {}) if the schema cannot be read.
+    """
+    if isinstance(table, dict):
+        attributes = table.get("attributes") or []
+        if not attributes and table.get("id"):
+            attributes = (get_table_attributes(client, table["id"]) or {}).get(
+                "attributes", []
+            )
+    else:
+        attributes = (get_table_attributes(client, table) or {}).get("attributes", [])
+
+    key_attr = "key"
+    others: dict[str, str] = {}
+    for attr in attributes:
+        attr_id = attr.get("id", "")
+        if not attr_id:
+            continue
+        if attr.get("isKey"):
+            key_attr = attr_id
+        else:
+            display = (attr.get("displayName") or attr_id).lower()
+            others[display] = attr_id
+    return key_attr, others
+
+
+def get_all_records_keyed(
+    client: ExaClient,
+    table: str | dict[str, Any],
+) -> tuple[str, list[dict[str, Any]], set[str]]:
+    """Read every record from a table using its real key attribute.
+
+    Prefer this over get_all_records() whenever you intend to read key values —
+    it removes the "key" assumption that silently yields an empty result set.
+
+    Returns:
+        (key_attr_id, records, lowercased set of key values)
+    """
+    table_id = table["id"] if isinstance(table, dict) else table
+    key_attr, _ = resolve_table_schema(client, table)
+    records = get_all_records(client, table_id)
+    keys = {
+        str(r[key_attr]).strip().lower()
+        for r in records
+        if r.get(key_attr) not in (None, "")
+    }
+    return key_attr, records, keys
+
+
 def add_records(
     client: ExaClient,
     table_id: str,
@@ -154,6 +224,107 @@ def add_records(
             json={"operation": operation, "data": batch},
         )
     return response
+
+
+@dataclass
+class UploadResult:
+    """Outcome of one addRecords call, once the tenant has finished with it."""
+
+    tracker_id: str
+    submitted: int
+    status: str = "Unknown"
+    uploaded: int = 0
+    errors: int = 0
+    duplicates: int = 0
+    ignored_missing_key: int = 0
+    timed_out: bool = False
+
+    @property
+    def ok(self) -> bool:
+        return self.status.lower() == "completed" and self.errors == 0
+
+
+def add_records_tracked(
+    client: ExaClient,
+    table_id: str,
+    data: list[dict[str, Any]],
+    *,
+    operation: str = "append",
+) -> list[UploadResult]:
+    """Add records and return a tracker per batch, so every write can be verified.
+
+    ``add_records()`` returns only the LAST batch's response, discarding the
+    trackerId of every earlier one. Over 20,000 records that silently throws away
+    the only handle on whether the first batches landed.
+
+    Returns one UploadResult per batch, unpolled. Pass them to
+    ``poll_upload_status()`` — the write is not finished when this returns
+    (EXA-ADDRECORDS-ASYNC).
+    """
+    results: list[UploadResult] = []
+    total_batches = math.ceil(len(data) / _BATCH_SIZE)
+    for i in range(total_batches):
+        start = i * _BATCH_SIZE
+        batch = data[start : start + _BATCH_SIZE]
+        resp = client.post(
+            f"/context-management/v1/tables/{table_id}/addRecords",
+            json={"operation": operation, "data": batch},
+        )
+        resp = resp if isinstance(resp, dict) else {}
+        results.append(
+            UploadResult(
+                tracker_id=str(resp.get("trackerId") or ""),
+                submitted=len(batch),
+                duplicates=int(resp.get("totalDuplicates") or 0),
+                ignored_missing_key=int(resp.get("totalIgnoredMissingKey") or 0),
+            )
+        )
+    return results
+
+
+def poll_upload_status(
+    client: ExaClient,
+    result: UploadResult,
+    *,
+    timeout_s: float = 120.0,
+    interval_s: float = 3.0,
+) -> UploadResult:
+    """Wait for an addRecords batch to actually land, and report what happened.
+
+    addRecords returns HTTP 200 with a trackerId BEFORE the records are
+    queryable. An immediate read returns the PRE-WRITE state, which reads as
+    "the write failed" — and re-running to fix it duplicates the whole payload,
+    because addRecords is additive (EXA-ADDRECORDS-ASYNC).
+
+    Confirmed on a live tenant: 11 records written, immediate re-read showed 0 of
+    11, tracker showed Completed.
+
+    A timeout is reported as ``timed_out``, never as a failure — the write may
+    still be in flight, and calling it failed is what triggers the duplicate
+    re-run this exists to prevent.
+    """
+    if not result.tracker_id:
+        result.status = "NoTracker"
+        return result
+
+    deadline = time.monotonic() + timeout_s
+    while True:
+        try:
+            body = client.get(
+                f"/context-management/v1/tables/uploadStatus/{result.tracker_id}"
+            )
+        except Exception:  # noqa: BLE001
+            body = {}
+        if isinstance(body, dict) and body:
+            result.status = str(body.get("status") or result.status)
+            result.uploaded = int(body.get("totalUploaded") or result.uploaded)
+            result.errors = int(body.get("totalErrors") or result.errors)
+            if result.status.lower() in ("completed", "failed", "error"):
+                return result
+        if time.monotonic() >= deadline:
+            result.timed_out = True
+            return result
+        time.sleep(interval_s)
 
 
 def delete_records(

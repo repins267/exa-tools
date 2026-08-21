@@ -25,6 +25,8 @@ mcp_app = typer.Typer(
     no_args_is_help=True,
 )
 console = Console()
+# stdio mode uses stdout as the MCP protocol channel; status must go to stderr.
+err_console = Console(stderr=True)
 
 _TENANT_HELP = "Tenant nickname or FQDN [default: saved default]"
 _DOCS_MCP_URL = "https://developers.exabeam.com/mcp"
@@ -43,7 +45,9 @@ def _exa_executable() -> Path:
     return root / ".venv" / "bin" / "exa"
 
 
-def _generate_config(tenant: str | None, server_name: str) -> dict:
+def _generate_config(
+    tenant: str | None, server_name: str, allow_writes: bool = False
+) -> dict:
     """Generate the MCP client config dict for the local stdio server."""
     exe = _exa_executable()
     if exe.exists():
@@ -57,6 +61,8 @@ def _generate_config(tenant: str | None, server_name: str) -> dict:
         args += ["--tenant", tenant]
     if server_name != "exabeam":
         args += ["--name", server_name]
+    if allow_writes:
+        args += ["--allow-writes"]
 
     return {
         "mcpServers": {
@@ -68,32 +74,104 @@ def _generate_config(tenant: str | None, server_name: str) -> dict:
     }
 
 
-def _generate_docs_config(server_name: str = "exabeam-docs") -> dict:
-    """Generate config for the Exabeam API documentation MCP server (SSE, no auth)."""
-    return {
-        "mcpServers": {
-            server_name: {
-                "url": _DOCS_MCP_URL,
-                "transport": "sse",
-            }
-        }
-    }
+def _generate_docs_config(
+    server_name: str = "exabeam-docs", *, proxy: bool | None = None
+) -> dict:
+    """Generate config for the Exabeam API docs MCP server.
+
+    The enterprise "3p" (Bedrock/Cowork) Desktop build rejects a native remote
+    entry ({url, transport} or {type: sse}) and requires the server to be proxied
+    through stdio via `mcp-remote` (needs Node/npx). Older builds accept the SSE
+    URL directly. When proxy is None it is inferred from the resolved config path.
+    """
+    if proxy is None:
+        proxy = _is_3p_config()
+    if proxy:
+        server: dict = {"command": "npx", "args": ["-y", "mcp-remote", _DOCS_MCP_URL]}
+    else:
+        server = {"url": _DOCS_MCP_URL, "transport": "sse"}
+    return {"mcpServers": {server_name: server}}
 
 
 def _claude_config_path() -> Path:
-    """Return the Claude Desktop config file path for the current OS."""
+    """Return the Claude Desktop config path, preferring the "3p" build if present.
+
+    The enterprise Bedrock/Cowork build ("Claude-3p") reads a different location
+    than the classic app. Prefer it when its directory exists.
+    """
     import os
 
     if sys.platform == "win32":
+        local = os.environ.get("LOCALAPPDATA", "")
+        if local and (Path(local) / "Claude-3p").exists():
+            return Path(local) / "Claude-3p" / "claude_desktop_config.json"
         appdata = os.environ.get("APPDATA", "")
         return Path(appdata) / "Claude" / "claude_desktop_config.json"
-    return (
-        Path.home()
-        / "Library"
-        / "Application Support"
-        / "Claude"
-        / "claude_desktop_config.json"
-    )
+    base = Path.home() / "Library" / "Application Support"
+    if (base / "Claude-3p").exists():
+        return base / "Claude-3p" / "claude_desktop_config.json"
+    return base / "Claude" / "claude_desktop_config.json"
+
+
+def _is_3p_config() -> bool:
+    """True when the resolved Claude Desktop config path is the 3p build's."""
+    return "Claude-3p" in _claude_config_path().parts
+
+
+def _store_desktop_dir() -> Path | None:
+    """Return the Microsoft Store (sandboxed, MSIX) Claude config dir if present.
+
+    The Store build lives under ...\\Packages\\Claude_<id>\\LocalCache\\Roaming\\Claude
+    and CANNOT run local MCP servers (no Developer Mode, sandboxed). Detecting it lets
+    us warn instead of writing a config the app will never read.
+    """
+    if sys.platform != "win32":
+        return None
+    import glob
+    import os
+
+    local = os.environ.get("LOCALAPPDATA", "")
+    if not local:
+        return None
+    for pkg in glob.glob(str(Path(local) / "Packages" / "Claude_*")):
+        cand = Path(pkg) / "LocalCache" / "Roaming" / "Claude"
+        if cand.exists():
+            return cand
+    return None
+
+
+def _desktop_targets() -> list[dict]:
+    """All known Claude Desktop config locations for this OS, with detection state.
+
+    Each entry: {label, path, exists, supports_mcp}. Ordered by install preference.
+    The Store build is listed with supports_mcp=False so the caller can warn.
+    """
+    import os
+
+    targets: list[dict] = []
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA", "")
+        local = os.environ.get("LOCALAPPDATA", "")
+        std = Path(appdata) / "Claude" / "claude_desktop_config.json"
+        tp = Path(local) / "Claude-3p" / "claude_desktop_config.json"
+        targets.append({"label": "Claude Desktop (standard, from claude.ai)",
+                        "path": std, "exists": std.parent.exists(), "supports_mcp": True})
+        targets.append({"label": "Claude Desktop (work-licensed AWS Bedrock build \"Claude-3p\")",
+                        "path": tp, "exists": tp.parent.exists(), "supports_mcp": True})
+        store = _store_desktop_dir()
+        if store is not None:
+            targets.append({"label": "Claude Desktop (Microsoft Store - NO local MCP)",
+                            "path": store / "claude_desktop_config.json",
+                            "exists": True, "supports_mcp": False})
+    else:
+        base = Path.home() / "Library" / "Application Support"
+        std = base / "Claude" / "claude_desktop_config.json"
+        tp = base / "Claude-3p" / "claude_desktop_config.json"
+        targets.append({"label": "Claude Desktop (standard, from claude.ai)",
+                        "path": std, "exists": std.parent.exists(), "supports_mcp": True})
+        targets.append({"label": "Claude Desktop (work-licensed AWS Bedrock build \"Claude-3p\")",
+                        "path": tp, "exists": tp.parent.exists(), "supports_mcp": True})
+    return targets
 
 
 def _install_config(server_name: str, server_config: dict, config_path: Path) -> None:
@@ -108,6 +186,54 @@ def _install_config(server_name: str, server_config: dict, config_path: Path) ->
     existing.setdefault("mcpServers", {})[server_name] = server_config
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
+
+def _print_setup_guidance(server_name: str, server_config: dict, *, docs: bool) -> None:
+    """Show the exact config block and where every Claude client expects it.
+
+    No assumptions: the user picks their client/OS and pastes the block. Covers
+    Claude Desktop (standard, work-licensed AWS Bedrock, and the Store build that
+    can't do MCP) plus Claude Code, on Windows and macOS.
+    """
+    block = json.dumps({"mcpServers": {server_name: server_config}}, indent=2)
+
+    console.print("\n[bold]Config block[/bold] - merge this into your client's MCP config:")
+    console.print(block, style="cyan")
+
+    console.print("\n[bold]Where it goes (pick the one that matches your client):[/bold]")
+    for t in _desktop_targets():
+        mark = "[green]detected[/green]" if t["exists"] else "[dim]not present[/dim]"
+        if not t["supports_mcp"]:
+            console.print(
+                f"  - {t['label']}\n      {t['path']}  ({mark})\n"
+                "      [yellow]This build is sandboxed and cannot run local MCP - use the "
+                "standalone app from claude.ai/download or Claude Code instead.[/yellow]"
+            )
+        else:
+            console.print(f"  - {t['label']}\n      {t['path']}  ({mark})")
+
+    console.print(
+        "\n  - Claude Code (any OS): don't hand-edit - run\n"
+        f"      [bold]claude mcp add {server_name} -- {server_config.get('command', 'exa')} "
+        f"{' '.join(server_config.get('args', []))}[/bold]\n"
+        "      or drop the block above into a project-level [bold].mcp.json[/bold]."
+    )
+
+    if not docs:
+        console.print(
+            "\n  Prerequisite: run [bold]exa auth[/bold] first to cache credentials in keyring.",
+            style="yellow",
+        )
+        console.print(
+            "  For read-only docs only (no tenant, no local repo): "
+            "[bold]exa mcp install --docs --print[/bold].",
+            style="dim",
+        )
+    console.print(
+        "\n  After pasting: fully quit and reopen the client. You do NOT run "
+        "'exa mcp serve' yourself - the client spawns it.",
+        style="dim",
+    )
 
 
 # -- serve -------------------------------------------------------------------
@@ -134,16 +260,33 @@ def serve(
         str,
         typer.Option("--host", help="Host to bind when using --port [default: 127.0.0.1]"),
     ] = "127.0.0.1",
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help=(
+                "Enable the four write tools (create_case, update_case, update_alert, "
+                "add_case_note). Default: read-only -- write tools are hidden and refused."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Start the Exabeam MCP server.
+
+    
+    Examples:
+      uv run exa mcp serve --tenant sademodev22      # stdio, for Claude Desktop
+      uv run exa mcp serve --tenant sademodev22 --port 8080
+      uv run exa mcp install --tenant sademodev22    # usually what you want instead
 
     Default (no --port): stdio mode — Claude Desktop spawns this as a subprocess.
     With --port: HTTP/SSE mode — add http://HOST:PORT/sse as a custom connector
     in Claude Desktop settings.
 
-    Exposes 9 tools: search_alerts, get_alert, search_cases, get_case,
-    search_events, create_case, update_case, update_alert, add_case_note.
-    Token refresh is handled automatically — the server runs indefinitely.
+    Exposes 33 tools (29 read + 4 write). Read-only is the DEFAULT: the four
+    write tools (create_case, update_case, update_alert, add_case_note) are
+    hidden and refused unless --allow-writes is passed -- a hard gate, not just
+    the in-prompt ask. Token refresh is automatic; the server runs indefinitely.
     """
     import asyncio
 
@@ -151,6 +294,21 @@ def serve(
 
     client = ExaClient(tenant=tenant)
     client.authenticate()
+
+    read_only = not allow_writes
+    if read_only:
+        err_console.print(
+            "  Mode: READ-ONLY -- write tools hidden and refused. "
+            "Restart with --allow-writes to enable them.",
+            style="green",
+        )
+    else:
+        err_console.print(
+            "  Mode: WRITES ENABLED -- create/update/close cases and alerts are live. "
+            "This is a soft posture; confirm the tenant before every write.",
+            style="yellow",
+        )
+
     try:
         if port is not None:
             from exa.mcp.server import run_sse_server
@@ -164,11 +322,27 @@ def serve(
                 "in Claude Desktop settings.",
                 style="dim",
             )
-            asyncio.run(run_sse_server(client, server_name=name, host=host, port=port))
+            asyncio.run(
+                run_sse_server(
+                    client,
+                    server_name=name,
+                    host=host,
+                    port=port,
+                    read_only=read_only,
+                )
+            )
         else:
             from exa.mcp.server import run_server
 
-            asyncio.run(run_server(client, server_name=name))
+            # Make it obvious this is a healthy stdio server waiting for a client,
+            # not a hung command — the window will otherwise just sit silently.
+            err_console.print(
+                "  Server ready on stdio, waiting for a Claude client to connect.\n"
+                "  This is NORMAL - the window will look idle. You do not run this by hand;\n"
+                "  Claude spawns it via 'exa mcp install'. Press Ctrl+C to stop.",
+                style="dim",
+            )
+            asyncio.run(run_server(client, server_name=name, read_only=read_only))
     finally:
         client.close()
 
@@ -193,6 +367,13 @@ def config_cmd(
             help="Output Exabeam API docs MCP config instead [default: no-docs]",
         ),
     ] = False,
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help="Add --allow-writes to the server args [default: read-only]",
+        ),
+    ] = False,
 ) -> None:
     """Print the MCP client config JSON to stdout.
 
@@ -210,7 +391,7 @@ def config_cmd(
         docs_name = name if name != "exabeam" else "exabeam-docs"
         cfg = _generate_docs_config(server_name=docs_name)
     else:
-        cfg = _generate_config(tenant=tenant, server_name=name)
+        cfg = _generate_config(tenant=tenant, server_name=name, allow_writes=allow_writes)
 
     sys.stdout.write(json.dumps(cfg, indent=2) + "\n")
 
@@ -235,40 +416,81 @@ def install(
             help="Install Exabeam API docs MCP server instead [default: no-docs]",
         ),
     ] = False,
+    allow_writes: Annotated[
+        bool,
+        typer.Option(
+            "--allow-writes/--read-only",
+            help="Configure the server to allow write tools [default: read-only]",
+        ),
+    ] = False,
+    print_only: Annotated[
+        bool,
+        typer.Option(
+            "--print/--write",
+            help="Print the config + where each client expects it, instead of writing it.",
+        ),
+    ] = False,
 ) -> None:
-    """Install the MCP server config into Claude Desktop.
+    """Install (or print) the MCP server config for a Claude client.
 
-    Merges the server entry into Claude Desktop's config file (creating the
-    file if it does not exist). Run 'exa auth' first to cache credentials,
-    then restart Claude Desktop after installing. Use --docs to install the
-    Exabeam API documentation server instead of the live tenant server.
+    By default, merges the server entry into the detected Claude Desktop config
+    file. Use --print to instead show the exact config block and the config path
+    for every client/OS (Desktop on Windows/macOS, and Claude Code) so you can set
+    it up by hand — no assumptions about which client you run.
+
+    Run 'exa auth' first to cache credentials; restart the client after installing.
+    Use --docs for the documentation-only Exabeam Developer Portal server (no tenant,
+    no local repo needed).
 
     \b
     Examples:
-      uv run exa mcp install
-      uv run exa mcp install --tenant csnafusion
-      uv run exa mcp install --docs
-      uv run exa mcp install --name my-exa --tenant csnafusion
+      uv run exa mcp install --tenant csnafusion          # write to the detected Desktop
+      uv run exa mcp install --tenant csnafusion --print   # show config + all client paths
+      uv run exa mcp install --docs                        # docs-only (developers.exabeam.com)
     """
     if docs:
         server_name = name if name != "exabeam" else "exabeam-docs"
         cfg_block = _generate_docs_config(server_name=server_name)
     else:
         server_name = name
-        cfg_block = _generate_config(tenant=tenant, server_name=server_name)
+        cfg_block = _generate_config(
+            tenant=tenant, server_name=server_name, allow_writes=allow_writes
+        )
 
     server_config = cfg_block["mcpServers"][server_name]
-    config_path = _claude_config_path()
 
+    if print_only:
+        _print_setup_guidance(server_name, server_config, docs=docs)
+        return
+
+    config_path = _claude_config_path()
     _install_config(server_name, server_config, config_path)
 
     console.print(
-        f"  Installed '[bold]{server_name}[/bold]' → {config_path}",
+        f"  Installed '[bold]{server_name}[/bold]' -> {config_path}",
         style="green",
     )
+
+    # If a Store (sandboxed) Desktop is present, it will NOT read this config.
+    store = _store_desktop_dir()
+    if store is not None:
+        err_console.print(
+            "\n  [yellow]Heads up:[/yellow] a Microsoft Store install of Claude Desktop was detected.\n"
+            "  The Store build is sandboxed and [bold]cannot run local MCP servers[/bold] - it will\n"
+            "  ignore the config just written. If your Claude Desktop shows no MCP servers,\n"
+            "  install the standalone app from [bold]claude.ai/download[/bold] (or use Claude Code).",
+            style="dim",
+        )
+
     if not docs:
         console.print(
             "  Prerequisite: run [bold]exa auth[/bold] first to cache credentials in keyring.",
             style="yellow",
         )
-    console.print("  Restart Claude Desktop for changes to take effect.", style="dim")
+    console.print(
+        "\n  Next: fully quit and reopen Claude Desktop (not just close the window).\n"
+        f"  Then check Settings -> Developer for the '[bold]{server_name}[/bold]' server.\n"
+        "  You do NOT run 'exa mcp serve' yourself - Claude spawns it on demand.\n"
+        "  Not sure which client/OS you're on? Re-run with [bold]--print[/bold] to see every path.",
+        style="dim",
+    )

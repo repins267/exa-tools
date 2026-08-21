@@ -1,0 +1,21 @@
+{
+  "name": "exa-tools",
+  "version": "0.1.0",
+  "description": "exa-tools — Exabeam New-Scale TAM toolkit as agentic skills. Health checks, AI/LLM posture and customer call prep through the exa-tools MCP: source inventory, context-table health measured as overlap rather than record count, rule reachability, and collector state. Read-only by default; writes ask first.",
+  "author": {
+    "name": "Cyrus Field"
+  },
+  "homepage": "https://github.com/repins267/exa-tools",
+  "repository": "https://github.com/repins267/exa-tools",
+  "license": "MIT",
+  "keywords": [
+    "exabeam",
+    "siem",
+    "tam",
+    "ai-llm",
+    "health-check",
+    "mcp",
+    "claude-code"
+  ],
+  "skills": "./skills/"
+}
