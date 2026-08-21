@@ -1862,3 +1862,117 @@ def status_cmd(
         console.print(f"\n  Total records: {total}", style="dim")
     finally:
         client.close()
+
+
+# -- snapshot / rollback (demo guardrail) -------------------------------------
+
+
+@aillm_app.command("snapshot")
+def snapshot_cmd(
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+) -> None:
+    """Capture the current state of the 6 AI/LLM context tables to a rollback manifest.
+
+    Read-only. Pair with `exa aillm rollback` to restore this exact state later -- e.g.
+    snapshot the empty tables, run `exa aillm sync` for a demo, then roll back clean.
+    Manifest is written to ~/.exa/aillm-rollback/<tenant>/<timestamp>.json.
+
+    
+    Examples:
+      exa aillm snapshot --tenant sademodev22
+    """
+    from exa.aillm.rollback import load_manifest, snapshot
+
+    client = _make_client(tenant)
+    try:
+        tname = getattr(client, "tenant", None) or "default"
+        console.print(f"  Snapshotting AI/LLM tables on '{tname}'...", style="dim")
+        path = snapshot(client, tname)
+        m = load_manifest(path)
+        tbl = Table(title="AI/LLM snapshot")
+        tbl.add_column("Table", style="cyan", no_wrap=True)
+        tbl.add_column("Records", justify="right")
+        for t in m.tables:
+            tbl.add_row(t.get("name", "?"), str(t.get("record_count", 0)))
+        console.print(tbl)
+        console.print(f"\n  Manifest: {path}", style="dim")
+        console.print("  Restore later with: exa aillm rollback --tenant "
+                      f"{tname} --confirm", style="dim")
+    finally:
+        client.close()
+
+
+@aillm_app.command("rollback")
+def rollback_cmd(
+    tenant: Annotated[
+        str | None,
+        typer.Option("--tenant", "-t", help=_TENANT_HELP),
+    ] = None,
+    manifest: Annotated[
+        str | None,
+        typer.Option("--manifest", help="Manifest path [default: most recent for tenant]"),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show the restore plan without writing"),
+    ] = False,
+    confirm: Annotated[
+        bool,
+        typer.Option("--confirm", help="Required to actually write the restore"),
+    ] = False,
+) -> None:
+    """Restore the 6 AI/LLM context tables from a snapshot manifest (full-table replace).
+
+    Shows the current-vs-snapshot diff first. Writes only with --confirm; --dry-run
+    previews. Makes the empty->populated AI/LLM demo repeatable.
+
+    
+    Examples:
+      exa aillm rollback --tenant sademodev22 --dry-run
+      exa aillm rollback --tenant sademodev22 --confirm
+    """
+    from exa.aillm.rollback import latest_manifest, load_manifest, restore
+
+    client = _make_client(tenant)
+    try:
+        tname = getattr(client, "tenant", None) or "default"
+        path = Path(manifest) if manifest else latest_manifest(tname)
+        if not path or not path.exists():
+            console.print(
+                f"  No snapshot manifest for '{tname}'. Run `exa aillm snapshot "
+                f"--tenant {tname}` first.",
+                style="red",
+            )
+            raise typer.Exit(code=1)
+
+        m = load_manifest(path)
+        plan = restore(client, m, dry_run=True)
+        tbl = Table(title=f"Rollback plan ({path.name})")
+        tbl.add_column("Table", style="cyan", no_wrap=True)
+        tbl.add_column("Now", justify="right")
+        tbl.add_column("-> Snapshot", justify="right")
+        tbl.add_column("Action")
+        for r in plan:
+            now = r["current_count"] if r["current_count"] >= 0 else "?"
+            tbl.add_row(r["name"], str(now), str(r["snapshot_count"]), r["action"])
+        console.print(tbl)
+
+        if dry_run:
+            console.print("\n  Dry run -- nothing written.", style="yellow")
+            return
+        if not confirm:
+            console.print(
+                "\n  Preview only. Re-run with --confirm to restore the snapshot.",
+                style="yellow",
+            )
+            return
+
+        console.print("\n  Restoring tables to the snapshot state...", style="dim")
+        restore(client, m, dry_run=False)
+        console.print(f"  Restored {len(m.tables)} AI/LLM tables from {path.name}.",
+                      style="green")
+    finally:
+        client.close()
