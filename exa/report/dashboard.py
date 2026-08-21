@@ -30,7 +30,14 @@ def _viz(el: dict) -> str:
 
 def _is_measure(name: str) -> bool:
     n = str(name).lower()
-    return "count" in n or n.endswith(".sum") or n.startswith("count_") or n.endswith("_count")
+    # Match aggregate measures without tripping on dimensions that merely contain
+    # "count" as a substring -- e.g. geo_src_ip_country (the "country" trap).
+    return (
+        n == "count"
+        or n.endswith((".count", "_count", ".sum"))
+        or n.startswith(("count_", "sum_", "avg_", "average_", "count(", "min_", "max_"))
+        or "count(" in n
+    )
 
 
 def _is_time(name: str) -> bool:
@@ -118,7 +125,7 @@ def _big_number(value: int, label: str = "") -> str:
             f'{value:,}</div><div class="footer-note">{_esc_local(label)}</div></div>')
 
 
-def _render_panel(el: dict, client: "ExaClient | None", limit: int) -> str:
+def _render_panel(el: dict, client: ExaClient | None, limit: int) -> str:
     from exa.report.theme import data_table, panel
 
     title = el.get("title") or "(untitled)"
@@ -148,7 +155,19 @@ def _render_panel(el: dict, client: "ExaClient | None", limit: int) -> str:
         if not dims:
             return panel(title, '<div class="empty">no chart dimension</div>', sub, half=True)
 
-        is_chart = any(k in viz for k in ("bar", "column", "area", "line", "pie"))
+        # A geo map draws the country dimension as ranked bars; a bubble draws its
+        # category dimension as bars. (heat_map / coverage_map / sankey stay tabular
+        # -- a matrix or flow is not honestly a single-axis chart.)
+        is_map = "custom_looker_map" in viz
+        is_bubble = "bubble" in viz
+        is_chart = is_map or is_bubble or any(
+            k in viz for k in ("bar", "column", "area", "line", "pie")
+        )
+        if is_map and dims:
+            # prefer a geo dimension if the panel lists one
+            geo = next((d for d in dims if "geo" in d or "country" in d or "city" in d), None)
+            if geo:
+                dims = [geo] + [d for d in dims if d != geo]
         if is_chart and len(dims) <= 2:
             primary = dims[0]
             rows = search_events(client, "", fields=[primary, "count(id)"], group_by=[primary],
@@ -182,7 +201,7 @@ def _render_panel(el: dict, client: "ExaClient | None", limit: int) -> str:
 
 
 def dashboard_preview_html(
-    config: dict[str, Any], client: "ExaClient | None" = None, sample_limit: int = 8
+    config: dict[str, Any], client: ExaClient | None = None, sample_limit: int = 8
 ) -> str:
     """Render a dashboard config to a branded, chart-drawn preview HTML string."""
     from exa.report.theme import _esc, page, panel, stat_card
@@ -227,4 +246,122 @@ def dashboard_preview_html(
         "Exabeam dashboard preview",
         cards, "".join(body), "".join(f"<div>{_esc(m)}</div>" for m in meta),
         initial_theme="dark",
+    )
+
+
+# -- .config -> shareable report ------------------------------------------------
+
+# Customer names seen baked into shared dashboard exports. A preview renders only
+# the title/description/sample-data (sample data comes from the CONNECTED tenant,
+# not the customer), so scrubbing title + description de-identifies the output.
+_KNOWN_CUSTOMERS = (
+    "Sunpharma", "Sun Pharma", "ECZASA", "Nykaa", "MOMRA", "Momra", "NELC", "SANS",
+)
+
+
+def scrub_config(
+    config: dict[str, Any], extra_customers: list[str] | None = None
+) -> tuple[dict[str, Any], list[str]]:
+    """Return (scrubbed_copy, notes): customer identity removed from title/description.
+
+    Strips a leading ``Customer - ``/``Customer _ `` prefix and replaces any remaining
+    whole-word customer-name occurrence with ``Customer``. Does not mutate the input.
+    Note: filter *values* may still reference customer domains -- irrelevant to the
+    rendered preview (filters are not displayed), but review the raw .config before
+    re-sharing it as a file.
+    """
+    import copy
+
+    customers = [*_KNOWN_CUSTOMERS, *(extra_customers or [])]
+    cfg = copy.deepcopy(config)
+    notes: list[str] = []
+
+    def _redact(text: str) -> str:
+        for c in sorted(customers, key=len, reverse=True):
+            text = re.sub(rf"\b{re.escape(c)}\b", "Customer", text, flags=re.I)
+        return text
+
+    title = str(cfg.get("title") or "")
+    original = title
+    for c in sorted(customers, key=len, reverse=True):
+        for sep in (" - ", " _ ", " – ", " -", "- ", "_ ", "_", ": ", " "):
+            pref = f"{c}{sep}"
+            if title.lower().startswith(pref.lower()):
+                title = title[len(pref):]
+                break
+    title = _redact(title).strip(" -_") or "Dashboard"
+    if title != original:
+        notes.append(f"title '{original}' -> '{title}'")
+    cfg["title"] = title
+
+    desc = str(cfg.get("description") or "")
+    if desc and any(re.search(rf"\b{re.escape(c)}\b", desc, re.I) for c in customers):
+        cfg["description"] = _redact(desc)
+        notes.append("description redacted")
+
+    return cfg, notes
+
+
+def configs_to_gallery(
+    named_configs: list[tuple[str, dict[str, Any]]],
+    client: ExaClient | None = None,
+    sample_limit: int = 8,
+    scrub: bool = True,
+    title: str = "Exabeam Dashboards — exa-tools Preview Gallery",
+) -> str:
+    """Render many dashboard configs into one scrollable gallery page with nav.
+
+    Each config is previewed via ``dashboard_preview_html`` (optionally scrubbed);
+    their bodies are stitched under a shared stylesheet with anchor navigation.
+    """
+    from exa.report.theme import _esc
+
+    css, sections, nav = "", [], []
+    for i, (name, cfg) in enumerate(named_configs):
+        label = name
+        if scrub:
+            cfg, sn = scrub_config(cfg)
+            label = cfg.get("title") or name
+        try:
+            preview = dashboard_preview_html(cfg, client=client, sample_limit=sample_limit)
+        except Exception as exc:  # noqa: BLE001 -- one bad config never kills the gallery
+            sections.append(
+                f"<section id='d{i}'><h2>{_esc(label)}</h2>"
+                f"<p style='color:#f87171'>render error: {_esc(str(exc)[:120])}</p></section>"
+            )
+            nav.append(f"<a href='#d{i}'>{_esc(label)}</a>")
+            continue
+        if not css:
+            m = re.search(r"<style[^>]*>(.*?)</style>", preview, re.S)
+            css = m.group(1) if m else ""
+        bm = re.search(r"<body[^>]*>(.*?)</body>", preview, re.S)
+        inner = bm.group(1) if bm else preview
+        npanel = len([e for e in (cfg.get("dashboardElements") or []) if e.get("type") == "vis"])
+        meta_span = f"<span style='opacity:.5;font-size:14px'>· {npanel} panels</span>"
+        sections.append(
+            f"<section id='d{i}'><h2>{_esc(label)} {meta_span}</h2>{inner}</section>"
+        )
+        nav.append(f"<a href='#d{i}'>{_esc(label)}</a>")
+
+    navhtml = " · ".join(nav)
+    tenant = getattr(client, "tenant", None) if client else None
+    data_line = (f"live sample from {tenant}" if tenant else "layout only (no tenant)")
+    return (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        f"<title>{_esc(title)}</title><style>{css}\n"
+        "body{padding:0}.gwrap{max-width:1100px;margin:0 auto;padding:24px}"
+        ".gnav{position:sticky;top:0;background:#0d0f13;border-bottom:1px solid #2a2f36;"
+        "padding:12px 24px;font-size:13px;line-height:1.9;z-index:10}"
+        ".gnav a{color:#27B2FF;text-decoration:none;margin-right:4px}"
+        ".gnav a:hover{text-decoration:underline}"
+        "section{border-top:1px solid #2a2f36;padding:22px 0;margin-top:22px}"
+        "section h2{font-size:20px;margin:0 0 14px}"
+        "h1.gtitle{font-size:26px;margin:0 0 4px}</style></head>"
+        f"<body><div class='gnav'><b>Dashboards</b> — {navhtml}</div>"
+        f"<div class='gwrap'><h1 class='gtitle'>{_esc(title)}</h1>"
+        f"<p style='color:#9aa3ad;font-size:13px'>{len(named_configs)} dashboards via exa-tools "
+        f"render_dashboard · {data_line} · panels approximate the context-table filter (SAMPLE)"
+        f"{' · customer identity scrubbed' if scrub else ''}.</p>"
+        f"{''.join(sections)}</div></body></html>"
     )

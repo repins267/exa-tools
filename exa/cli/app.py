@@ -267,6 +267,10 @@ from exa.cli.aillm import aillm_app  # noqa: E402
 
 app.add_typer(aillm_app)
 
+from exa.cli.dashboard import dashboard_app  # noqa: E402
+
+app.add_typer(dashboard_app)
+
 
 # -- Health / licence --------------------------------------------------------
 
