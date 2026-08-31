@@ -524,8 +524,25 @@ def records_export(
       uv run exa tables records export <table-id> output.csv --tenant csnafusion
     """
     import csv as _csv
+    import os
 
     from exa.context.tables import get_all_records
+
+    # Fail fast on a bad output path — before the API fetch — with a clear message.
+    # (open() on a directory raises a bare PermissionError, which is opaque.)
+    if os.path.isdir(output_path):
+        console.print(
+            f"[red]'{output_path}' is a directory, but a CSV file path is required.[/] "
+            f"Try: {os.path.join(output_path, 'export.csv')}"
+        )
+        raise typer.Exit(1)
+    parent = os.path.dirname(os.path.abspath(output_path))
+    if not os.path.isdir(parent):
+        console.print(
+            f"[red]The directory for that path does not exist:[/] {parent}\n"
+            "Create it first, or choose an existing folder."
+        )
+        raise typer.Exit(1)
 
     client = _make_client(tenant)
     try:
